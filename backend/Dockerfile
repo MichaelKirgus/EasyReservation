@@ -26,7 +26,9 @@ COPY nginx.conf /etc/nginx/nginx.conf
 COPY entrypoint.sh /entrypoint.sh
 COPY prod.env /var/www/.env
 
-RUN mkdir -p /var/www/storage/framework/{views,sessions,cache} \
+RUN mkdir -p /var/www/storage/framework/views \
+    && mkdir -p /var/www/storage/framework/sessions \
+    && mkdir -p /var/www/storage/framework/cache \
     && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
     && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
