@@ -26,7 +26,6 @@ COPY nginx.conf /etc/nginx/nginx.conf
 COPY entrypoint.sh /entrypoint.sh
 COPY prod.env /var/www/.env
 
-RUN php artisan optimize:clear
 RUN php artisan storage:link
 
 RUN mkdir -p /var/www/storage/framework/views
