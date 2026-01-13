@@ -4,7 +4,7 @@ COPY . .
 RUN composer install --no-dev --prefer-dist --optimize-autoloader
 FROM php:8.3-fpm
 RUN apt-get update && apt-get install -y \
-    git unzip libpng-dev libonig-dev libxml2-dev zip curl \
+    git unzip libpng-dev libonig-dev libxml2-dev zip curl nginx \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
 WORKDIR /var/www
@@ -22,5 +22,11 @@ COPY composer.json /var/www/composer.json
 COPY composer.lock /var/www/composer.lock
 COPY --from=vendor /app/vendor /var/www/vendor
 
-EXPOSE 9000
-CMD ["php-fpm"]
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY entrypoint.sh /entrypoint.sh
+
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 8080
+
+CMD ["/entrypoint.sh"]
