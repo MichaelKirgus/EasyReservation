@@ -25,7 +25,7 @@ COPY --from=vendor /app/vendor /var/www/vendor
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY entrypoint.sh /entrypoint.sh
 
-RUN mkdir -p /var/www/storage /var/www/bootstrap/cache \
+RUN mkdir -p /var/www/storage/framework/{views,sessions,cache} \
     && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
     && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
