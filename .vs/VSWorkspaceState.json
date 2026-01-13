@@ -1,12 +1,6 @@
 {
   "ExpandedNodes": [
-    "",
-    "\\backend",
-    "\\frontend",
-    "\\frontend\\src",
-    "\\frontend\\src\\assets",
-    "\\frontend\\src\\components"
+    ""
   ],
-  "SelectedNode": "\\frontend\\index.html",
   "PreviewInSolutionExplorer": false
 }
