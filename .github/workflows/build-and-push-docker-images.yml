@@ -23,10 +23,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.IMAGE_PUSH_TOKEN }}
       - name: Build Docker image for backend
-        run: docker build -t ${{ steps.vars-repo.outputs.repo }}/backend:latest ./backend
+        run: docker build -t ghcr.io/${{ steps.vars-repo.outputs.repo }}/backend:latest ./backend
       - name: Build Docker image for frontend
-        run: docker build -t ${{ steps.vars-repo.outputs.repo }}/frontend:latest ./frontend
+        run: docker build -t ghcr.io/${{ steps.vars-repo.outputs.repo }}/frontend:latest ./frontend
       - name: Push Docker image for backend
-        run: docker push ${{ steps.vars-repo.outputs.repo }}/backend:latest
+        run: docker push ghcr.io/${{ steps.vars-repo.outputs.repo }}/backend:latest
       - name: Push Docker image for frontend
-        run: docker push ${{ steps.vars-repo.outputs.repo }}/frontend:latest
+        run: docker push ghcr.io/${{ steps.vars-repo.outputs.repo }}/frontend:latest
