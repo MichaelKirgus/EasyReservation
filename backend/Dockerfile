@@ -26,12 +26,14 @@ COPY nginx.conf /etc/nginx/nginx.conf
 COPY entrypoint.sh /entrypoint.sh
 COPY prod.env /var/www/.env
 
-RUN mkdir -p /var/www/storage/framework/views \
-    && mkdir -p /var/www/storage/framework/sessions \
-    && mkdir -p /var/www/storage/framework/cache \
-    && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
-    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+RUN php artisan optimize:clear
+RUN php artisan storage:link
 
+RUN mkdir -p /var/www/storage/framework/views
+RUN mkdir -p /var/www/storage/framework/sessions
+RUN mkdir -p /var/www/storage/framework/cache/data
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 8080
