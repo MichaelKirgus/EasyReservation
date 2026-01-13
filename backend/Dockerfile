@@ -3,8 +3,7 @@ WORKDIR /app
 COPY . .
 RUN composer install --no-dev --prefer-dist --optimize-autoloader
 FROM php:8.3-fpm-alpine
-RUN apt-get update && apt-get install -y \
-    git unzip libpng-dev libonig-dev libxml2-dev zip curl nginx \
+RUN apk add --no-cache nginx git unzip libpng-dev oniguruma-dev libxml2-dev curl \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
 WORKDIR /var/www
