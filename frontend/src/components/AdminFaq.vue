@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import IconButton from './IconButton.vue'
 
-const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api'
+const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const faqs = ref([])

@@ -5,7 +5,7 @@ import DOMPurify from 'dompurify'
 
 const props = defineProps({ langCode: { type: String, default: 'de' } })
 
-const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api'
+const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const siteToken = ref(localStorage.getItem('site_token') || '')
 const publicApiKey = ref(localStorage.getItem('public_api_key') || '')
 const lang = ref(props.langCode || (navigator.language || 'en').split('-')[0])

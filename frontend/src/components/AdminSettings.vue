@@ -4,7 +4,7 @@ import IconButton from './IconButton.vue'
 
 const props = defineProps({ langCode: { type: String, default: 'de' } })
 
-const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api'
+const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const mediaBase = import.meta.env.VITE_MEDIA_BASE || new URL(apiBase).origin
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
 const settings = reactive({})

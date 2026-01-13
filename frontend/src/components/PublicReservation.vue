@@ -5,7 +5,7 @@ import DOMPurify from 'dompurify'
 
 const props = defineProps({ langCode: { type: String, default: 'de' } })
 
-const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api'
+const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const mediaBase = import.meta.env.VITE_MEDIA_BASE || (() => {
   if (apiBase.startsWith('http')) return new URL(apiBase).origin
   return window.location.origin

@@ -5,7 +5,7 @@ import AdminDataTable from './AdminDataTable.vue'
 
 const props = defineProps({ defaultSubTab: { type: String, default: 'send' } })
 
-const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api'
+const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const templates = ref([])
