@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          ref: refactor-to-backend-frontend
+          ref: dev
       - name: Set image name for backend
         id: vars-backend
         run: |
