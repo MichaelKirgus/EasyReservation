@@ -1,6 +1,12 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\backend",
+    "\\backend\\app",
+    "\\frontend",
+    "\\frontend\\src",
+    "\\frontend\\src\\components"
   ],
+  "SelectedNode": "\\backend\\Dockerfile",
   "PreviewInSolutionExplorer": false
 }

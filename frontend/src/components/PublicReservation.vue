@@ -240,14 +240,14 @@ async function submitReservation() {
 
     if (data?.validation_pending) {
       if (data?.pending_admin) {
-        setMessage(tr('email_validation_pending_admin', 'Bestätigung wartet auf Admin-Freigabe.'))
+        setMessage(renderMarkdown(config.settings.reservation_admin_validation_pending_text) ||  tr('reservation_admin_validation_pending_text', 'Bestätigung wartet auf Admin-Freigabe.'))
       } else {
-        setMessage(tr('email_validation_check_mail', 'Bitte bestätige deine E-Mail.'))
+        setMessage(renderMarkdown(config.settings.email_validation_pending_text) || tr('email_validation_pending_text', 'Bitte bestätige deine E-Mail.'))
       }
     } else if (data?.waitlist) {
-      setMessage(config.settings.waitlist_success_text || tr('feedback_waitlist_success', 'Du stehst jetzt auf der Warteliste.'))
+      setMessage(renderMarkdown(config.settings.waitlist_success_text) || tr('waitlist_success_text', 'Du stehst jetzt auf der Warteliste.'))
     } else {
-      setMessage(tr('feedback_reservation_success', 'Reservierung erfolgreich.'))
+      setMessage(renderMarkdown(config.settings.reservation_success_text) || tr('reservation_success_text', 'Reservierung erfolgreich.'))
     }
     form.name = ''
     form.email = ''
@@ -335,11 +335,11 @@ async function verifyTokenIfPresent() {
     if (!res.ok) throw new Error(data?.message || text || res.statusText)
 
     if (data?.pending_admin) {
-      setMessage(tr('email_validation_confirmed_pending_admin', 'E-Mail bestätigt. Wartet auf Freigabe durch Administrator.'))
+      setMessage(renderMarkdown(config.settings.reservation_admin_validation_pending_text) ||  tr('reservation_admin_validation_pending_text', 'Bestätigung wartet auf Admin-Freigabe.'))
     } else if (data?.waitlist) {
-      setMessage(tr('email_validation_confirmed_waitlist', 'E-Mail bestätigt. Auf Warteliste eingetragen.'))
+      setMessage(renderMarkdown(config.settings.waitlist_success_text) || tr('waitlist_success_text', 'Du stehst jetzt auf der Warteliste.'))
     } else {
-      setMessage(tr('email_validation_confirmed_reservation', 'E-Mail bestätigt. Reservierung erstellt.'))
+      setMessage(renderMarkdown(config.settings.reservation_success_text) || tr('reservation_success_text', 'Reservierung erfolgreich.'))
     }
     await loadConfig()
   } catch (e) {
@@ -359,7 +359,7 @@ async function handleUndoTokenIfPresent() {
     let data = null
     try { data = text ? JSON.parse(text) : null } catch (_) { data = null }
     if (!res.ok) throw new Error(data?.message || text || res.statusText)
-    setMessage(tr('feedback_reservation_undo_success', 'Reservierung entfernt.'))
+    setMessage(renderMarkdown(config.settings.reservation_undo_success_text) || tr('reservation_undo_success_text', 'Reservierung entfernt.'))
     await loadConfig()
   } catch (e) {
     setError(tr('reservation_undo_failed_prefix', 'Stornieren fehlgeschlagen: ') + (e.message || e))
@@ -378,7 +378,7 @@ async function handleWaitlistUndoTokenIfPresent() {
     let data = null
     try { data = text ? JSON.parse(text) : null } catch (_) { data = null }
     if (!res.ok) throw new Error(data?.message || text || res.statusText)
-    setMessage(tr('waitlist_undo_success', 'Wartelisten-Eintrag entfernt.'))
+    setMessage(renderMarkdown(config.settings.waitlist_undo_success_text) || tr('waitlist_undo_success_text', 'Reservierung entfernt.'))
     await loadConfig()
   } catch (e) {
     setError(tr('waitlist_undo_failed_prefix', 'Wartelisten-Stornierung fehlgeschlagen: ') + (e.message || e))
@@ -486,12 +486,12 @@ function goToFaq() {
         <img v-if="loadingImageUrl" :src="loadingImageUrl" alt="Loading" class="loader-image" />
         <div v-else class="loader-spinner" aria-hidden="true"></div>
       </div>
-      <div v-if="message" class="message">{{ message }}</div>
+      <div v-if="message" class="message" v-html="message"></div>
       <div v-if="error" class="error">{{ error }}</div>
 
       <div v-if="(modalMessageEnabled && message) || (modalErrorEnabled && error)" class="modal-backdrop" @click.self="() => { message = ''; error = '' }">
         <div class="modal">
-          <p class="modal-text">{{ message || error }}</p>
+          <p class="modal-text" v-html="message || error"></p>
           <button @click="() => { message = ''; error = '' }">{{ tr('modal_close', 'OK') }}</button>
         </div>
       </div>

@@ -54,7 +54,8 @@ const fields = [
   { key: 'reservation_attendees_align', type: 'text', default: 'left' },
   { key: 'waitlist_full_text', type: 'text', placeholders: true },
   { key: 'waitlist_join_button_text', type: 'text', placeholders: true },
-  { key: 'waitlist_success_text', type: 'text', placeholders: true },
+  { key: 'waitlist_success_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
+  { key: 'waitlist_undo_success_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
   { key: 'waitlist_disabled_text', type: 'text', placeholders: true },
   { key: 'reservation_enabled', type: 'boolean' },
   { key: 'reservation_undo_enabled', type: 'boolean' },
@@ -109,6 +110,10 @@ const fields = [
   { key: 'mail_from_name', type: 'text' },
   { key: 'privacy_policy_enabled', type: 'boolean' },
   { key: 'privacy_policy_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
+  { key: 'email_validation_pending_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
+  { key: 'reservation_success_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
+  { key: 'reservation_undo_success_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
+  { key: 'reservation_admin_validation_pending_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
 ]
 
 const placeholderHint = computed(() => placeholders.value.length ? `Platzhalter: ${placeholders.value.join(', ')}` : '')
@@ -166,6 +171,11 @@ const tabFieldMap = {
     'waitlist_full_text',
     'waitlist_join_button_text',
     'waitlist_success_text',
+    'waitlist_undo_success_text',
+    'email_validation_pending_text',
+    'reservation_admin_validation_pending_text',
+    'reservation_success_text',
+    'reservation_undo_success_text',
     'waitlist_disabled_text',
     'reservation_page_title',
     'privacy_policy_text',
