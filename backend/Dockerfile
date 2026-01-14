@@ -30,9 +30,9 @@ RUN php artisan storage:link
 RUN mkdir -p /var/www/storage/framework/views
 RUN mkdir -p /var/www/storage/framework/sessions
 RUN mkdir -p /var/www/storage/framework/cache/data
-RUN mkdir -p /var/www/app/private
-RUN chown -R www-data:www-data /var/www/storage /var/www/app/private /var/www/bootstrap/cache
-RUN chmod -R 775 /var/www/storage /var/www/app/private /var/www/bootstrap/cache
+RUN mkdir -p /var/www/storage/app/private
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 8080
