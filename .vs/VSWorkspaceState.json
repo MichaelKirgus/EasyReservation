@@ -3,10 +3,14 @@
     "",
     "\\backend",
     "\\backend\\app",
-    "\\frontend",
-    "\\frontend\\src",
-    "\\frontend\\src\\components"
+    "\\backend\\app\\Http",
+    "\\backend\\app\\Http\\Controllers",
+    "\\backend\\app\\Http\\Middleware",
+    "\\backend\\app\\Http\\Requests",
+    "\\backend\\app\\Jobs",
+    "\\backend\\app\\Models",
+    "\\backend\\app\\Providers"
   ],
-  "SelectedNode": "\\backend\\Dockerfile",
+  "SelectedNode": "\\backend\\app\\Services\\IcsService.php",
   "PreviewInSolutionExplorer": false
 }

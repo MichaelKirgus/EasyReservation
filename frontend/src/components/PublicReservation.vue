@@ -476,6 +476,9 @@ function applyCustomCss(css) {
 
 function goToFaq() {
   window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'public-faq' }))
+    }
+function goToGDPR() {
+  window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'public-privacy' }))
 }
 </script>
 
@@ -497,8 +500,13 @@ function goToFaq() {
       </div>
 
       <section class="card" :style="cardStyle">
-        <div class="faq-button-row">
-          <button type="button" class="ghost" @click="goToFaq">FAQ</button>
+        <div class="button-row">
+            <div v-if="Number(config.settings.show_faq_button_landing_enabled) === 1">
+               <button type="button" class="ghost" @click="goToFaq" :style="{ color: config.settings.faq_button_color || 'white', backgroundColor: config.settings.faq_button_backgroundcolor || '#2563eb', borderColor: config.settings.faq_button_border_color || '#2563eb' }">{{ tr('faq_button_text_label', 'FAQ') }}</button>
+            </div>
+            <div v-if="Number(config.settings.show_gdpr_button_landing_enabled) === 1">
+               <button type="button" class="ghost" @click="goToGDPR" :style="{ color: config.settings.gdpr_button_color || 'white', backgroundColor: config.settings.gdpr_button_backgroundcolor || '#2563eb', borderColor: config.settings.gdpr_button_border_color || '#2563eb' }">{{ tr('gdpr_button_text_label', 'Privacy') }}</button>
+            </div>
         </div>
         <div v-if="config.settings.reservation_top_image" class="top-image">
           <img
@@ -562,7 +570,7 @@ function goToFaq() {
           <button
             type="submit"
             :disabled="loading || !reservationEnabled"
-            :style="{ backgroundColor: config.settings.reservation_button_color || '#2563eb', borderColor: config.settings.reservation_button_color || '#2563eb' }"
+            :style="{ color: config.settings.reservation_button_color || 'white', backgroundColor: config.settings.reservation_button_backgroundcolor || '#2563eb', borderColor: config.settings.reservation_button_border_color || '#2563eb' }"
           >
             {{ submitLabel }}
           </button>
@@ -572,7 +580,7 @@ function goToFaq() {
             class="ghost"
             @click="undoReservation"
             :disabled="loading"
-            :style="{ color: config.settings.reservation_button_color || '#2563eb', borderColor: config.settings.reservation_button_color || '#2563eb' }"
+            :style="{ color: config.settings.reservation_undo_button_color || 'white', backgroundColor: config.settings.reservation_undo_button_backgroundcolor || '#2563eb', borderColor: config.settings.reservation_undo_button_border_color || '#2563eb' }"
           >
             {{ tr('button_remove_reservation', 'Reservierung löschen') }}
           </button>
@@ -628,7 +636,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .modal-text { margin: 0; font-size: 1rem; }
 .top-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
-.faq-button-row { display: flex; justify-content: flex-end; }
+.button-row { display: flex; justify-content: flex-end; gap: 5px; }
 .title-row { display: flex; }
 .title-row.align-left { justify-content: flex-start; }
 .title-row.align-center { justify-content: center; text-align: center; }
