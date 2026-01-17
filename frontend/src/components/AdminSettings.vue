@@ -114,6 +114,7 @@ const fields = [
   { key: 'reservation_show_next_event', type: 'boolean', default: 1 },
   { key: 'event_date_format', type: 'text', default: 'Y-m-d' },
   { key: 'event_time_format', type: 'text', default: 'H:i' },
+  { key: 'event_timezone', type: 'text', default: 'Europe/Berlin' },
   { key: 'mail_host', type: 'text' },
   { key: 'mail_port', type: 'number' },
   { key: 'mail_username', type: 'text' },
@@ -173,6 +174,7 @@ const tabFieldMap = {
     'reservation_show_next_event',
     'event_date_format',
     'event_time_format',
+    'event_timezone',
     'ical_timezone',
   ]),
   text: new Set([

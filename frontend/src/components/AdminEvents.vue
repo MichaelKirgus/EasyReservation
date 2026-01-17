@@ -25,9 +25,23 @@ const eventColumns = [
 
 function formatDateTime(val) {
   if (!val) return ''
-  const d = new Date(val)
+  let d
+  // "YYYY-MM-DDTHH:mm" (local)
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(val)) {
+    const [date, time] = val.split('T')
+    const [year, month, day] = date.split('-').map(Number)
+    const [hour, minute] = time.split(':').map(Number)
+    d = new Date(year, month - 1, day, hour, minute)
+  } else {
+    d = new Date(val)
+  }
   if (Number.isNaN(d.getTime())) return val
-  return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(d)
+  // Dynamisch nach Sprache und Zeitzone des Browsers formatieren
+  return d.toLocaleString(navigator.language, {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    timeZoneName: 'short'
+  })
 }
 
 const form = reactive({

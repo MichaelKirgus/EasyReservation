@@ -25,12 +25,13 @@ class PlaceholderService
         $dateFormat = (string) ($this->settings->get('event_date_format', 'Y-m-d') ?: 'Y-m-d');
         $timeFormat = (string) ($this->settings->get('event_time_format', 'H:i') ?: 'H:i');
 
+        $timezone = $this->settings->get('event_timezone', 'Europe/Berlin');
         $nextEvent = $next ? $this->events->format($next) : '';
         $eventLocation = $next instanceof Event ? (string) ($next->location ?? '') : '';
         $eventCity = $next instanceof Event ? (string) ($next->city ?? '') : '';
         $eventTitle = $next instanceof Event ? (string) ($next->title ?? '') : '';
-        $eventDate = $next?->start_at?->format($dateFormat) ?? '';
-        $eventTime = $next?->start_at?->format($timeFormat) ?? '';
+        $eventDate = $next?->start_at?->copy()->setTimezone($timezone)->format($dateFormat) ?? '';
+        $eventTime = $next?->start_at?->copy()->setTimezone($timezone)->format($timeFormat) ?? '';
         $eventUrl = $next instanceof Event ? (string) ($next->url ?? '') : '';
         $eventPublicTransportUrl = $next instanceof Event ? (string) ($next->public_transport_url ?? '') : '';
 

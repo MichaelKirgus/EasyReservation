@@ -96,6 +96,8 @@ Route::middleware(['role:admin,moderator'])->group(function () {
     Route::get('/moderator/waitlist/export', [WaitlistController::class, 'export']);
     Route::delete('/moderator/waitlist/{entry}', [WaitlistController::class, 'destroy']);
 
+    Route::get('/moderator/email-validations', [EmailValidationAdminController::class, 'index']);
+
     Route::get('/moderator/email-templates', [EmailTemplateController::class, 'index']);
     Route::post('/moderator/email-broadcast', [EmailBroadcastController::class, 'send']);
     Route::get('/moderator/placeholders', [PlaceholderController::class, 'index']);

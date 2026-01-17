@@ -11,6 +11,6 @@
     "\\frontend\\src",
     "\\frontend\\src\\components"
   ],
-  "SelectedNode": "\\backend\\app\\Services\\IcsService.php",
+  "SelectedNode": "\\backend\\app\\Services\\EmailValidationService.php",
   "PreviewInSolutionExplorer": false
 }
