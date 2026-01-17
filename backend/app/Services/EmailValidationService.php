@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Request;
+
 class EmailValidationService
 {
     public function __construct(
@@ -33,10 +36,40 @@ class EmailValidationService
         return (int) ($this->settings->get('email_validation_admin_enabled', 0) ?? 0) === 1;
     }
 
+    private function getClientIp(): string
+    {
+        $forwarded = Request::server($this->settings->get('email_validation_rate_limit_header', 'HTTP_X_FORWARDED_FOR'));
+        if ($forwarded) {
+            $ips = explode(',', $forwarded);
+            return trim($ips[0]);
+        }
+        return Request::ip();
+    }
+
+    private function checkRateLimit(string $ip): void
+    {
+        $limit = (int)($this->settings->get('email_validation_rate_limit_per_hour', 5) ?? 5);
+        if ($limit <= 0) {
+            return; // No limit
+        }
+        $key = 'email_validation_rate:' . $ip . ':' . now()->format('YmdH');
+        $count = Cache::get($key, 0);
+        if ($count >= $limit) {
+            throw new \RuntimeException('Too many requests from IP, please try again later.');
+        }
+        Cache::put($key, $count + 1, now()->addHour());
+    }
+
     public function createRequest(string $type, string $name, ?string $email, array $payload = []): EmailValidation
     {
         $requiresEmail = $this->emailValidationEnabled();
         $requiresAdmin = $this->adminApprovalEnabled();
+
+        // Rate-Limit check
+        if ($requiresEmail) {
+            $ip = $this->getClientIp();
+            $this->checkRateLimit($ip);
+        }
 
         $validation = EmailValidation::create([
             'type' => $type,
