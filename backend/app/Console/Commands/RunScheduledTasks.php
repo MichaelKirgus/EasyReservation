@@ -35,6 +35,7 @@ class RunScheduledTasks extends Command
         // Nach Aktualisierung: nur fällige Tasks ausführen
         $dueTasks = ScheduledTask::where('run_at', '<=', now())
             ->where('executed', false)
+            ->where('active', true)
             ->orderBy('run_at')
             ->get();
 
@@ -62,6 +63,7 @@ class RunScheduledTasks extends Command
                         }
                     }
                     $task->executed = true;
+                    $task->executed_at = now();
                     $task->save();
                     continue;
                 }
@@ -83,6 +85,7 @@ class RunScheduledTasks extends Command
                         Log::warning('Unbekannter Task-Typ: ' . $task->type);
                 }
                 $task->executed = true;
+                $task->executed_at = now();
                 $task->save();
             } catch (\Throwable $e) {
                 Log::error('Fehler beim Ausführen von ScheduledTask ' . $task->id . ': ' . $e->getMessage());

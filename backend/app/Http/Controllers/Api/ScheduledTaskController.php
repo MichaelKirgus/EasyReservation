@@ -5,17 +5,26 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\ScheduledTask;
+use Illuminate\Support\Carbon;
 
 class ScheduledTaskController extends Controller
 {
     // GET /admin/scheduled-tasks
     public function index()
     {
-        return ScheduledTask::orderBy('run_at', 'asc')->get();
+        $tasks = ScheduledTask::orderBy('run_at', 'asc')->get();
+        $nextTask = ScheduledTask::where('executed', false)
+            ->where('active', true)
+            ->where('run_at', '>', now())
+            ->orderBy('run_at')
+            ->first();
+        return response()->json([
+            'tasks' => $tasks,
+            'next_run_at' => $nextTask ? $nextTask->run_at : null,
+        ]);
     }
 
     // POST /admin/scheduled-tasks
-
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -26,13 +35,13 @@ class ScheduledTaskController extends Controller
             'reference_id' => 'nullable|integer',
             'relative_to' => 'nullable|string',
             'relative_offset_minutes' => 'nullable|integer',
+            'active' => 'boolean',
         ]);
         $task = ScheduledTask::create($data);
         return response()->json($task, 201);
     }
 
     // PUT /admin/scheduled-tasks/{id}
-
     public function update(Request $request, $id)
     {
         $task = ScheduledTask::findOrFail($id);
@@ -41,12 +50,51 @@ class ScheduledTaskController extends Controller
             'run_at' => 'nullable|date',
             'options' => 'nullable|array',
             'executed' => 'boolean',
+            'executed_at' => 'nullable|date',
+            'active' => 'boolean',
             'reference_type' => 'nullable|string',
             'reference_id' => 'nullable|integer',
             'relative_to' => 'nullable|string',
             'relative_offset_minutes' => 'nullable|integer',
         ]);
         $task->update($data);
+        return response()->json($task);
+    }
+
+    // PATCH /admin/scheduled-tasks/{id}/activate
+    public function activate($id)
+    {
+        $task = ScheduledTask::findOrFail($id);
+        $task->active = true;
+        $task->save();
+        return response()->json($task);
+    }
+
+    // PATCH /admin/scheduled-tasks/{id}/deactivate
+    public function deactivate($id)
+    {
+        $task = ScheduledTask::findOrFail($id);
+        $task->active = false;
+        $task->save();
+        return response()->json($task);
+    }
+
+    // POST /admin/scheduled-tasks/{id}/run-now
+    public function runNow($id)
+    {
+        $task = ScheduledTask::findOrFail($id);
+        if (!$task->executed && $task->active) {
+            // Sofort ausführen, wie im Command
+            try {
+                // ... gleiche Logik wie im Command, ggf. auslagern ...
+                // Hier nur als Platzhalter:
+                $task->run_at = now();
+                $task->executed = false;
+                $task->save();
+            } catch (\Throwable $e) {
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
+        }
         return response()->json($task);
     }
 

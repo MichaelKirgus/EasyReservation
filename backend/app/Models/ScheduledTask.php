@@ -14,6 +14,8 @@ class ScheduledTask extends Model
         'run_at',
         'options',
         'executed',
+        'executed_at',
+        'active',
         'reference_type',
         'reference_id',
         'relative_to',
@@ -22,8 +24,10 @@ class ScheduledTask extends Model
 
     protected $casts = [
         'run_at' => 'datetime',
+        'executed_at' => 'datetime',
         'options' => 'array',
         'executed' => 'boolean',
+        'active' => 'boolean',
         'reference_id' => 'integer',
         'relative_offset_minutes' => 'integer',
     ];
