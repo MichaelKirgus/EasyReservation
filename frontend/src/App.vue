@@ -9,6 +9,7 @@ import AdminUsers from './components/AdminUsers.vue'
 import AdminEmailBroadcast from './components/AdminEmailBroadcast.vue'
 import AdminFaq from './components/AdminFaq.vue'
 import AdminEvents from './components/AdminEvents.vue'
+import AdminScheduledTasks from './components/AdminScheduledTasks.vue'
 import AdminDiagnostics from './components/AdminDiagnostics.vue'
 import languageIconSrc from './assets/icons/languageicon.svg'
 import flagDe from './assets/icons/flag-de.svg'
@@ -54,6 +55,7 @@ const tabGroups = computed(() => [
     tabs: [
       { key: 'admin-diagnostics', label: 'Diagnose', roles: ['admin'] },
       { key: 'admin-settings', label: 'Einstellungen', roles: ['admin'] },
+      { key: 'admin-scheduled-tasks', label: 'Geplante Aufgaben', roles: ['admin'] },
       { key: 'form-fields', label: 'Formularfelder', roles: ['admin'] },
       { key: 'users', label: 'Benutzer', roles: ['admin'] },
     ],
@@ -333,6 +335,7 @@ async function fetchPrivacyEnabled() {
       <AdminEvents v-else-if="active === 'admin-events'" />
       <AdminDiagnostics v-else-if="active === 'admin-diagnostics'" />
       <AdminSettings v-else-if="active === 'admin-settings'" :lang-code="selectedLang" />
+      <AdminScheduledTasks v-else-if="active === 'admin-scheduled-tasks'" />
       <FormFieldManager v-else-if="active === 'form-fields'" :lang-code="selectedLang" />
       <AdminUsers v-else />
     </section>

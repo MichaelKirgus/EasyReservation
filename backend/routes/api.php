@@ -78,6 +78,7 @@ Route::middleware(['role:admin'])->group(function () {
     Route::get('/admin/placeholders', [PlaceholderController::class, 'index']);
 
     Route::apiResource('/admin/events', EventController::class)->except(['create', 'edit', 'show']);
+    Route::apiResource('/admin/scheduled-tasks', \App\Http\Controllers\Api\ScheduledTaskController::class)->except(['create', 'edit', 'show']);
     Route::get('/admin/diagnostics', [DiagnosticsController::class, 'show']);
 
     Route::get('/admin/email-validation-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'index']);
