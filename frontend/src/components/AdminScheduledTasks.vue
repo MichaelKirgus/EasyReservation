@@ -28,6 +28,11 @@ import TaskDialog from './TaskDialog.vue' // Dialog für Create/Edit
 import IconButton from './IconButton.vue'
 import axios from 'axios'
 
+function apiConfig() {
+  const apiKey = localStorage.getItem('admin_api_key') || sessionStorage.getItem('admin_api_key') || '';
+  return { headers: { 'X-Api-Key': apiKey } };
+}
+
 const tasks = ref([])
 const loading = ref(false)
 const showDialog = ref(false)
@@ -48,7 +53,7 @@ const columns = [
 
 function fetchTasks() {
   loading.value = true
-  axios.get('/api/admin/scheduled-tasks')
+  axios.get('/api/admin/scheduled-tasks', apiConfig())
     .then(res => {
       tasks.value = res.data
     })
@@ -71,7 +76,7 @@ function createTask() {
 function deleteTask(task) {
   if (confirm('Wirklich löschen?')) {
     loading.value = true
-    axios.delete(`/api/admin/scheduled-tasks/${task.id}`)
+    axios.delete(`/api/admin/scheduled-tasks/${task.id}`, apiConfig())
       .then(fetchTasks)
       .finally(() => { loading.value = false })
   }
@@ -81,8 +86,8 @@ function deleteTask(task) {
 function saveTask(task) {
   loading.value = true
   const req = task.id
-    ? axios.put(`/api/admin/scheduled-tasks/${task.id}`, task)
-    : axios.post('/api/admin/scheduled-tasks', task)
+    ? axios.put(`/api/admin/scheduled-tasks/${task.id}`, task, apiConfig())
+    : axios.post('/api/admin/scheduled-tasks', task, apiConfig())
   req.then(fetchTasks)
      .finally(() => { loading.value = false; showDialog.value = false })
 }

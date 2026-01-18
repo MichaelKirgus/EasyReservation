@@ -13,6 +13,7 @@ const props = defineProps({
 const ICONS = {
   plus: { viewBox: '0 0 24 24', paths: ['M12 5v14', 'M5 12h14'] },
   trash: { viewBox: '0 0 24 24', paths: ['M6 7h12', 'M9 7V5h6v2', 'M10 11v6', 'M14 11v6', 'M5 7v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7'] },
+  pencil: { viewBox: '0 0 24 24', paths: ['M12 20h9', 'M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z'] },
   trash2: { viewBox: '0 0 24 24', paths: ['M3 6h18', 'M19 6v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6', 'M9 6V4h6v2', 'm9 10-6 6', 'm9 16-6-6'] },
   save: { viewBox: '0 0 24 24', paths: ['M5 5h11l3 3v11H5z', 'M9 5v6h6V5'] },
   refresh: { viewBox: '0 0 24 24', paths: ['M4 4v6h6', 'M20 20v-6h-6', 'M5 14a7 7 0 0 0 12 3', 'M19 10a7 7 0 0 0-12-3'] },

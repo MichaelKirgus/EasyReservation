@@ -9,7 +9,7 @@
         <select v-model="form.type" required>
           <option value="">Bitte wählen…</option>
           <option value="email_broadcast">E-Mail an Teilnehmer</option>
-          <option value="close_reservation">Reservierungsliste schließen</option>
+          <option value="change_setting">Einstellung ändern</option>
           <!-- Weitere Typen hier ergänzen -->
         </select>
       </div>
@@ -18,19 +18,32 @@
         <input v-model="form.run_at" type="datetime-local" />
       </div>
       <div>
-        <label>Event:</label>
+        <label>Referenz-Typ:</label>
+        <select v-model="form.reference_type">
+          <option value="event">Event</option>
+          <option value="reservation">Reservierung</option>
+          <option value="user">Benutzer</option>
+        </select>
+      </div>
+      <div v-if="referenceObjects.length">
+        <label>Referenz-Objekt:</label>
         <select v-model="form.reference_id">
-          <option :value="null">Alle Events (auch zukünftige)</option>
-          <option v-for="ev in events" :key="ev.id" :value="ev.id">
-            {{ ev.title }} (ID: {{ ev.id }}, {{ ev.start_at ? (new Date(ev.start_at)).toLocaleString() : '' }})
+          <option :value="null">Alle Objekte</option>
+          <option v-for="obj in referenceObjects" :key="obj.id" :value="obj.id">
+            {{ objDisplay(obj) }}
           </option>
         </select>
       </div>
       <div>
-        <label>Relativ zu (z.B. start_at):
-          <span class="help-inline">Optional: Feld des Referenzobjekts, z.B. <code>start_at</code> für Event-Startzeit.</span>
+        <label>Relativ zu:
+          <span class="help-inline">Optional: Feld des Referenzobjekts.</span>
         </label>
-        <input v-model="form.relative_to" placeholder="start_at" />
+        <select v-model="form.relative_to">
+          <option value="">Bitte wählen…</option>
+          <option v-for="field in relativeFields" :key="field" :value="field">
+            {{ field }}
+          </option>
+        </select>
       </div>
       <div>
         <label>Offset (Minuten):
@@ -38,9 +51,24 @@
         </label>
         <input v-model.number="form.relative_offset_minutes" type="number" />
       </div>
+
+      <div v-if="form.type === 'change_setting'">
+        <label>Einstellungsschlüssel:</label>
+        <select v-model="selectedSettingKey" required>
+          <option value="">Bitte wählen…</option>
+          <option v-for="key in settingKeys" :key="key" :value="key">{{ key }}</option>
+        </select>
+        <label>Neuer Wert:</label>
+        <input v-model="settingValue" type="text" required />
+      </div>
       <div v-if="form.type === 'email_broadcast'">
-        <label>E-Mail-Template-ID:</label>
-        <input v-model.number="emailTemplateId" type="number" required />
+        <label>E-Mail-Vorlage:</label>
+        <select v-model.number="selectedTemplateId" required>
+          <option value="">Bitte wählen…</option>
+          <option v-for="tpl in emailTemplates" :key="tpl.id" :value="tpl.id">
+            {{ tpl.name || tpl.subject || ('Vorlage #' + tpl.id) }} (ID: {{ tpl.id }})
+          </option>
+        </select>
       </div>
       <div>
         <label>Bereits ausgeführt:</label>
@@ -54,10 +82,16 @@
   </div>
 </template>
 
+
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
 import IconButton from './IconButton.vue'
 import axios from 'axios'
+
+function apiConfig() {
+  const apiKey = localStorage.getItem('admin_api_key') || sessionStorage.getItem('admin_api_key') || '';
+  return { headers: { 'X-Api-Key': apiKey } };
+}
 const props = defineProps({ task: Object })
 const emit = defineEmits(['save', 'close'])
 
@@ -72,18 +106,54 @@ const form = ref({
   executed: false,
 })
 
-const events = ref([])
+const referenceObjects = ref([])
+const emailTemplates = ref([])
+const selectedTemplateId = ref('')
+const settingKeys = ref([])
+const selectedSettingKey = ref('')
+const settingValue = ref('')
+
+const relativeFieldsMap = {
+  event: ['start_at', 'end_at'],
+  reservation: ['created_at', 'updated_at'],
+  user: ['created_at', 'last_login_at'],
+}
+const relativeFields = computed(() => relativeFieldsMap[form.value.reference_type] || [])
+
+function objDisplay(obj) {
+  if (form.value.reference_type === 'event') return `${obj.title} (ID: ${obj.id})`
+  if (form.value.reference_type === 'reservation') return `${obj.name || obj.title || 'Reservierung'} (ID: ${obj.id})`
+  if (form.value.reference_type === 'user') return `${obj.email || obj.name || 'Benutzer'} (ID: ${obj.id})`
+  return `Objekt #${obj.id}`
+}
 
 onMounted(async () => {
+  // Initial: Events laden, falls Standardtyp
+  if (form.value.reference_type === 'event') {
+    try {
+      const res = await axios.get('/api/admin/events', apiConfig())
+      referenceObjects.value = res.data
+    } catch {}
+  }
   try {
-    const res = await axios.get('/api/admin/events')
-    events.value = res.data
+    const tplRes = await axios.get('/api/admin/email-templates', apiConfig())
+    emailTemplates.value = tplRes.data
+  } catch {}
+  try {
+    const keysRes = await axios.get('/api/admin/settings-keys', apiConfig())
+    settingKeys.value = keysRes.data
   } catch {}
 })
+
 
 watch(() => props.task, (task) => {
   if (task) {
     form.value = { ...task, options: task.options || {}, reference_type: task.reference_type || 'event' }
+    if (form.value.type === 'email_broadcast') {
+      selectedTemplateId.value = form.value.options?.template_id || ''
+    } else {
+      selectedTemplateId.value = ''
+    }
   } else {
     form.value = {
       type: '',
@@ -95,6 +165,7 @@ watch(() => props.task, (task) => {
       options: {},
       executed: false,
     }
+    selectedTemplateId.value = ''
   }
 }, { immediate: true })
 
@@ -102,7 +173,9 @@ function submit() {
   // Dynamisch options bauen je nach Typ
   const payload = { ...form.value }
   if (form.value.type === 'email_broadcast') {
-    payload.options = { ...payload.options, template_id: emailTemplateId.value }
+    payload.options = { ...payload.options, template_id: selectedTemplateId.value }
+  } else if (form.value.type === 'change_setting') {
+    payload.options = { key: selectedSettingKey.value, value: settingValue.value }
   }
   emit('save', payload)
 }

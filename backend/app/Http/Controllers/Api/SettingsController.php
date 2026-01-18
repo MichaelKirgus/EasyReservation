@@ -21,6 +21,11 @@ class SettingsController extends Controller
     {
         return response()->json($this->settings->all());
     }
+    public function keys(): \Illuminate\Http\JsonResponse
+    {
+        $keys = Setting::query()->pluck('name')->unique()->values();
+        return response()->json($keys);
+    }
 
     public function update(SettingsUpdateRequest $request): JsonResponse
     {

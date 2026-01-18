@@ -3,14 +3,14 @@
     "",
     "\\backend",
     "\\backend\\app",
-    "\\backend\\app\\Jobs",
-    "\\backend\\app\\Models",
-    "\\backend\\app\\Providers",
-    "\\backend\\app\\Services",
-    "\\frontend",
-    "\\frontend\\src",
-    "\\frontend\\src\\components"
+    "\\backend\\app\\Console",
+    "\\backend\\app\\Console\\Commands",
+    "\\backend\\app\\Http",
+    "\\backend\\app\\Http\\Controllers",
+    "\\backend\\app\\Http\\Controllers\\Api",
+    "\\backend\\config",
+    "\\backend\\routes"
   ],
-  "SelectedNode": "\\backend\\app\\Services\\EmailValidationService.php",
+  "SelectedNode": "\\frontend\\src\\components\\AdminDataTable.vue",
   "PreviewInSolutionExplorer": false
 }

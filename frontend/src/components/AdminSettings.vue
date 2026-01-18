@@ -1,138 +1,44 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, watch, computed } from 'vue'
 import IconButton from './IconButton.vue'
-
-const props = defineProps({ langCode: { type: String, default: 'de' } })
+import { settingsFields } from './settingsFields.js'
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const mediaBase = import.meta.env.VITE_MEDIA_BASE || (() => {
   if (apiBase.startsWith('http')) return new URL(apiBase).origin
   return window.location.origin
 })()
-const apiKey = ref(localStorage.getItem('admin_api_key') || '')
-const settings = reactive({})
+const props = defineProps({ langCode: { type: String, default: 'de' } })
 
+import { nextTick } from 'vue'
+const translations = ref({})
+const settings = reactive({})
+const apiKey = ref(localStorage.getItem('admin_api_key') || '')
 const loading = ref(false)
 const message = ref('')
 const error = ref('')
-
-const translations = ref({})
 const templates = ref([])
 const placeholders = ref([])
-
 const imageFields = {
-  reservation_page_background_image: 'background',
   reservation_top_image: 'top',
+  reservation_page_background_image: 'background',
   reservation_page_favicon: 'favicon',
   reservation_loading_image: 'loading',
 }
-
-const imageOptions = reactive({ background: [], top: [], favicon: [] })
+const imageOptions = reactive({ background: [], top: [], favicon: [], loading: [] })
 const picker = reactive({ open: false, field: '', category: '', loading: false })
-
-const fields = [
-  { key: 'reservation_name', type: 'text' },
-  { key: 'reservation_additional_info', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
-  { key: 'reservation_show_additional_info_link', type: 'boolean' },
-  { key: 'reservation_additional_info_link_text', type: 'text', placeholders: true },
-  { key: 'reservation_additional_info_link', type: 'text' },
-  { key: 'reservation_details', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
-  { key: 'reservation_details_summary_label', type: 'text' },
-  { key: 'reservation_show_details_info_link', type: 'boolean' },
-  { key: 'reservation_details_info_link_text', type: 'text', placeholders: true },
-  { key: 'reservation_details_info_link', type: 'text' },
-  { key: 'reservation_name_maxchar', type: 'number' },
-  { key: 'reservation_name_minchar', type: 'number' },
-  { key: 'reservation_max', type: 'number' },
-  { key: 'waitlist_enabled', type: 'boolean' },
-  { key: 'waitlist_auto_promote_enabled', type: 'boolean' },
-  { key: 'waitlist_limit', type: 'number' },
-  { key: 'waitlist_undo_enabled', type: 'boolean' },
-  { key: 'waitlist_show_public', type: 'boolean', default: 0 },
-  { key: 'waitlist_public_align', type: 'text', default: 'left' },
-  { key: 'waitlist_overflow_enabled', type: 'boolean', default: 1 },
-  { key: 'reservation_attendees_align', type: 'text', default: 'left' },
-  { key: 'waitlist_full_text', type: 'text', placeholders: true },
-  { key: 'waitlist_join_button_text', type: 'text', placeholders: true },
-  { key: 'waitlist_success_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
-  { key: 'waitlist_undo_success_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
-  { key: 'waitlist_disabled_text', type: 'text', placeholders: true },
-  { key: 'reservation_enabled', type: 'boolean' },
-  { key: 'reservation_undo_enabled', type: 'boolean' },
-  { key: 'reservation_show_attendees_enabled', type: 'boolean' },
-  { key: 'reservation_show_reservation_limit_enabled', type: 'boolean' },
-  { key: 'reservation_name_blacklist_enable', type: 'boolean' },
-  { key: 'reservation_name_blacklist', type: 'text' },
-  { key: 'reservation_name_blacklist_unicode_enable', type: 'boolean' },
-  { key: 'reservation_name_blacklist_unicode_base64', type: 'text' },
-  { key: 'reservation_name_whitelist_regex_enable', type: 'boolean' },
-  { key: 'reservation_name_whitelist_regex', type: 'text' },
-  { key: 'reservation_email_whitelist_enable', type: 'boolean' },
-  { key: 'reservation_email_whitelist', type: 'text' },
-  { key: 'reservation_email_whitelist_regex_enable', type: 'boolean' },
-  { key: 'reservation_email_whitelist_regex', type: 'text' },
-  { key: 'reservation_top_image', type: 'text' },
-  { key: 'reservation_top_image_alt_description', type: 'text' },
-  { key: 'reservation_top_image_max_width', type: 'text' },
-  { key: 'reservation_top_image_max_height', type: 'text' },
-  { key: 'reservation_page_background_image', type: 'text' },
-  { key: 'reservation_background_opacity', type: 'number', default: 60 },
-  { key: 'reservation_card_opacity', type: 'number', default: 90 },
-  { key: 'reservation_page_favicon', type: 'text' },
-  { key: 'reservation_page_title', type: 'text', placeholders: true },
-  { key: 'reservation_loading_image', type: 'text' },
-  { key: 'reservation_button_color', type: 'color', default: 'white' },
-  { key: 'reservation_button_backgroundcolor', type: 'color', default: '#2563eb' },
-  { key: 'reservation_button_border_color', type: 'color', default: '#2563eb' },
-  { key: 'reservation_undo_button_color', type: 'color', default: 'white' },
-  { key: 'reservation_undo_button_backgroundcolor', type: 'color', default: '#2563eb' },
-  { key: 'reservation_undo_button_border_color', type: 'color', default: '#2563eb' },
-  { key: 'faq_button_color', type: 'color', default: 'white' },
-  { key: 'faq_button_backgroundcolor', type: 'color', default: '#2563eb' },
-  { key: 'faq_button_border_color', type: 'color', default: '#2563eb' },
-  { key: 'gdpr_button_color', type: 'color', default: 'white' },
-  { key: 'gdpr_button_backgroundcolor', type: 'color', default: '#2563eb' },
-  { key: 'gdpr_button_border_color', type: 'color', default: '#2563eb' },
-  { key: 'show_faq_button_landing_enabled', type: 'boolean' },
-  { key: 'show_gdpr_button_landing_enabled', type: 'boolean' },
-  { key: 'reservation_custom_css', type: 'text', component: 'textarea', hintKey: 'admin_setting_custom_css_hint' },
-  { key: 'reservation_header_align', type: 'text', default: 'left' },
-  { key: 'reservation_message_modal_enabled', type: 'boolean', default: 0 },
-  { key: 'reservation_error_modal_enabled', type: 'boolean', default: 0 },
-  { key: 'email_validation_enabled', type: 'boolean', default: 0 },
-  { key: 'email_validation_admin_enabled', type: 'boolean', default: 0 },
-  { key: 'email_validation_template_id', type: 'number' },
-  { key: 'email_validation_ttl_minutes', type: 'number', default: 1440 },
-  { key: 'email_validation_base_url', type: 'text' },
-  { key: 'email_reservation_success_template_id', type: 'number' },
-  { key: 'email_reservation_cancel_template_id', type: 'number' },
-  { key: 'email_waitlist_promoted_template_id', type: 'number' },
-  { key: 'email_waitlist_validation_success_template_id', type: 'number' },
-  { key: 'email_waitlist_cancel_template_id', type: 'number' },
-  { key: 'admin_reservation_notify_default', type: 'boolean', default: 0 },
-  { key: 'moderator_reservation_notify_default', type: 'boolean', default: 0 },
-  { key: 'reservation_show_next_event', type: 'boolean', default: 1 },
-  { key: 'event_date_format', type: 'text', default: 'Y-m-d' },
-  { key: 'event_time_format', type: 'text', default: 'H:i' },
-  { key: 'event_timezone', type: 'text', default: 'Europe/Berlin' },
-  { key: 'mail_host', type: 'text' },
-  { key: 'mail_port', type: 'number' },
-  { key: 'mail_username', type: 'text' },
-  { key: 'mail_password', type: 'text' },
-  { key: 'mail_encryption', type: 'text' },
-  { key: 'mail_from_address', type: 'text' },
-  { key: 'mail_from_name', type: 'text' },
-  { key: 'ical_timezone', type: 'text' },
-  { key: 'ical_template', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
-  { key: 'email_validation_rate_limit_per_hour', type: 'number', default: 5 },
-  { key: 'email_validation_rate_limit_header', type: 'text', default: 'HTTP_X_FORWARDED_FOR' },
-  { key: 'privacy_policy_enabled', type: 'boolean' },
-  { key: 'privacy_policy_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
-  { key: 'email_validation_pending_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
-  { key: 'reservation_success_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
-  { key: 'reservation_undo_success_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
-  { key: 'reservation_admin_validation_pending_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
-]
+// Settings initialisieren
+settingsFields.forEach(f => {
+  if (f.type === 'boolean') {
+    settings[f.key] = f.default !== undefined ? f.default : false
+  } else if (f.type === 'number') {
+    settings[f.key] = f.default !== undefined ? f.default : null
+  } else if (f.type === 'color') {
+    settings[f.key] = f.default !== undefined ? f.default : '#000000'
+  } else {
+    settings[f.key] = f.default !== undefined ? f.default : ''
+  }
+})
 
 const placeholderHint = computed(() => placeholders.value.length ? `Platzhalter: ${placeholders.value.join(', ')}` : '')
 const markdownHintText = computed(() => hint('admin_setting_markdown_hint') || 'Unterstützt Markdown')
@@ -268,7 +174,7 @@ const selectedTab = ref('general')
 
 const visibleFields = computed(() => {
   const allowed = tabFieldMap[selectedTab.value] || new Set()
-  return fields.filter(f => allowed.has(f.key))
+  return settingsFields.filter(f => allowed.has(f.key))
 })
 
 function tabLabel(tab) {
@@ -276,12 +182,12 @@ function tabLabel(tab) {
 }
 
 function ensureDefaults(obj) {
-  fields.forEach(f => {
+  settingsFields.forEach(f => {
     if (obj[f.key] === undefined || obj[f.key] === null) {
       obj[f.key] = f.type === 'boolean' ? false : (f.default !== undefined ? f.default : '')
     }
   })
-}
+    }
 
 function setMessage(msg) { message.value = msg; error.value = '' }
 function setError(msg) { error.value = msg; message.value = '' }
@@ -376,17 +282,35 @@ async function load() {
     await loadPlaceholders()
     const data = await resSettings.json()
     templates.value = await resTemplates.json()
-    Object.keys(settings).forEach(k => delete settings[k])
-    Object.assign(settings, data)
-    ensureDefaults(settings)
-    fields.forEach(f => {
-      if (f.type === 'boolean') settings[f.key] = Number(settings[f.key]) === 1
-      if (f.type === 'number' && settings[f.key] !== '' && settings[f.key] !== null) settings[f.key] = Number(settings[f.key])
-      if (f.type === 'text' && settings[f.key] === null) settings[f.key] = ''
-    })
+    let apiLoadSuccess = true;
+    settingsFields.forEach(f => {
+      if (data[f.key] !== undefined && data[f.key] !== null) {
+        if (f.type === 'boolean') {
+          settings[f.key] = Number(data[f.key]) === 1;
+        } else if (f.type === 'number') {
+          settings[f.key] = data[f.key] === '' ? null : Number(data[f.key]);
+        } else if (f.type === 'color') {
+          settings[f.key] = data[f.key];
+        } else {
+          settings[f.key] = data[f.key];
+        }
+      } else {
+        apiLoadSuccess = false;
+        if (f.type === 'boolean') {
+          settings[f.key] = f.default !== undefined ? f.default : false;
+        } else if (f.type === 'number') {
+          settings[f.key] = f.default !== undefined ? f.default : null;
+        } else if (f.type === 'color') {
+          settings[f.key] = f.default !== undefined ? f.default : '#000000';
+        } else {
+          settings[f.key] = f.default !== undefined ? f.default : '';
+        }
+      }
+    });
     templateFieldKeys.forEach(key => {
-      if (settings[key] === '') settings[key] = null
-    })
+      if (settings[key] === '') settings[key] = null;
+    });
+    settings.apiLoadSuccess = apiLoadSuccess;
     localStorage.setItem('admin_api_key', apiKey.value)
     console.debug('Einstellungen geladen.')
   } catch (e) { setError(`Fehler beim Laden: ${e}`) } finally { loading.value = false }
@@ -397,7 +321,7 @@ async function save() {
   loading.value = true
   try {
     const payload = {}
-    fields.forEach(f => {
+    settingsFields.forEach(f => {
       if (f.type === 'boolean') payload[f.key] = settings[f.key] ? 1 : 0
       else if (f.type === 'number') payload[f.key] = settings[f.key] === null || settings[f.key] === '' ? null : Number(settings[f.key])
       else payload[f.key] = settings[f.key]

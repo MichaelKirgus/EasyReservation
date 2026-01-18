@@ -47,6 +47,7 @@ Route::middleware(['role:admin'])->group(function () {
 
     Route::get('/admin/settings', [SettingsController::class, 'index']);
     Route::post('/admin/settings', [SettingsController::class, 'update']);
+    Route::get('/admin/settings-keys', [SettingsController::class, 'keys']);
     Route::get('/admin/media/images', [MediaController::class, 'images']);
 
     Route::apiResource('/admin/form-fields', FormFieldController::class)->except(['create', 'edit', 'show']);
@@ -84,6 +85,8 @@ Route::middleware(['role:admin'])->group(function () {
     Route::get('/admin/email-validation-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'index']);
     Route::delete('/admin/email-validation-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'destroyAll']);
     Route::delete('/admin/email-validation-rate-limits/{ip}', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'destroy']);
+
+    Route::post('/admin/purge-all', [\App\Http\Controllers\Api\PurgeController::class, 'purgeAll']);
 });
 
 Route::middleware(['role:admin,moderator'])->group(function () {

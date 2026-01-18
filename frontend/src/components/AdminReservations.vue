@@ -550,6 +550,22 @@ async function clearAllRateLimits() {
   } finally {
     rateLimitLoading.value = false
   }
+    }
+
+async function purgeAllData() {
+  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (!confirm('Wirklich ALLE Teilnehmer, Wartelisten-Einträge und Rate-Limits unwiderruflich löschen? Es werden keine E-Mail-Benachrichtigungen versendet!')) return
+  loading.value = true
+  try {
+    const res = await apiFetch('purge-all', { method: 'POST' })
+    if (!res.ok) throw new Error(await res.text())
+    setMessage('Alle Daten wurden gelöscht.')
+    await reloadAll()
+  } catch (e) {
+    setError(`Löschen aller Daten fehlgeschlagen: ${e}`)
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -560,6 +576,15 @@ async function clearAllRateLimits() {
         <label class="inline"><input type="checkbox" v-model="notifyOnChange" /> E-Mail an Teilnehmer senden</label>
       </div>
       <div class="right-actions">
+          <IconButton
+            v-if="routePrefix === 'admin'"
+            icon="trash2"
+            variant="danger"
+            label="Listen leeren"
+            style="margin-left: 8px;"
+            :disabled="loading || waitlistLoading || validationLoading"
+            @click="purgeAllData"
+          />
         <IconButton icon="refresh" label="Aktualisieren" @click="reloadAll" :disabled="loading || waitlistLoading || validationLoading" />
       </div>
     </div>

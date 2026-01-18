@@ -129,8 +129,15 @@ function editEvent(ev) {
   form.city = ev.city || ''
   form.url = ev.url || ''
   form.public_transport_url = ev.public_transport_url || ''
-  form.start_at = ev.start_at ? ev.start_at.slice(0, 16) : ''
-  form.end_at = ev.end_at ? ev.end_at.slice(0, 16) : ''
+  function toLocalDatetime(val) {
+    if (!val) return ''
+    const d = new Date(val)
+    if (Number.isNaN(d.getTime())) return ''
+    const pad = n => n.toString().padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+  form.start_at = toLocalDatetime(ev.start_at)
+  form.end_at = toLocalDatetime(ev.end_at)
   form.location = ev.location || ''
   form.capacity_override = ev.capacity_override
   form.active = !!ev.active
@@ -251,8 +258,8 @@ onMounted(() => {
       <template #cell-public_transport_url="{ value }">{{ value || '–' }}</template>
       <template #cell-active="{ value }">{{ value ? 'Ja' : 'Nein' }}</template>
       <template #row-actions="{ row }">
-        <button class="ghost" @click="editEvent(row)">Bearbeiten</button>
-        <button class="danger" @click="remove(row.id)">Löschen</button>
+        <IconButton icon="pencil" label="Bearbeiten" variant="ghost" @click="editEvent(row)" />
+        <IconButton icon="trash" label="Löschen" variant="danger" @click="remove(row.id)" />
       </template>
     </AdminDataTable>
   </div>

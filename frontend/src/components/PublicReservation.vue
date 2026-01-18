@@ -575,7 +575,7 @@ function goToGDPR() {
             {{ submitLabel }}
           </button>
           <button
-            v-if="undoEnabled"
+            v-if="undoEnabled && config.attendees.length > 0"
             type="button"
             class="ghost"
             @click="undoReservation"

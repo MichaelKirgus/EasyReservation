@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import IconButton from './IconButton.vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 
@@ -111,7 +112,7 @@ function goBack() {
   <div class="faq-page">
     <div class="top-row">
       <h2>{{ tr('faq_title', 'FAQ') }}</h2>
-      <button class="ghost" type="button" @click="goBack">? Zurück</button>
+      <IconButton icon="chevronLeft" label="Zurück" variant="ghost" @click="goBack" />
     </div>
     <p class="hint">{{ tr('faq_intro', 'Häufige Fragen zur Reservierung.') }}</p>
 

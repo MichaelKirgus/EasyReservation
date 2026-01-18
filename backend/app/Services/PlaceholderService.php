@@ -32,6 +32,8 @@ class PlaceholderService
         $eventTitle = $next instanceof Event ? (string) ($next->title ?? '') : '';
         $eventDate = $next?->start_at?->copy()->setTimezone($timezone)->format($dateFormat) ?? '';
         $eventTime = $next?->start_at?->copy()->setTimezone($timezone)->format($timeFormat) ?? '';
+        $eventDateUtc = $next?->start_at?->copy()->setTimezone('UTC')->format($dateFormat) ?? '';
+        $eventTimeUtc = $next?->start_at?->copy()->setTimezone('UTC')->format($timeFormat) ?? '';
         $eventUrl = $next instanceof Event ? (string) ($next->url ?? '') : '';
         $eventPublicTransportUrl = $next instanceof Event ? (string) ($next->public_transport_url ?? '') : '';
 
@@ -65,6 +67,8 @@ class PlaceholderService
             '{{event_title}}' => $eventTitle,
             '{{event_date}}' => $eventDate,
             '{{event_time}}' => $eventTime,
+            '{{event_date_utc}}' => $eventDateUtc,
+            '{{event_time_utc}}' => $eventTimeUtc,
             '{{event_url}}' => $eventUrl,
             '{{event_public_transport_info}}' => $eventPublicTransportUrl,
             '{{attach_event_ical}}' => '',

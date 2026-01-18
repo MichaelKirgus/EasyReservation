@@ -49,9 +49,13 @@ class RunScheduledTasks extends Command
                                 $service = app(EmailBroadcastService::class);
                                 $service->sendTemplateToReservationList($event->id, $task->options['template_id'] ?? null);
                                 break;
-                            case 'close_reservation':
-                                $service = app(EventService::class);
-                                $service->closeReservationList($event->id);
+                            case 'change_setting':
+                                $key = $task->options['setting_key'] ?? null;
+                                $value = $task->options['setting_value'] ?? null;
+                                if ($key !== null) {
+                                    \App\Models\Setting::updateOrCreate(['key' => $key], ['value' => $value]);
+                                    Log::info('Setting geändert: ' . $key . ' => ' . $value);
+                                }
                                 break;
                             default:
                                 Log::warning('Unbekannter Task-Typ: ' . $task->type);
@@ -61,15 +65,19 @@ class RunScheduledTasks extends Command
                     $task->save();
                     continue;
                 }
-                // Standard: nur für das eine Event
+                // Standard: nur für das eine Event oder global
                 switch ($task->type) {
                     case 'email_broadcast':
                         $service = app(EmailBroadcastService::class);
                         $service->sendTemplateToReservationList($task->options['event_id'] ?? $task->reference_id, $task->options['template_id'] ?? null);
                         break;
-                    case 'close_reservation':
-                        $service = app(EventService::class);
-                        $service->closeReservationList($task->options['event_id'] ?? $task->reference_id);
+                    case 'change_setting':
+                        $key = $task->options['setting_key'] ?? null;
+                        $value = $task->options['setting_value'] ?? null;
+                        if ($key !== null) {
+                            \App\Models\Setting::updateOrCreate(['key' => $key], ['value' => $value]);
+                            Log::info('Setting geändert: ' . $key . ' => ' . $value);
+                        }
                         break;
                     default:
                         Log::warning('Unbekannter Task-Typ: ' . $task->type);
