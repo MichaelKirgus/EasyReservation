@@ -25,6 +25,10 @@ const selectedReservations = ref([])
 const selectedWaitlist = ref([])
 const selectedValidations = ref([])
 
+const rateLimits = ref([])
+const rateLimitLoading = ref(false)
+const selectedRateLimits = ref([])
+
 const reservationColumns = [
   { key: 'id', label: 'ID', sortable: true },
   { key: 'display_name', label: 'Name', sortable: true },
@@ -47,6 +51,12 @@ const validationColumns = [
   { key: 'display_name', label: 'Name', sortable: true },
   { key: 'email', label: 'E-Mail', sortable: true },
   { key: 'status', label: 'Status', sortable: true },
+]
+
+const rateLimitColumns = [
+  { key: 'ip', label: 'IP-Adresse', sortable: true },
+  { key: 'count', label: 'Versuche (diese Stunde)', sortable: true },
+  { key: 'hour', label: 'Stunde', sortable: true },
 ]
 
 function formatDateTime(val) {
@@ -497,6 +507,50 @@ async function promoteWaitlistEntry(id) {
     setError(`Befördern fehlgeschlagen: ${e}`)
   } finally { waitlistLoading.value = false }
 }
+
+async function loadRateLimits() {
+  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  rateLimitLoading.value = true
+  try {
+    const res = await apiFetch('email-validation-rate-limits')
+    if (!res.ok) throw new Error(await res.text())
+    rateLimits.value = await res.json()
+  } catch (e) {
+    setError(`Fehler beim Laden der Rate-Limits: ${e}`)
+  } finally {
+    rateLimitLoading.value = false
+  }
+}
+
+async function resetRateLimit(ip) {
+  if (!confirm(`Rate-Limit für IP ${ip} zurücksetzen?`)) return
+  rateLimitLoading.value = true
+  try {
+    const res = await apiFetch(`email-validation-rate-limits/${encodeURIComponent(ip)}`, { method: 'DELETE' })
+    if (!res.ok) throw new Error(await res.text())
+    setMessage('Rate-Limit zurückgesetzt.')
+    await loadRateLimits()
+  } catch (e) {
+    setError(`Zurücksetzen fehlgeschlagen: ${e}`)
+  } finally {
+    rateLimitLoading.value = false
+  }
+}
+
+async function clearAllRateLimits() {
+  if (!confirm('Alle Rate-Limit-Daten löschen?')) return
+  rateLimitLoading.value = true
+  try {
+    const res = await apiFetch('email-validation-rate-limits', { method: 'DELETE' })
+    if (!res.ok) throw new Error(await res.text())
+    setMessage('Alle Rate-Limits gelöscht.')
+    await loadRateLimits()
+  } catch (e) {
+    setError(`Löschen fehlgeschlagen: ${e}`)
+  } finally {
+    rateLimitLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -630,6 +684,30 @@ async function promoteWaitlistEntry(id) {
           <IconButton icon="check" label="Freigeben" @click="approveValidation(row.id)" :disabled="validationLoading" />
           <IconButton icon="mail" label="E-Mail erneut senden" @click="resendValidation(row.id)" :disabled="validationLoading" />
           <IconButton variant="danger" icon="trash" label="Verwerfen" @click="discardValidation(row.id)" :disabled="validationLoading" />
+        </template>
+      </AdminDataTable>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Rate-Limits E-Mail-Validierung</h3>
+      </div>
+      <AdminDataTable
+        :columns="rateLimitColumns"
+        :rows="rateLimits"
+        v-model="selectedRateLimits"
+        selectable
+        :loading="rateLimitLoading"
+        :page-size="20"
+        persist-key="admin-rate-limits"
+        @refresh="loadRateLimits"
+        empty-text="Keine Rate-Limit-Daten vorhanden."
+      >
+        <template #actions>
+          <IconButton icon="trash2" variant="danger" label="Alle Rate-Limits löschen" @click="clearAllRateLimits" :disabled="rateLimitLoading || !rateLimits.length" />
+        </template>
+        <template #row-actions="{ row }">
+          <IconButton icon="trash" variant="danger" label="Zurücksetzen" @click="resetRateLimit(row.ip)" :disabled="rateLimitLoading" />
         </template>
       </AdminDataTable>
     </div>

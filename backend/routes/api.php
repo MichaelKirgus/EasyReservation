@@ -79,6 +79,10 @@ Route::middleware(['role:admin'])->group(function () {
 
     Route::apiResource('/admin/events', EventController::class)->except(['create', 'edit', 'show']);
     Route::get('/admin/diagnostics', [DiagnosticsController::class, 'show']);
+
+    Route::get('/admin/email-validation-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'index']);
+    Route::delete('/admin/email-validation-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'destroyAll']);
+    Route::delete('/admin/email-validation-rate-limits/{ip}', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'destroy']);
 });
 
 Route::middleware(['role:admin,moderator'])->group(function () {
@@ -97,6 +101,8 @@ Route::middleware(['role:admin,moderator'])->group(function () {
     Route::delete('/moderator/waitlist/{entry}', [WaitlistController::class, 'destroy']);
 
     Route::get('/moderator/email-validations', [EmailValidationAdminController::class, 'index']);
+
+    Route::get('/moderator/email-validation-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'index']);
 
     Route::get('/moderator/email-templates', [EmailTemplateController::class, 'index']);
     Route::post('/moderator/email-broadcast', [EmailBroadcastController::class, 'send']);
