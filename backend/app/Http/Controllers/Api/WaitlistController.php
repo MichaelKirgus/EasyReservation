@@ -7,6 +7,7 @@ use App\Models\WaitlistEntry;
 use App\Services\ReservationValidationService;
 use App\Services\WaitlistService;
 use App\Services\SettingsService;
+use App\Services\EventTriggerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -17,6 +18,7 @@ class WaitlistController extends Controller
         private readonly WaitlistService $waitlist,
         private readonly ReservationValidationService $validator,
         private readonly SettingsService $settings,
+        private readonly EventTriggerService $eventTriggers,
     ) {
     }
 
@@ -56,6 +58,9 @@ class WaitlistController extends Controller
             return response()->json(['message' => $e->getMessage()], 409);
         }
 
+        // Trigger: waitlist_enabled (bei erfolgreichem Eintrag)
+        $this->eventTriggers->handle('waitlist_enabled', ['waitlist_entry' => $entry]);
+
         if ($this->shouldNotify($request, $data['notify'] ?? null)) {
             $this->waitlist->sendWaitlistValidationSuccessEmail($entry);
         }
@@ -71,6 +76,9 @@ class WaitlistController extends Controller
             $entry->status = 'cancelled';
             $entry->save();
         }
+
+        // Trigger: waitlist_disabled (bei Löschung)
+        $this->eventTriggers->handle('waitlist_disabled', ['waitlist_entry' => $entry]);
 
         if ($shouldNotify) {
             $this->waitlist->sendWaitlistCancelledEmail($entry);

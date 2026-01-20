@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('scheduled_tasks', function (Blueprint $table) {
             $table->id();
             $table->string('type');
-            $table->timestamp('run_at');
+            $table->timestamp('run_at')->nullable(); // run_at jetzt nullable
             $table->json('options')->nullable();
             $table->boolean('executed')->default(false);
             $table->timestamps();

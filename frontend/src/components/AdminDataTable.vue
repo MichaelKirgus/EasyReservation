@@ -229,7 +229,7 @@ function onDrop(globalIndex) {
             <IconButton
               icon="repeat"
               size="sm"
-              :variant="autoRefreshEnabled ? 'primary' : 'ghost'"
+              variant="ghost"
               :aria-pressed="autoRefreshEnabled"
               :class="{ active: autoRefreshEnabled }"
               label="Auto-Refresh umschalten"
@@ -237,7 +237,7 @@ function onDrop(globalIndex) {
             />
             <details class="dropdown interval-picker">
               <summary>
-                <IconButton icon="clock" size="sm" variant="ghost" label="Intervall wählen" />
+                <IconButton as="span" icon="clock" size="sm" variant="ghost" label="Intervall wählen" />
               </summary>
               <div class="dropdown-panel">
                 <label>
@@ -251,7 +251,7 @@ function onDrop(globalIndex) {
           </div>
           <details class="column-toggle" v-if="columns.length">
             <summary>
-              <IconButton icon="columns" size="sm" variant="ghost" label="Spalten ein-/ausblenden" />
+              <IconButton as="span" icon="columns" size="sm" variant="ghost" label="Spalten ein-/ausblenden" />
             </summary>
             <div class="column-list">
               <label v-for="col in columns" :key="col.key">
@@ -330,8 +330,8 @@ function onDrop(globalIndex) {
 th, td { border-bottom: 1px solid #e5e7eb; padding: 0.5rem; text-align: left; vertical-align: top; }
 th.sortable { cursor: pointer; }
 .sort-indicator { margin-left: 0.25rem; font-size: 0.8em; color: #6b7280; }
-.search { flex: 1 1 200px; display: none; min-width: 0; }
-.search input { padding: 0.4rem 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; width: 100%; }
+.search { flex: 1 1 110px; display: none; min-width: 0; }
+.search input { padding: 0.4rem 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; width: 92%; }
 @media (min-width: 768px) { .search { display: block; max-width: 260px; } }
 .column-toggle summary, .dropdown summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; }
 .column-toggle summary::-webkit-details-marker, .dropdown summary::-webkit-details-marker { display: none; }

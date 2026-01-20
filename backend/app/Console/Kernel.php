@@ -10,6 +10,8 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('scheduled-tasks:run')->everyMinute();
+        // CheckScheduledTasksJob alle 30 Sekunden ausführen (Laravel 10+)
+        $schedule->job(new \App\Jobs\CheckScheduledTasksJob)->everyThirtySeconds();
     }
 
     protected function commands()

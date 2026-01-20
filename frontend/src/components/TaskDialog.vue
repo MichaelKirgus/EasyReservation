@@ -59,7 +59,27 @@
           <option v-for="key in settingKeys" :key="key" :value="key">{{ key }}</option>
         </select>
         <label>Neuer Wert:</label>
-        <input v-model="settingValue" type="text" required />
+        <template v-if="currentSettingField.type === 'boolean'">
+          <input v-model="settingValue" type="checkbox" :true-value="true" :false-value="false" />
+        </template>
+        <template v-else-if="currentSettingField.type === 'number'">
+          <input v-model.number="settingValue" type="number" required />
+        </template>
+        <template v-else-if="currentSettingField.type === 'color'">
+          <input v-model="settingValue" type="color" required />
+        </template>
+        <template v-else-if="currentSettingField.type === 'date'">
+          <input v-model="settingValue" type="date" required />
+        </template>
+        <template v-else-if="currentSettingField.type === 'datetime-local'">
+          <input v-model="settingValue" type="datetime-local" required />
+        </template>
+        <template v-else-if="currentSettingField.component === 'textarea'">
+          <textarea v-model="settingValue" required></textarea>
+        </template>
+        <template v-else>
+          <input v-model="settingValue" type="text" required />
+        </template>
       </div>
       <div v-if="form.type === 'email_broadcast'">
         <label>E-Mail-Vorlage:</label>
@@ -87,6 +107,7 @@
 import { ref, watch, computed, onMounted } from 'vue'
 import IconButton from './IconButton.vue'
 import axios from 'axios'
+import { settingsFields } from './settingsFields.js'
 
 function apiConfig() {
   const apiKey = localStorage.getItem('admin_api_key') || sessionStorage.getItem('admin_api_key') || '';
@@ -112,6 +133,36 @@ const selectedTemplateId = ref('')
 const settingKeys = ref([])
 const selectedSettingKey = ref('')
 const settingValue = ref('')
+
+// Computed: aktuelles Setting-Field (Typ etc.)
+const currentSettingField = computed(() => {
+  return settingsFields.find(f => f.key === selectedSettingKey.value) || { type: 'text' }
+})
+
+// Hilfsfunktion: Wert für Input je nach Typ konvertieren
+function convertSettingValue(val, type) {
+  if (type === 'boolean') {
+    return val === true || val === '1' || val === 1 || val === 'true';
+  } else if (type === 'number') {
+    return val === null || val === '' ? null : Number(val);
+  } else if (type === 'color') {
+    // Hex-Farben sicherstellen
+    if (typeof val === 'string' && val.startsWith('#')) return val;
+    return '#000000';
+  } else if (type === 'date') {
+    // Nur Datumsteil
+    if (!val) return '';
+    return String(val).slice(0, 10);
+  } else if (type === 'datetime-local') {
+    // ISO-String ohne Sekunden und Zeitzone
+    if (!val) return '';
+    const d = new Date(val);
+    if (isNaN(d)) return '';
+    const pad = n => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  return val ?? '';
+}
 
 const relativeFieldsMap = {
   event: ['start_at', 'end_at'],
@@ -146,6 +197,8 @@ onMounted(async () => {
 })
 
 
+
+let loadedFromTask = false
 watch(() => props.task, (task) => {
   if (task) {
     form.value = { ...task, options: task.options || {}, reference_type: task.reference_type || 'event' }
@@ -153,6 +206,15 @@ watch(() => props.task, (task) => {
       selectedTemplateId.value = form.value.options?.template_id || ''
     } else {
       selectedTemplateId.value = ''
+    }
+    if (form.value.type === 'change_setting') {
+      selectedSettingKey.value = form.value.options?.key || ''
+      settingValue.value = form.value.options?.value ?? ''
+      loadedFromTask = true
+    } else {
+      selectedSettingKey.value = ''
+      settingValue.value = ''
+      loadedFromTask = false
     }
   } else {
     form.value = {
@@ -166,16 +228,46 @@ watch(() => props.task, (task) => {
       executed: false,
     }
     selectedTemplateId.value = ''
+    selectedSettingKey.value = ''
+    settingValue.value = ''
+    loadedFromTask = false
   }
 }, { immediate: true })
+
+// Lade aktuellen Wert aus DB, wenn Schlüssel gewählt wird (nur beim Anlegen oder wenn Wert leer)
+watch(selectedSettingKey, async (key) => {
+  if (!key) return;
+  // Nur laden, wenn kein Wert aus Task übernommen wurde oder Wert leer
+  if (loadedFromTask && settingValue.value !== '') return;
+  try {
+    const res = await axios.get(`/api/admin/settings/${encodeURIComponent(key)}`, apiConfig())
+    // Wert aus DB übernehmen, aber Typ beachten
+    let val = res.data?.value
+    val = convertSettingValue(val, currentSettingField.value.type)
+    settingValue.value = val
+  } catch {
+    // Fehler ignorieren, Wert bleibt leer
+  }
+})
 
 function submit() {
   // Dynamisch options bauen je nach Typ
   const payload = { ...form.value }
+  // run_at auf null setzen, wenn leer
+  if (!payload.run_at || payload.run_at === '') {
+    payload.run_at = null;
+  }
   if (form.value.type === 'email_broadcast') {
     payload.options = { ...payload.options, template_id: selectedTemplateId.value }
   } else if (form.value.type === 'change_setting') {
-    payload.options = { key: selectedSettingKey.value, value: settingValue.value }
+    let value = settingValue.value
+    // Typkonvertierung für Boolean/Number
+    if (currentSettingField.value.type === 'boolean') {
+      value = value ? '1' : '0'; // String statt Boolean!
+    } else if (currentSettingField.value.type === 'number') {
+      value = value === '' ? null : Number(value)
+    }
+    payload.options = { key: selectedSettingKey.value, value }
   }
   emit('save', payload)
 }

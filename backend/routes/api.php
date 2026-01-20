@@ -48,6 +48,7 @@ Route::middleware(['role:admin'])->group(function () {
     Route::get('/admin/settings', [SettingsController::class, 'index']);
     Route::post('/admin/settings', [SettingsController::class, 'update']);
     Route::get('/admin/settings-keys', [SettingsController::class, 'keys']);
+    Route::get('/admin/settings/{key}', [SettingsController::class, 'show']);
     Route::get('/admin/media/images', [MediaController::class, 'images']);
 
     Route::apiResource('/admin/form-fields', FormFieldController::class)->except(['create', 'edit', 'show']);
@@ -77,6 +78,13 @@ Route::middleware(['role:admin'])->group(function () {
     Route::delete('/admin/email-templates/{emailTemplate}', [EmailTemplateController::class, 'destroy']);
     Route::post('/admin/email-broadcast', [EmailBroadcastController::class, 'send']);
     Route::get('/admin/placeholders', [PlaceholderController::class, 'index']);
+
+    // EventTrigger CRUD & Simulation
+    Route::get('/admin/event-triggers', [\App\Http\Controllers\Api\EventTriggerController::class, 'index']);
+    Route::post('/admin/event-triggers', [\App\Http\Controllers\Api\EventTriggerController::class, 'store']);
+    Route::put('/admin/event-triggers/{id}', [\App\Http\Controllers\Api\EventTriggerController::class, 'update']);
+    Route::delete('/admin/event-triggers/{id}', [\App\Http\Controllers\Api\EventTriggerController::class, 'destroy']);
+    Route::post('/admin/event-triggers/{id}/simulate', [\App\Http\Controllers\Api\EventTriggerController::class, 'simulate']);
 
     Route::apiResource('/admin/events', EventController::class)->except(['create', 'edit', 'show']);
     Route::apiResource('/admin/scheduled-tasks', \App\Http\Controllers\Api\ScheduledTaskController::class)->except(['create', 'edit', 'show']);

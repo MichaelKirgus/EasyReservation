@@ -8,6 +8,7 @@ const props = defineProps({
   variant: { type: String, default: 'primary' },
   size: { type: String, default: 'md' },
   type: { type: String, default: 'button' },
+  as: { type: String, default: 'button' }, // Neu: steuert das Tag
 })
 
 const ICONS = {
@@ -32,6 +33,7 @@ const ICONS = {
   columns: { viewBox: '0 0 24 24', paths: ['M4 5h6v14H4z', 'M14 5h6v14h-6z'] },
   chevronLeft: { viewBox: '0 0 24 24', paths: ['M15 18 9 12l6-6'] },
   chevronRight: { viewBox: '0 0 24 24', paths: ['m9 18 6-6-6-6'] },
+  play: { viewBox: '0 0 24 24', paths: ['M8 5v14l11-7z'] }, // Play-Icon hinzugefügt
 }
 
 const iconDef = computed(() => ICONS[props.icon] || ICONS.plus)
@@ -39,12 +41,15 @@ const classes = computed(() => ['icon-btn', `variant-${props.variant}`, `size-${
 </script>
 
 <template>
-  <button
+  <component
+    :is="props.as"
     v-bind="$attrs"
-    :type="type"
-    :aria-label="label"
-    :title="$attrs.title || label"
+    :type="props.as === 'button' ? props.type : undefined"
+    :aria-label="props.label"
+    :title="$attrs.title || props.label"
     :class="classes"
+    :disabled="props.as === 'button' ? $attrs.disabled : undefined"
+    @click="$emit('click', $event)"
   >
     <span class="icon" aria-hidden="true">
       <img v-if="iconSrc" :src="iconSrc" alt="" />
@@ -53,11 +58,65 @@ const classes = computed(() => ['icon-btn', `variant-${props.variant}`, `size-${
       </svg>
     </span>
     <span class="sr-only">{{ label }}</span>
-  </button>
+  </component>
 </template>
 
 <style scoped>
-.icon-btn { display: inline-flex; align-items: center; justify-content: center; border: 1px solid #d1d5db; background: #2563eb; color: #fff; cursor: pointer; border-radius: 10px; padding: 0.45rem; transition: background-color 0.2s ease, border-color 0.2s ease; }
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d1d5db;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 0.45rem;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  font: inherit;
+  min-width: 32px;
+  min-height: 32px;
+  box-sizing: border-box;
+}
+.icon-btn[disabled], .icon-btn.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.icon-btn.variant-ghost {
+  background: transparent;
+  color: #2563eb;
+  border: 1px solid #d1d5db;
+}
+.icon-btn.variant-primary {
+  background: #2563eb;
+  color: #fff;
+  border: 1px solid #2563eb;
+}
+.icon-btn.size-sm {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0.25rem;
+  font-size: 1rem;
+}
+.icon-btn.size-md {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0.45rem;
+  font-size: 1.15rem;
+}
+.icon-btn.size-lg {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0.65rem;
+  font-size: 1.25rem;
+}
+.icon-btn:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+.icon-btn:active {
+  filter: brightness(0.95);
+}
 .icon-btn.variant-ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
 .icon-btn.variant-danger { background: #dc2626; color: #fff; border-color: #b91c1c; }
 .icon-btn:disabled { opacity: 0.6; cursor: not-allowed; }

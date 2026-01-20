@@ -13,14 +13,13 @@ class ScheduledTaskController extends Controller
     public function index()
     {
         $tasks = ScheduledTask::orderBy('run_at', 'asc')->get();
-        $nextTask = ScheduledTask::where('executed', false)
-            ->where('active', true)
-            ->where('run_at', '>', now())
-            ->orderBy('run_at')
-            ->first();
+        // next_run_at: das nächste geplante Ausführungsdatum (absolut oder relativ)
+        $nextPlanned = $tasks->filter(function($t) {
+            return !$t->executed && $t->active && $t->planned_run_at;
+        })->sortBy('planned_run_at')->first();
         return response()->json([
             'tasks' => $tasks,
-            'next_run_at' => $nextTask ? $nextTask->run_at : null,
+            'next_run_at' => $nextPlanned ? $nextPlanned->planned_run_at : null,
         ]);
     }
 
@@ -37,6 +36,10 @@ class ScheduledTaskController extends Controller
             'relative_offset_minutes' => 'nullable|integer',
             'active' => 'boolean',
         ]);
+        // Validierung: Entweder run_at oder (relative_to + relative_offset_minutes) muss gesetzt sein
+        if (empty($data['run_at']) && (empty($data['relative_to']) || $data['relative_offset_minutes'] === null)) {
+            return response()->json(['message' => 'Entweder run_at oder relative_to + relative_offset_minutes muss gesetzt sein.'], 422);
+        }
         $task = ScheduledTask::create($data);
         return response()->json($task, 201);
     }

@@ -1,0 +1,157 @@
+<template>
+  <div>
+    <h2 style="display:flex;align-items:center;justify-content:space-between;">
+      <span>Ereignis-Trigger</span>
+      <IconButton icon="plus" label="Neuer Trigger" class="primary" @click="createTrigger" />
+    </h2>
+    <AdminDataTable
+      :columns="columns"
+      :rows="triggers"
+      :loading="loading"
+    >
+      <template #cell-event_type="{ value }">
+        <span>{{ eventTypeLabel(value) }}</span>
+      </template>
+      <template #cell-action_type="{ value }">
+        <span>{{ value === 'email' ? 'E-Mail' : 'Webhook' }}</span>
+      </template>
+      <template #cell-template_id="{ value }">
+        <span>{{ templateName(value) }}</span>
+      </template>
+      <template #cell-webhook_url="{ value, row }">
+        <span v-if="row.action_type === 'webhook'">{{ value }}</span>
+        <span v-else>–</span>
+      </template>
+      <template #cell-delay_seconds="{ value }">
+        <span>{{ value ?? 0 }}</span>
+      </template>
+      <template #cell-cooldown_seconds="{ value }">
+        <span>{{ value ?? 0 }}</span>
+      </template>
+      <template #cell-active="{ row }">
+        <input type="checkbox" :checked="row.active" @change="toggleActive(row)" :disabled="loading" />
+      </template>
+      <template #cell-actions="{ row }">
+        <IconButton icon="play" label="Simulieren" class="ghost" @click="simulate(row)" :disabled="loading || !row.active" />
+        <IconButton icon="pencil" label="Bearbeiten" class="ghost" @click="editTrigger(row)" :disabled="loading" />
+        <IconButton icon="trash" label="Löschen" class="ghost" @click="deleteTrigger(row)" :disabled="loading" />
+      </template>
+    </AdminDataTable>
+    <TriggerDialog
+      v-if="showDialog"
+      :trigger="selectedTrigger"
+      :emailTemplates="emailTemplates"
+      @close="closeDialog"
+      @save="saveTrigger"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import AdminDataTable from './AdminDataTable.vue'
+import IconButton from './IconButton.vue'
+import TriggerDialog from './TriggerDialog.vue'
+import axios from 'axios'
+
+const triggers = ref([])
+const loading = ref(false)
+const showDialog = ref(false)
+const selectedTrigger = ref(null)
+const emailTemplates = ref([])
+
+function templateName(id) {
+  if (!id) return '–';
+  const tpl = emailTemplates.value.find(t => t.id == id);
+  return tpl ? tpl.name : id;
+}
+
+const columns = [
+  { key: 'id', label: 'ID' },
+  { key: 'event_type', label: 'Ereignis' },
+  { key: 'action_type', label: 'Aktion' },
+  { key: 'template_id', label: 'E-Mail-Vorlage' },
+  { key: 'webhook_url', label: 'Webhook-URL' },
+  { key: 'delay_seconds', label: 'Verzögerung (Sek.)' },
+  { key: 'cooldown_seconds', label: 'Cooldown (Sek.)' },
+  { key: 'active', label: 'Aktiv' },
+  { key: 'actions', label: 'Aktionen' }
+]
+
+const eventTypes = [
+  { value: 'reservierungsliste_voll', label: 'Reservierungsliste voll' },
+  { value: 'reservierung_deaktiviert', label: 'Reservierung deaktiviert' },
+  { value: 'reservierung_aktiviert', label: 'Reservierung aktiviert' },
+  { value: 'warteliste_aktiviert', label: 'Warteliste aktiviert' },
+  { value: 'warteliste_deaktiviert', label: 'Warteliste deaktiviert' }
+]
+
+function eventTypeLabel(val) {
+  const found = eventTypes.find(e => e.value === val)
+  return found ? found.label : val
+}
+
+function apiConfig() {
+  const apiKey = localStorage.getItem('admin_api_key') || sessionStorage.getItem('admin_api_key') || '';
+  return { headers: { 'X-Api-Key': apiKey } };
+}
+
+function fetchTriggers() {
+  loading.value = true
+  axios.get('/api/admin/event-triggers', apiConfig())
+    .then(res => { triggers.value = res.data })
+    .finally(() => { loading.value = false })
+}
+
+function fetchEmailTemplates() {
+  axios.get('/api/admin/email-templates', apiConfig())
+    .then(res => { emailTemplates.value = res.data })
+}
+
+function createTrigger() {
+  selectedTrigger.value = null
+  showDialog.value = true
+}
+
+function editTrigger(trigger) {
+  selectedTrigger.value = { ...trigger }
+  showDialog.value = true
+}
+
+function saveTrigger(trigger) {
+  loading.value = true
+  const req = trigger.id
+    ? axios.put(`/api/admin/event-triggers/${trigger.id}`, trigger, apiConfig())
+    : axios.post('/api/admin/event-triggers', trigger, apiConfig())
+  req.then(fetchTriggers)
+     .finally(() => { loading.value = false; showDialog.value = false })
+}
+
+function deleteTrigger(trigger) {
+  if (confirm('Wirklich löschen?')) {
+    loading.value = true
+    axios.delete(`/api/admin/event-triggers/${trigger.id}`, apiConfig())
+      .then(fetchTriggers)
+      .finally(() => { loading.value = false })
+  }
+}
+
+function simulate(trigger) {
+  loading.value = true
+  axios.post(`/api/admin/event-triggers/${trigger.id}/simulate`, {}, apiConfig())
+    .finally(() => { loading.value = false })
+}
+
+function toggleActive(trigger) {
+  saveTrigger({ ...trigger, active: !trigger.active })
+}
+
+function closeDialog() {
+  showDialog.value = false
+}
+
+onMounted(() => {
+  fetchTriggers()
+  fetchEmailTemplates()
+})
+</script>

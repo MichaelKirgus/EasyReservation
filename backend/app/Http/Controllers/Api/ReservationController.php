@@ -9,13 +9,14 @@ use App\Models\Reservation;
 use App\Models\User;
 use App\Models\WaitlistEntry;
 use App\Services\EmailValidationService;
+use App\Services\EventTriggerService;
 use App\Services\ReservationValidationService;
 use App\Services\SettingsService;
 use App\Services\WaitlistService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class ReservationController extends Controller
@@ -25,6 +26,7 @@ class ReservationController extends Controller
         private readonly ReservationValidationService $validator,
         private readonly WaitlistService $waitlist,
         private readonly EmailValidationService $emailValidation,
+        private readonly EventTriggerService $eventTriggers,
     ) {
     }
 
@@ -33,6 +35,8 @@ class ReservationController extends Controller
         $settings = $this->settings->all();
 
         if ((int) ($settings['reservation_enabled'] ?? 0) !== 1) {
+            // Trigger: reservation_disabled
+            $this->eventTriggers->handle('reservation_disabled');
             return response()->json(['message' => 'Reservations are currently disabled.'], 403);
         }
 
@@ -71,6 +75,8 @@ class ReservationController extends Controller
 
         $target = 'reservation';
         if ($max > 0 && $current >= $max) {
+            // Trigger: reservation_full
+            $this->eventTriggers->handle('reservation_full');
             if ($waitlistEnabled) {
                 $target = 'waitlist';
             } else {
@@ -147,6 +153,9 @@ class ReservationController extends Controller
 
         $this->emailValidation->sendReservationNotification($reservation, 'email_reservation_success_template_id', true);
 
+        // Trigger: reservation_enabled (z.B. bei erfolgreicher Reservierung)
+        $this->eventTriggers->handle('reservation_enabled', ['reservation' => $reservation]);
+
         return response()->json([
             'message' => 'Reservation created.',
             'reservation' => $reservation,
@@ -198,6 +207,9 @@ class ReservationController extends Controller
 
         $candidate->delete();
 
+        // Trigger: reservation_canceled (z.B. bei erfolgreichem Undo)
+        $this->eventTriggers->handle('reservation_canceled', ['reservation' => $candidate]);
+
         if ((int) ($settings['waitlist_auto_promote_enabled'] ?? 0) === 1) {
             try {
                 $this->waitlist->promoteOldestIfSlotAvailable();
@@ -225,6 +237,9 @@ class ReservationController extends Controller
         $this->emailValidation->sendReservationNotification($reservation, 'email_reservation_cancel_template_id', false);
 
         $reservation->delete();
+
+        // Trigger: reservation_canceled (z.B. bei erfolgreichem Undo)
+        $this->eventTriggers->handle('reservation_canceled', ['reservation' => $reservation]);
 
         if ((int) ($settings['waitlist_auto_promote_enabled'] ?? 0) === 1) {
             try {
