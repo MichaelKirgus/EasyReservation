@@ -3,16 +3,14 @@
     "",
     "\\backend",
     "\\backend\\app",
-    "\\backend\\app\\Enums",
-    "\\backend\\app\\Http",
-    "\\backend\\app\\Http\\Controllers",
-    "\\backend\\app\\Http\\Controllers\\Api",
-    "\\backend\\app\\Jobs",
+    "\\backend\\app\\Models",
+    "\\backend\\app\\Services",
     "\\backend\\database",
+    "\\backend\\routes",
     "\\frontend",
     "\\frontend\\src",
     "\\frontend\\src\\components"
   ],
-  "SelectedNode": "\\backend\\app\\Jobs\\CheckScheduledTasksJob.php",
+  "SelectedNode": "\\backend\\routes\\api.php",
   "PreviewInSolutionExplorer": false
 }
