@@ -11,7 +11,7 @@ use App\Http\Controllers\Api\EmailTemplateController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\FormFieldController;
 use App\Http\Controllers\Api\MediaController;
-use App\HttpControllers\Api\ReservationController;
+use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\TranslationController;
 use App\Http\Controllers\Api\UserController;
