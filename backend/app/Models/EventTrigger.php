@@ -18,6 +18,7 @@ class EventTrigger extends Model
         'recipient_attendees',
         'recipient_waitlist',
         'custom_recipients',
+        'webhook_template_id', // NEU
     ];
 
     protected $casts = [
@@ -27,4 +28,9 @@ class EventTrigger extends Model
         'recipient_attendees' => 'boolean',
         'recipient_waitlist' => 'boolean',
     ];
+
+    public function webhookTemplate()
+    {
+        return $this->belongsTo(WebhookTemplate::class);
+    }
 }

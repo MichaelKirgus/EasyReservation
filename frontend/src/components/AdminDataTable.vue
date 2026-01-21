@@ -301,7 +301,7 @@ function onDrop(globalIndex) {
                 {{ row[col.key] ?? '–' }}
               </slot>
             </td>
-            <td v-if="$slots['row-actions']" class="actions">
+            <td v-if="$slots['row-actions']" class="actions" @click.stop>
               <slot name="row-actions" :row="row" />
             </td>
           </tr>

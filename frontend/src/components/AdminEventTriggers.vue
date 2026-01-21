@@ -31,16 +31,17 @@
       <template #cell-active="{ row }">
         <input type="checkbox" :checked="row.active" @change="toggleActive(row)" :disabled="loading" />
       </template>
-      <template #cell-actions="{ row }">
+      <template #row-actions="{ row }">
         <IconButton icon="play" label="Simulieren" class="ghost" @click="simulate(row)" :disabled="loading || !row.active" />
         <IconButton icon="pencil" label="Bearbeiten" class="ghost" @click="editTrigger(row)" :disabled="loading" />
-        <IconButton icon="trash" label="Löschen" class="ghost" @click="deleteTrigger(row)" :disabled="loading" />
+        <IconButton icon="trash" label="Löschen" class="ghost" @click.stop="deleteTrigger(row)" :disabled="loading" />
       </template>
     </AdminDataTable>
     <TriggerDialog
       v-if="showDialog"
       :trigger="selectedTrigger"
       :emailTemplates="emailTemplates"
+      :webhookTemplates="webhookTemplates"
       @close="closeDialog"
       @save="saveTrigger"
     />
@@ -58,7 +59,9 @@ const triggers = ref([])
 const loading = ref(false)
 const showDialog = ref(false)
 const selectedTrigger = ref(null)
+
 const emailTemplates = ref([])
+const webhookTemplates = ref([])
 
 function templateName(id) {
   if (!id) return '–';
@@ -74,8 +77,7 @@ const columns = [
   { key: 'webhook_url', label: 'Webhook-URL' },
   { key: 'delay_seconds', label: 'Verzögerung (Sek.)' },
   { key: 'cooldown_seconds', label: 'Cooldown (Sek.)' },
-  { key: 'active', label: 'Aktiv' },
-  { key: 'actions', label: 'Aktionen' }
+  { key: 'active', label: 'Aktiv' }
 ]
 
 const eventTypes = [
@@ -103,9 +105,15 @@ function fetchTriggers() {
     .finally(() => { loading.value = false })
 }
 
+
 function fetchEmailTemplates() {
   axios.get('/api/admin/email-templates', apiConfig())
     .then(res => { emailTemplates.value = res.data })
+}
+
+function fetchWebhookTemplates() {
+  axios.get('/api/admin/webhook-templates', apiConfig())
+    .then(res => { webhookTemplates.value = res.data })
 }
 
 function createTrigger() {
@@ -143,6 +151,7 @@ function simulate(trigger) {
 }
 
 function toggleActive(trigger) {
+  // Komplettes Trigger-Objekt übergeben, nur active ändern
   saveTrigger({ ...trigger, active: !trigger.active })
 }
 
@@ -153,5 +162,6 @@ function closeDialog() {
 onMounted(() => {
   fetchTriggers()
   fetchEmailTemplates()
+  fetchWebhookTemplates()
 })
 </script>

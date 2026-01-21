@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
+import RedisKeysTable from './RedisKeysTable.vue'
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
@@ -170,6 +171,32 @@ onUnmounted(() => {
       <p v-else class="muted">Keine Daten geladen.</p>
     </div>
 
+
+    <div class="card">
+      <div class="card-header">
+        <h4>Scheduler</h4>
+      </div>
+      <div class="info-grid" v-if="diagnostics?.scheduler">
+        <div class="info-item">
+          <div class="label">Letzte Ausführung</div>
+          <div class="value">{{ formatDateTime(diagnostics.scheduler.last_executed_at) }}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Nächste geplante Ausführung</div>
+          <div class="value">{{ formatDateTime(diagnostics.scheduler.next_run_at) }}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Status</div>
+          <div class="value">
+            <span :class="['pill', diagnostics.scheduler.active ? 'pill-ok' : 'pill-failed']">
+              {{ diagnostics.scheduler.active ? 'aktiv' : 'inaktiv' }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <p v-else class="muted">Keine Scheduler-Daten vorhanden.</p>
+    </div>
+
     <div class="card">
       <div class="card-header">
         <h4>Latenz</h4>
@@ -182,6 +209,29 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+
+
+    <div class="card">
+      <div class="card-header">
+        <h4>Queue/Worker-Status</h4>
+      </div>
+      <div class="info-grid" v-if="diagnostics?.queue">
+        <div class="info-item">
+          <div class="label">Laufende Jobs</div>
+          <div class="value">{{ diagnostics.queue.processing_jobs }}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Aktive Worker</div>
+          <div class="value">{{ diagnostics.queue.worker_count }}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Queue-Typ</div>
+          <div class="value">{{ diagnostics.queue.connection }}</div>
+        </div>
+      </div>
+    </div>
+
+    <RedisKeysTable :api-base="apiBase" :api-key="apiKey" />
 
     <div class="card">
       <div class="card-header">

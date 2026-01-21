@@ -10,6 +10,15 @@ class DiagnosticsService
 {
     public function snapshot(): array
     {
+        // Scheduler-Status
+        $lastExecuted = \App\Models\ScheduledTask::whereNotNull('executed_at')->orderByDesc('executed_at')->first();
+        $nextRun = \App\Models\ScheduledTask::where('executed', false)->where('active', true)->whereNotNull('run_at')->orderBy('run_at')->first();
+        $schedulerActive = false;
+        $lastExecutedAt = $lastExecuted?->executed_at;
+        if ($lastExecutedAt) {
+            $diff = now()->diffInMinutes($lastExecutedAt);
+            $schedulerActive = $diff < 10; // z.B. aktiv, wenn <10min her
+        }
         return [
             'timestamp' => now()->toIso8601String(),
             'app' => [
@@ -25,6 +34,11 @@ class DiagnosticsService
                 'redis' => $this->measure(fn () => Redis::ping()),
             ],
             'queue' => $this->queueInfo(),
+            'scheduler' => [
+                'last_executed_at' => $lastExecutedAt?->toIso8601String(),
+                'next_run_at' => $nextRun?->run_at?->toIso8601String(),
+                'active' => $schedulerActive,
+            ],
         ];
     }
 
@@ -54,6 +68,8 @@ class DiagnosticsService
     {
         $recent = [];
         $error = null;
+        $processingJobs = 0;
+        $workerCount = 0;
 
         try {
             $recent = JobLog::query()
@@ -74,6 +90,11 @@ class DiagnosticsService
                     ];
                 })
                 ->all();
+            $processingJobs = JobLog::where('status', 'processing')->count();
+            if (config('queue.default') === 'redis') {
+                $workerKeys = \Illuminate\Support\Facades\Redis::keys('queues:workers*');
+                $workerCount = is_array($workerKeys) ? count($workerKeys) : 0;
+            }
         } catch (\Throwable $e) {
             $error = $e->getMessage();
         }
@@ -81,6 +102,43 @@ class DiagnosticsService
         return [
             'connection' => config('queue.default'),
             'recent' => $recent,
+            'error' => $error,
+            'processing_jobs' => $processingJobs,
+            'worker_count' => $workerCount,
+        ];
+    }
+
+    public function redisKeys(): array
+    {
+        $keys = [];
+        $error = null;
+        try {
+            if (config('queue.default') === 'redis') {
+                $rawKeys = \Illuminate\Support\Facades\Redis::keys('*');
+                foreach ($rawKeys as $key) {
+                    $type = \Illuminate\Support\Facades\Redis::type($key);
+                    $len = null;
+                    if ($type === 'list') {
+                        $len = \Illuminate\Support\Facades\Redis::llen($key);
+                    } elseif ($type === 'set') {
+                        $len = \Illuminate\Support\Facades\Redis::scard($key);
+                    } elseif ($type === 'zset') {
+                        $len = \Illuminate\Support\Facades\Redis::zcard($key);
+                    } elseif ($type === 'hash') {
+                        $len = \Illuminate\Support\Facades\Redis::hlen($key);
+                    }
+                    $keys[] = [
+                        'key' => $key,
+                        'type' => $type,
+                        'length' => $len,
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {
+            $error = $e->getMessage();
+        }
+        return [
+            'keys' => $keys,
             'error' => $error,
         ];
     }

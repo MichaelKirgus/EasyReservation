@@ -41,24 +41,23 @@ const classes = computed(() => ['icon-btn', `variant-${props.variant}`, `size-${
 </script>
 
 <template>
-  <component
-    :is="props.as"
-    v-bind="$attrs"
-    :type="props.as === 'button' ? props.type : undefined"
-    :aria-label="props.label"
-    :title="$attrs.title || props.label"
-    :class="classes"
-    :disabled="props.as === 'button' ? $attrs.disabled : undefined"
-    @click="$emit('click', $event)"
-  >
-    <span class="icon" aria-hidden="true">
-      <img v-if="iconSrc" :src="iconSrc" alt="" />
-      <svg v-else :viewBox="iconDef.viewBox" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path v-for="(p, idx) in iconDef.paths" :key="idx" :d="p" />
-      </svg>
-    </span>
-    <span class="sr-only">{{ label }}</span>
-  </component>
+<component
+  :is="props.as"
+  v-bind="$attrs"
+  :type="props.as === 'button' ? props.type : undefined"
+  :aria-label="props.label"
+  :title="$attrs.title || props.label"
+  :class="classes"
+  :disabled="props.as === 'button' ? $attrs.disabled : undefined"
+  @click="$emit('click', $event)"
+>
+  <span class="icon" aria-hidden="true">
+    <img v-if="iconSrc" :src="iconSrc" alt="" />
+    <svg v-else :viewBox="iconDef.viewBox" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path v-for="(p, idx) in iconDef.paths" :key="idx" :d="p" />
+    </svg>
+  </span>
+</component>
 </template>
 
 <style scoped>

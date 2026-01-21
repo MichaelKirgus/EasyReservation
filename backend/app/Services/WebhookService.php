@@ -5,10 +5,10 @@ use Illuminate\Support\Facades\Http;
 
 class WebhookService
 {
-    public function send(string $url, array $payload = []): void
+    public function send(string $url, array $payload = [], array $headers = []): void
     {
         try {
-            Http::timeout(10)->post($url, $payload);
+            Http::timeout(10)->withHeaders($headers)->post($url, $payload);
         } catch (\Throwable $e) {
             // Fehlerbehandlung/Logging nach Bedarf
         }

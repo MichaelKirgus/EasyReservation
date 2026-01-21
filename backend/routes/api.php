@@ -11,7 +11,7 @@ use App\Http\Controllers\Api\EmailTemplateController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\FormFieldController;
 use App\Http\Controllers\Api\MediaController;
-use App\Http\Controllers\Api\ReservationController;
+use App\HttpControllers\Api\ReservationController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\TranslationController;
 use App\Http\Controllers\Api\UserController;
@@ -92,12 +92,22 @@ Route::middleware(['role:admin'])->group(function () {
     Route::patch('/admin/scheduled-tasks/{id}/deactivate', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'deactivate']);
     Route::post('/admin/scheduled-tasks/{id}/run-now', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'runNow']);
     Route::get('/admin/diagnostics', [DiagnosticsController::class, 'show']);
+    Route::get('/admin/diagnostics/redis-keys', [DiagnosticsController::class, 'redisKeys']);
+    Route::delete('/admin/diagnostics/redis-keys', [DiagnosticsController::class, 'deleteRedisKey']);
 
     Route::get('/admin/email-validation-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'index']);
     Route::delete('/admin/email-validation-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'destroyAll']);
     Route::delete('/admin/email-validation-rate-limits/{ip}', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'destroy']);
 
     Route::post('/admin/purge-all', [\App\Http\Controllers\Api\PurgeController::class, 'purgeAll']);
+
+    // Webhook-Templates CRUD
+    Route::get('/admin/webhook-templates', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'index']);
+    Route::get('/admin/webhook-templates/{id}', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'show']);
+    Route::post('/admin/webhook-templates', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'store']);
+    Route::put('/admin/webhook-templates/{id}', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'update']);
+    Route::delete('/admin/webhook-templates/{id}', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'destroy']);
+    Route::post('/admin/webhook-templates/{id}/test', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'test']);
 });
 
 Route::middleware(['role:admin,moderator'])->group(function () {
