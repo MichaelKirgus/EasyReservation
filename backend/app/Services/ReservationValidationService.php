@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\FormField;
+use Illuminate\Support\Facades\Log;
 
 class ReservationValidationService
 {
@@ -26,16 +27,30 @@ class ReservationValidationService
         $length = mb_strlen($name);
 
         if ($min > 0 && $length < $min) {
+            Log::debug('Name validation failed: too short', [
+                'name' => $name,
+                'length' => $length,
+                'min' => $min
+            ]);
             return false;
         }
 
         if ($max > 0 && $length > $max) {
+            Log::debug('Name validation failed: too long', [
+                'name' => $name,
+                'length' => $length,
+                'max' => $max
+            ]);
             return false;
         }
 
         if (! $allowUnicode) {
             $sanitized = filter_var($name, FILTER_SANITIZE_STRING, FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_HIGH);
             if ($sanitized !== $name) {
+                Log::debug('Name validation failed: unicode not allowed', [
+                    'name' => $name,
+                    'sanitized' => $sanitized
+                ]);
                 return false;
             }
         }
@@ -44,6 +59,10 @@ class ReservationValidationService
             $blocked = array_filter(array_map('trim', explode(',', $blockPlain)));
             foreach ($blocked as $item) {
                 if ($item !== '' && str_contains(mb_strtolower($name), mb_strtolower($item))) {
+                    Log::debug('Name validation failed: blocked plain string', [
+                        'name' => $name,
+                        'blocked' => $item
+                    ]);
                     return false;
                 }
             }
@@ -54,6 +73,11 @@ class ReservationValidationService
             foreach ($blocked as $item) {
                 $decoded = base64_decode($item, true);
                 if ($decoded !== false && $decoded !== '' && str_contains($name, $decoded)) {
+                    Log::debug('Name validation failed: blocked unicode string', [
+                        'name' => $name,
+                        'blocked_base64' => $item,
+                        'blocked_decoded' => $decoded
+                    ]);
                     return false;
                 }
             }
@@ -62,11 +86,20 @@ class ReservationValidationService
         if ($whitelistRegexEnabled && $whitelistRegex !== '') {
             $matches = @preg_match($whitelistRegex, $name) === 1;
             if (! $matches) {
+                Log::debug('Name validation failed: whitelist regex not matched', [
+                    'name' => $name,
+                    'regex' => $whitelistRegex
+                ]);
                 return false;
             }
         }
 
-        return $name !== '';
+        if ($name === '') {
+            Log::debug('Name validation failed: name is empty');
+            return false;
+        }
+
+        return true;
     }
 
     public function emailIsValid(?string $email): bool
