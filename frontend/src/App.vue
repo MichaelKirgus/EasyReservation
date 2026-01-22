@@ -11,6 +11,7 @@ import AdminFaq from './components/AdminFaq.vue'
 import AdminEvents from './components/AdminEvents.vue'
 import AdminScheduledTasks from './components/AdminScheduledTasks.vue'
 import AdminDiagnostics from './components/AdminDiagnostics.vue'
+import AdminCustomPlaceholders from './components/AdminCustomPlaceholders.vue'
 import languageIconSrc from './assets/icons/languageicon.svg'
 import flagDe from './assets/icons/flag-de.svg'
 import flagUs from './assets/icons/flag-us.svg'
@@ -56,8 +57,9 @@ const tabGroups = computed(() => [
       { key: 'admin-diagnostics', label: 'Diagnose', roles: ['admin'] },
       { key: 'admin-settings', label: 'Einstellungen', roles: ['admin'] },
       { key: 'admin-scheduled-tasks', label: 'Geplante Aufgaben', roles: ['admin'] },
-      { key: 'form-fields', label: 'Formularfelder', roles: ['admin'] },
-      { key: 'users', label: 'Benutzer', roles: ['admin'] },
+      { key: 'admin-custom-placeholders', label: 'Platzhalter', roles: ['admin'] },
+      { key: 'admin-form-fields', label: 'Formularfelder', roles: ['admin'] },
+      { key: 'admin-users', label: 'Benutzer', roles: ['admin'] },
     ],
   },
 ])
@@ -279,7 +281,10 @@ function flagSrc(lang) {
 
 async function fetchPrivacyEnabled() {
   try {
-    const res = await fetch(`${apiBase}/privacy-policy`, { headers: { 'Accept': 'application/json' } })
+    const siteToken = localStorage.getItem('site_token') || '';
+    const headers = { 'Accept': 'application/json' };
+    if (siteToken) headers['X-Site-Token'] = siteToken;
+    const res = await fetch(`${apiBase}/privacy-policy`, { headers });
     privacyEnabled.value = res.ok
   } catch { privacyEnabled.value = false }
 }
@@ -357,8 +362,9 @@ async function fetchPrivacyEnabled() {
       <AdminDiagnostics v-else-if="active === 'admin-diagnostics'" />
       <AdminSettings v-else-if="active === 'admin-settings'" :lang-code="selectedLang" />
       <AdminScheduledTasks v-else-if="active === 'admin-scheduled-tasks'" />
-      <FormFieldManager v-else-if="active === 'form-fields'" :lang-code="selectedLang" />
-      <AdminUsers v-else />
+      <FormFieldManager v-else-if="active === 'admin-form-fields'" :lang-code="selectedLang" />
+      <AdminUsers v-else-if="active === 'admin-users'" />
+      <AdminCustomPlaceholders v-else-if="active === 'admin-custom-placeholders'" />
     </section>
 
     <div v-if="showLogin" class="modal-backdrop" @click.self="showLogin = false">

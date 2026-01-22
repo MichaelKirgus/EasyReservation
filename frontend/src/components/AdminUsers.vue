@@ -194,7 +194,11 @@ function handleKeyUpdate(e) {
   if (storedUser) {
     try { currentUser.value = JSON.parse(storedUser) } catch (_) { currentUser.value = null }
   }
-    }
+  if (apiKey.value) {
+    fetchUsers()
+    fetchSelf2FAStatus()
+  }
+}
 
 async function enable2FA(user) {
   if (!confirm(`2FA für ${user.name} aktivieren?`)) return;
