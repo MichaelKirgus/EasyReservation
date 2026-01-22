@@ -608,6 +608,10 @@ function goToGDPR() {
           {{ config.stats.count }} {{ tr('reservation_counter_part1', 'von') }} {{ config.stats.max }} {{ tr('reservation_counter_part2', 'Plätzen belegt') }}
         </p>
       </section>
+
+      <footer v-if="Number(config.settings.show_project_footer) === 1" class="project-footer">
+        <span>EasyReservation – Open Source Projekt auf <a href="https://github.com/MichaelKirgus/EasyReservation" target="_blank" rel="noopener">GitHub</a></span>
+      </footer>
     </div>
   </div>
 </template>
@@ -638,6 +642,16 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
 .button-row { display: flex; justify-content: flex-end; gap: 5px; }
 .title-row { display: flex; }
+
+.project-footer {
+  width: 100%;
+  margin-top: 2rem;
+  padding: 1rem 0;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.95rem;
+  background: none;
+}
 .title-row.align-left { justify-content: flex-start; }
 .title-row.align-center { justify-content: center; text-align: center; }
 .title-row.align-right { justify-content: flex-end; text-align: right; }

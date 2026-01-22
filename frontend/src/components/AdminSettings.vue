@@ -124,6 +124,7 @@ const tabFieldMap = {
     'reservation_undo_button_border_color',
     'show_faq_button_landing_enabled',
     'show_gdpr_button_landing_enabled',
+    'show_project_footer',
     'faq_button_color',
     'faq_button_backgroundcolor',
     'faq_button_border_color',
