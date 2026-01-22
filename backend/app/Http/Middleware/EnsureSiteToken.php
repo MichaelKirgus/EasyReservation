@@ -64,4 +64,23 @@ class EnsureSiteToken
 
         return false;
     }
+    private function isValidGuestToken(string $token): bool
+    {
+        $candidates = \App\Models\User::query()->where('active', true)->where('role', 'guest')->get();
+        foreach ($candidates as $user) {
+            if (! $user->api_token) {
+                continue;
+            }
+            if ($user->api_token_is_hashed) {
+                if (\Illuminate\Support\Facades\Hash::check($token, $user->api_token)) {
+                    return true;
+                }
+            } else {
+                if (hash_equals((string) $user->api_token, (string) $token)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }

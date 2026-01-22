@@ -63,6 +63,7 @@ const tabGroups = computed(() => [
 ])
 
 const loginForm = reactive({ identifier: '', password: '' })
+const showOtp = ref(false)
 const authMessage = ref('')
 const authError = ref('')
 const loadingAuth = ref(false)
@@ -76,13 +77,22 @@ function setAuthError(msg) { authError.value = msg; authMessage.value = '' }
 async function login() {
   loadingAuth.value = true
   try {
+    const body = { ...loginForm };
+    if (!showOtp.value) delete body.otp;
     const res = await fetch(`${apiBase}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(loginForm),
+      body: JSON.stringify(body),
     })
     const text = await res.text()
-    if (!res.ok) throw new Error(text)
+    if (!res.ok) {
+      if (text.includes('two factor') || text.includes('2FA') || text.toLowerCase().includes('otp')) {
+        showOtp.value = true;
+        setAuthError('Bitte OTP-Code eingeben.');
+        return;
+      }
+      throw new Error(text)
+    }
     const data = JSON.parse(text)
     const token = data.api_token
     if (!token) throw new Error('Kein Token erhalten.')
@@ -99,6 +109,7 @@ async function login() {
     setAuthMessage(`Angemeldet als ${data.user?.name || ''} (${data.user?.role || ''}).`)
     loginForm.password = ''
     showLogin.value = false
+    showOtp.value = false
     ensureActiveTab()
   } catch (e) {
     setAuthError(`Login fehlgeschlagen: ${e}`)
@@ -358,6 +369,9 @@ async function fetchPrivacyEnabled() {
         </label>
         <label class="form-field">Passwort
           <input v-model="loginForm.password" type="password" placeholder="••••••" />
+        </label>
+        <label v-if="showOtp" class="form-field">OTP-Code
+          <input v-model="loginForm.otp" placeholder="123456" />
         </label>
         <label class="checkbox">
           <input type="checkbox" v-model="rememberMe" />

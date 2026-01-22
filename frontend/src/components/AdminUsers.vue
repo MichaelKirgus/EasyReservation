@@ -10,6 +10,7 @@ const loading = ref(false)
 const message = ref('')
 const error = ref('')
 const currentUser = ref(JSON.parse(localStorage.getItem('admin_user') || 'null'))
+const self2FA = ref({ enabled: false, qr: '', recovery: [], showQr: false, showRecovery: false, otp: '', message: '', error: '' })
 const selectedUsers = ref([])
 const lastAutoErrorAt = ref(0)
 
@@ -193,11 +194,144 @@ function handleKeyUpdate(e) {
   if (storedUser) {
     try { currentUser.value = JSON.parse(storedUser) } catch (_) { currentUser.value = null }
   }
+    }
+
+async function enable2FA(user) {
+  if (!confirm(`2FA für ${user.name} aktivieren?`)) return;
+  loading.value = true;
+  try {
+    const res = await fetch(`${apiBase}/admin/users/${user.id}/2fa/enable`, { method: 'POST', headers: authHeaders() });
+    if (!res.ok) throw new Error(await res.text());
+    setMessage('2FA aktiviert.');
+    await fetchUsers();
+  } catch (e) {
+    setError(`2FA-Aktivierung fehlgeschlagen: ${e}`);
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function disable2FA(user) {
+  if (!confirm(`2FA für ${user.name} deaktivieren?`)) return;
+  loading.value = true;
+  try {
+    const res = await fetch(`${apiBase}/admin/users/${user.id}/2fa/disable`, { method: 'POST', headers: authHeaders() });
+    if (!res.ok) throw new Error(await res.text());
+    setMessage('2FA deaktiviert.');
+    await fetchUsers();
+  } catch (e) {
+    setError(`2FA-Deaktivierung fehlgeschlagen: ${e}`);
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function reset2FA(user) {
+  if (!confirm(`2FA für ${user.name} zurücksetzen?`)) return;
+  loading.value = true;
+  try {
+    const res = await fetch(`${apiBase}/admin/users/${user.id}/2fa/reset`, { method: 'POST', headers: authHeaders() });
+    if (!res.ok) throw new Error(await res.text());
+    setMessage('2FA zurückgesetzt.');
+    await fetchUsers();
+  } catch (e) {
+    setError(`2FA-Reset fehlgeschlagen: ${e}`);
+  } finally {
+    loading.value = false;
+  }
+}
+
+
+// 2FA Self-Management: Routen ohne /api, mit credentials: 'include'
+async function fetchSelf2FAStatus() {
+  try {
+    const res = await fetch(`${apiBase}/user`, { headers: authHeaders(), credentials: 'include' })
+    if (!res.ok) return
+    const user = await parseJsonSafe(res)
+    self2FA.value.enabled = !!user.two_factor_secret
+  } catch {}
+}
+
+async function enableSelf2FA() {
+  self2FA.value.error = ''
+  self2FA.value.message = ''
+  try {
+    const res = await fetch(`${apiBase}/self-2fa/enable`, { method: 'POST', headers: authHeaders(), credentials: 'include' })
+    if (!res.ok) throw new Error(await res.text())
+    await fetchSelf2FAStatus()
+    await fetchSelf2FAQr()
+    self2FA.value.showQr = true
+    self2FA.value.message = '2FA aktiviert. Bitte QR-Code scannen und OTP eingeben.'
+  } catch (e) {
+    self2FA.value.error = `Aktivierung fehlgeschlagen: ${e}`
+  }
+}
+
+async function disableSelf2FA() {
+  self2FA.value.error = ''
+  self2FA.value.message = ''
+  try {
+    const res = await fetch(`${apiBase}/self-2fa/disable`, { method: 'DELETE', headers: authHeaders(), credentials: 'include' })
+    if (!res.ok) throw new Error(await res.text())
+    await fetchSelf2FAStatus()
+    self2FA.value.qr = ''
+    self2FA.value.recovery = []
+    self2FA.value.showQr = false
+    self2FA.value.showRecovery = false
+    self2FA.value.message = '2FA deaktiviert.'
+  } catch (e) {
+    self2FA.value.error = `Deaktivierung fehlgeschlagen: ${e}`
+  }
+}
+
+async function fetchSelf2FAQr() {
+  try {
+    const res = await fetch(`${apiBase}/self-2fa/qr`, { headers: authHeaders(), credentials: 'include' })
+    if (!res.ok) throw new Error(await res.text())
+    const data = await parseJsonSafe(res)
+    self2FA.value.qr = data.svg || ''
+    self2FA.value.secret = data.secret || ''
+  } catch (e) {
+    self2FA.value.error = `QR-Code konnte nicht geladen werden: ${e}`
+  }
+}
+
+async function fetchSelf2FARecovery() {
+  try {
+    const res = await fetch(`${apiBase}/self-2fa/recovery`, { headers: authHeaders(), credentials: 'include' })
+    if (!res.ok) throw new Error(await res.text())
+    const data = await parseJsonSafe(res)
+    self2FA.value.recovery = data
+    self2FA.value.showRecovery = true
+  } catch (e) {
+    self2FA.value.error = `Recovery-Codes konnten nicht geladen werden: ${e}`
+  }
+}
+
+async function confirmSelf2FA() {
+  self2FA.value.error = ''
+  self2FA.value.message = ''
+  try {
+    const res = await fetch(`${apiBase}/self-2fa/confirm`, {
+      method: 'POST',
+      headers: authHeaders(),
+      credentials: 'include',
+      body: JSON.stringify({ code: self2FA.value.otp })
+    })
+    if (!res.ok) throw new Error(await res.text())
+    self2FA.value.message = 'OTP bestätigt. 2FA ist jetzt aktiv.'
+    self2FA.value.otp = ''
+    await fetchSelf2FAStatus()
+    await fetchSelf2FARecovery()
+  } catch (e) {
+    self2FA.value.error = `OTP-Überprüfung fehlgeschlagen: ${e}`
+  }
 }
 
 onMounted(() => {
   if (apiKey.value) {
-    fetchUsers()
+      fetchUsers()
+      fetchSelf2FAStatus()
   }
   window.addEventListener('api-key-updated', handleKeyUpdate)
 })
@@ -216,6 +350,36 @@ onUnmounted(() => {
     </div>
     <div v-if="message" class="message">{{ message }}</div>
     <div v-if="error" class="error">{{ error }}</div>
+
+    <section class="card" style="margin-bottom:1rem;">
+      <h3>2FA für das eigene Konto</h3>
+      <div v-if="self2FA.message" class="message">{{ self2FA.message }}</div>
+      <div v-if="self2FA.error" class="error">{{ self2FA.error }}</div>
+      <div v-if="!self2FA.enabled">
+        <button @click="enableSelf2FA" :disabled="loading">2FA aktivieren</button>
+      </div>
+      <div v-else>
+        <button @click="disableSelf2FA" :disabled="loading">2FA deaktivieren</button>
+        <button @click="fetchSelf2FARecovery" :disabled="loading">Recovery-Codes anzeigen</button>
+      </div>
+      <div v-if="self2FA.showQr && self2FA.qr">
+        <div v-html="self2FA.qr" style="margin:1rem 0;max-width:220px;"></div>
+        <div v-if="self2FA.secret" style="margin-bottom:0.5rem;">
+          <strong>Secret:</strong>
+          <span style="font-family:monospace;user-select:all;">{{ self2FA.secret }}</span>
+        </div>
+        <label>OTP-Code eingeben:
+          <input v-model="self2FA.otp" placeholder="123456" />
+        </label>
+        <button @click="confirmSelf2FA" :disabled="!self2FA.otp || loading">OTP bestätigen</button>
+      </div>
+      <div v-if="self2FA.showRecovery && self2FA.recovery.length">
+        <h4>Recovery-Codes</h4>
+        <ul>
+          <li v-for="code in self2FA.recovery" :key="code">{{ code }}</li>
+        </ul>
+      </div>
+    </section>
 
     <section class="card">
       <h3>Neuen Benutzer anlegen</h3>
@@ -285,6 +449,9 @@ onUnmounted(() => {
         <template #row-actions="{ row }">
           <IconButton icon="key" label="Token neu" @click="rotateToken(row, false)" :disabled="loading" />
           <IconButton icon="key" label="Token neu (gehasht)" @click="rotateToken(row, true)" :disabled="loading" />
+          <IconButton icon="shield" label="2FA aktivieren" @click="enable2FA(row)" :disabled="loading || row.two_factor_secret || row.role === 'guest'" />
+          <IconButton icon="close" label="2FA deaktivieren" @click="disable2FA(row)" :disabled="loading || !row.two_factor_secret || row.role === 'guest'" />
+          <IconButton icon="refresh" label="2FA zurücksetzen" @click="reset2FA(row)" :disabled="loading || !row.two_factor_secret || row.role === 'guest'" />
           <IconButton variant="danger" icon="trash" label="Löschen" @click="deleteUser(row)" :disabled="loading" />
         </template>
       </AdminDataTable>

@@ -19,21 +19,30 @@ use App\Http\Controllers\Api\WaitlistController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\PlaceholderController;
 use App\Http\Controllers\Api\PrivacyPolicyController;
+use App\Http\Controllers\Api\TwoFactorApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::options('/{any}', fn () => response()->noContent())->where('any', '.*');
 
 Route::post('/auth/login', [AuthController::class, 'login']);
+Route::middleware(['role:admin,moderator,user'])->group(function () {
+    Route::post('/self-2fa/enable', [TwoFactorApiController::class, 'enable']);
+    Route::delete('/self-2fa/disable', [TwoFactorApiController::class, 'disable']);
+    Route::get('/self-2fa/qr', [TwoFactorApiController::class, 'qr']);
+    Route::get('/self-2fa/recovery', [TwoFactorApiController::class, 'recovery']);
+    Route::post('/self-2fa/confirm', [TwoFactorApiController::class, 'confirm']);
+});
+
 Route::get('/translations/{lang}', [TranslationController::class, 'show']);
 Route::get('/email-validations/{token}', [EmailValidationController::class, 'verify']);
 Route::get('/reservations/undo-token/{token}', [ReservationController::class, 'undoByToken']);
 Route::get('/events/upcoming', [EventController::class, 'upcoming']);
 Route::get('/waitlist/undo-token/{token}', [WaitlistController::class, 'undoByToken']);
 
-
 Route::middleware(['site-token'])->group(function () {
     Route::get('/public/config', [ConfigController::class, 'show']);
     Route::get('/faqs', [FaqController::class, 'publicIndex']);
+    Route::get('/privacy-policy', [PrivacyPolicyController::class, 'show']);
     Route::post('/reservations', [ReservationController::class, 'store']);
     Route::post('/reservations/undo', [ReservationController::class, 'undo']);
 });
@@ -45,6 +54,10 @@ Route::middleware(['role:admin'])->group(function () {
     Route::delete('/admin/reservations/{reservation}', [AdminReservationController::class, 'destroy']);
     Route::get('/admin/export', [AdminReservationController::class, 'export']);
     Route::get('/admin/notification-defaults', [AdminReservationController::class, 'notificationDefaults']);
+
+    Route::post('/admin/users/{user}/2fa/enable', [\App\Http\Controllers\Api\AdminTwoFactorController::class, 'enable']);
+    Route::post('/admin/users/{user}/2fa/disable', [\App\Http\Controllers\Api\AdminTwoFactorController::class, 'disable']);
+    Route::post('/admin/users/{user}/2fa/reset', [\App\Http\Controllers\Api\AdminTwoFactorController::class, 'reset']);
 
     Route::get('/admin/settings', [SettingsController::class, 'index']);
     Route::post('/admin/settings', [SettingsController::class, 'update']);
@@ -80,7 +93,6 @@ Route::middleware(['role:admin'])->group(function () {
     Route::post('/admin/email-broadcast', [EmailBroadcastController::class, 'send']);
     Route::get('/admin/placeholders', [PlaceholderController::class, 'index']);
 
-    // EventTrigger CRUD & Simulation
     Route::get('/admin/event-triggers', [\App\Http\Controllers\Api\EventTriggerController::class, 'index']);
     Route::post('/admin/event-triggers', [\App\Http\Controllers\Api\EventTriggerController::class, 'store']);
     Route::put('/admin/event-triggers/{id}', [\App\Http\Controllers\Api\EventTriggerController::class, 'update']);
@@ -102,7 +114,6 @@ Route::middleware(['role:admin'])->group(function () {
 
     Route::post('/admin/purge-all', [\App\Http\Controllers\Api\PurgeController::class, 'purgeAll']);
 
-    // Webhook-Templates CRUD
     Route::get('/admin/webhook-templates', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'index']);
     Route::get('/admin/webhook-templates/{id}', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'show']);
     Route::post('/admin/webhook-templates', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'store']);
@@ -136,5 +147,3 @@ Route::middleware(['role:admin,moderator'])->group(function () {
     Route::apiResource('/moderator/faqs', FaqController::class)->except(['create', 'edit', 'show']);
     Route::apiResource('/moderator/events', EventController::class)->except(['create', 'edit', 'show']);
 });
-
-Route::get('/privacy-policy', [PrivacyPolicyController::class, 'show']);

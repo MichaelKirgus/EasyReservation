@@ -45,6 +45,7 @@ class EnsureUserRole
         }
 
         $request->setUserResolver(fn () => $candidate);
+        \Auth::login($candidate);
 
         return $next($request);
     }
