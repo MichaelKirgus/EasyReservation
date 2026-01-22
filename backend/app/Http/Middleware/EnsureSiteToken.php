@@ -17,7 +17,6 @@ class EnsureSiteToken
 
     public function handle(Request $request, Closure $next): Response
     {
-        $configuredToken = $this->settings->siteToken();
         $tokenRequired = $this->settings->isTokenRequired();
 
         $headerToken = $request->header('X-Site-Token');
@@ -35,7 +34,8 @@ class EnsureSiteToken
             return $next($request);
         }
 
-        if ($incoming && $configuredToken && hash_equals((string) $configuredToken, (string) $incoming)) {
+        // Prüfe, ob der übergebene Token zu einem aktiven Gast-Benutzer gehört
+        if ($incoming && $this->isValidGuestToken($incoming)) {
             return $next($request);
         }
 

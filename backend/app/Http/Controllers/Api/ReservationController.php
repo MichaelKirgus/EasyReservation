@@ -32,7 +32,10 @@ class ReservationController extends Controller
 
     public function store(ReservationStoreRequest $request): JsonResponse
     {
+
         $settings = $this->settings->all();
+        // Site-Token aus Request holen
+        $siteToken = $request->input('site_token', null);
 
         if ((int) ($settings['reservation_enabled'] ?? 0) !== 1) {
             // Trigger: reservation_disabled

@@ -30,6 +30,7 @@ Route::get('/reservations/undo-token/{token}', [ReservationController::class, 'u
 Route::get('/events/upcoming', [EventController::class, 'upcoming']);
 Route::get('/waitlist/undo-token/{token}', [WaitlistController::class, 'undoByToken']);
 
+
 Route::middleware(['site-token'])->group(function () {
     Route::get('/public/config', [ConfigController::class, 'show']);
     Route::get('/faqs', [FaqController::class, 'publicIndex']);

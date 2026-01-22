@@ -12,6 +12,12 @@ const mediaBase = import.meta.env.VITE_MEDIA_BASE || (() => {
 })()
 
 const siteToken = ref(localStorage.getItem('site_token') || '')
+// Aktualisiere siteToken, falls es sich ändert (z.B. nach App-Start)
+window.addEventListener('storage', (e) => {
+  if (e.key === 'site_token') {
+    siteToken.value = e.newValue || ''
+  }
+})
 const publicApiKey = ref(localStorage.getItem('public_api_key') || '')
 const lang = ref(props.langCode || (navigator.language || 'en').split('-')[0])
 const t = ref({})

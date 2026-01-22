@@ -224,7 +224,7 @@ function handleHashChange() {
   syncActiveFromHash()
 }
 
-onMounted(() => {
+onMounted(async () => {
   const url = new URL(window.location.href)
   const t = url.searchParams.get('t')
   if (t && !localStorage.getItem('admin_api_key')) {
@@ -234,6 +234,7 @@ onMounted(() => {
     url.searchParams.delete('t')
     window.history.replaceState({}, '', url.pathname + url.search + url.hash)
   }
+  // site_token aus ?t= speichern, falls vorhanden
   const urlParams = new URLSearchParams(window.location.search)
   const siteToken = urlParams.get('t')
   if (siteToken) {
