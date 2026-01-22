@@ -7,6 +7,7 @@ use Illuminate\Support\ServiceProvider;
 use App\Services\PlaceholderService;
 use App\Services\SettingsService;
 use App\Services\EventService;
+use App\Services\CustomPlaceholderService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -18,7 +19,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(PlaceholderService::class, function ($app) {
             return new PlaceholderService(
                 $app->make(EventService::class),
-                $app->make(SettingsService::class)
+                $app->make(SettingsService::class),
+                $app->make(CustomPlaceholderService::class)
             );
         });
     }

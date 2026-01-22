@@ -52,9 +52,9 @@
       <label>
         <input type="checkbox" v-model="form.active" /> Aktiv
       </label>
-      <div style="margin-top:1em;display:flex;gap:1em;">
-        <button type="submit" class="success">Speichern</button>
-        <button type="button" @click="$emit('close')">Abbrechen</button>
+      <div style="margin-top:1em;display:flex;gap:0.5em;justify-content:flex-end;">
+        <IconButton icon="check" label="Speichern" type="submit" />
+        <IconButton icon="x" label="Abbrechen" variant="ghost" type="button" @click="$emit('close')" />
       </div>
     </form>
   </div>
@@ -62,6 +62,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import IconButton from './IconButton.vue'
 const props = defineProps({
   trigger: Object,
   emailTemplates: Array,

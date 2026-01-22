@@ -23,9 +23,9 @@
         <label>Header-Template <small>(optional, JSON, Platzhalter unterstützt)</small></label>
         <textarea v-model="form.headers_template" rows="3" style="font-family:monospace;width:100%"></textarea>
       </div>
-      <div class="form-actions">
-        <button type="button" @click="$emit('close')">Abbrechen</button>
-        <button type="submit" class="primary">Speichern</button>
+      <div class="form-actions" style="display:flex;gap:0.5em;justify-content:flex-end;">
+        <IconButton icon="x" label="Abbrechen" variant="ghost" type="button" @click="$emit('close')" />
+        <IconButton icon="check" label="Speichern" type="submit" />
       </div>
     </form>
     <div class="info-box" style="margin-top:1em;">
@@ -44,6 +44,7 @@
 
 <script setup>
 import { reactive, watch, ref, onMounted } from 'vue'
+import IconButton from './IconButton.vue'
 const props = defineProps({
   template: { type: Object, default: null }
 })

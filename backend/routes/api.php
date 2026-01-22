@@ -59,6 +59,7 @@ Route::middleware(['role:admin'])->group(function () {
     Route::post('/admin/users/{user}/2fa/disable', [\App\Http\Controllers\Api\AdminTwoFactorController::class, 'disable']);
     Route::post('/admin/users/{user}/2fa/reset', [\App\Http\Controllers\Api\AdminTwoFactorController::class, 'reset']);
 
+    Route::apiResource('/admin/custom-placeholders', \App\Http\Controllers\Api\CustomPlaceholderController::class)->except(['create', 'edit', 'show']);
     Route::get('/admin/settings', [SettingsController::class, 'index']);
     Route::post('/admin/settings', [SettingsController::class, 'update']);
     Route::get('/admin/settings-keys', [SettingsController::class, 'keys']);

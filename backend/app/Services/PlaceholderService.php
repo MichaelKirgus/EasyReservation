@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Event;
+use App\Services\CustomPlaceholderService;
 
 class PlaceholderService
 {
@@ -16,6 +17,7 @@ class PlaceholderService
     public function __construct(
         private readonly EventService $events,
         private readonly SettingsService $settings,
+        private readonly CustomPlaceholderService $customPlaceholders,
     ) {
     }
 
@@ -56,7 +58,7 @@ class PlaceholderService
             ->values();
         $upcomingDatesWithoutNextList = $upcomingDatesWithoutNext->isEmpty() ? '' : implode("\n", $upcomingDatesWithoutNext->map(fn ($v) => '• '.$v)->all());
 
-        return [
+        $core = [
             '{{reservation_name}}' => (string) $this->settings->get('reservation_name', ''),
             '{{next_event}}' => $nextEvent,
             '{{upcoming_events}}' => $upcomingList,
@@ -73,6 +75,9 @@ class PlaceholderService
             '{{event_public_transport_info}}' => $eventPublicTransportUrl,
             '{{attach_event_ical}}' => '',
         ];
+        $custom = $this->customPlaceholders->getAll();
+        // Feste Platzhalter überschreiben benutzerdefinierte bei gleichem Key
+        return array_merge($custom, $core);
     }
 
     public function tokens(): array
