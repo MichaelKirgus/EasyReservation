@@ -289,7 +289,17 @@ class EmailValidationService
             $base = rtrim(config('app.url'), '/');
         }
 
-        return $this->appendQuery($base, ['v' => (string) $validation->token]);
+        $params = ['v' => (string) $validation->token];
+
+        // Site-Token aus zugehöriger Reservation (falls vorhanden) anhängen
+        if (!empty($validation->reservation_id)) {
+            $reservation = Reservation::find($validation->reservation_id);
+            if ($reservation && !empty($reservation->site_token)) {
+                $params['site_token'] = $reservation->site_token;
+            }
+        }
+
+        return $this->appendQuery($base, $params);
     }
 
     private function buildUndoLink(Reservation $reservation): string
@@ -305,8 +315,9 @@ class EmailValidationService
         }
 
         $params = ['u' => (string) $reservation->undo_token];
-        if ($this->settings->isTokenRequired() && $this->settings->siteToken()) {
-            $params['t'] = $this->settings->siteToken();
+        // Site-Token aus Reservation an Link anhängen, falls vorhanden
+        if (!empty($reservation->site_token)) {
+            $params['site_token'] = $reservation->site_token;
         }
 
         return $this->appendQuery($base, $params);

@@ -132,7 +132,7 @@ class ReservationController extends Controller
 
         if ($target === 'waitlist') {
             try {
-                $entry = $this->waitlist->addToWaitlist($name, $email, $payload);
+                $entry = $this->waitlist->addToWaitlist($name, $email, $payload, $siteToken);
             } catch (\RuntimeException $e) {
                 return response()->json(['message' => $e->getMessage()], 409);
             }
@@ -149,6 +149,7 @@ class ReservationController extends Controller
             'email' => $email === '' ? null : $email,
             'payload' => $payload,
             'undo_token' => (string) Str::uuid(),
+            'site_token' => $siteToken,
         ]);
 
         $this->emailValidation->sendReservationNotification($reservation, 'email_reservation_success_template_id', true);

@@ -35,6 +35,7 @@ const reservationColumns = [
   { key: 'email', label: 'E-Mail', sortable: true },
   { key: 'date_added', label: 'Datum', sortable: true },
   { key: 'payload', label: 'Zusatzfelder', sortable: false },
+  { key: 'site_token', label: 'Token', sortable: false },
 ]
 
 const waitlistColumns = [
@@ -43,6 +44,7 @@ const waitlistColumns = [
   { key: 'email', label: 'E-Mail', sortable: true },
   { key: 'date_added', label: 'Datum', sortable: true },
   { key: 'status', label: 'Status', sortable: true },
+  { key: 'site_token', label: 'Token', sortable: false },
 ]
 
 const validationColumns = [
@@ -631,6 +633,9 @@ async function purgeAllData() {
       <template #cell-payload="{ row }">
         <pre class="payload" v-if="row.payload">{{ JSON.stringify(row.payload, null, 2) }}</pre><span v-else>–</span>
       </template>
+      <template #cell-site_token="{ row }">
+        <span v-if="row.site_token">{{ row.site_token }}</span><span v-else>–</span>
+      </template>
       <template #row-actions="{ row }">
         <IconButton class="danger" variant="danger" icon="trash" label="Löschen" @click="removeItem(row.id)" />
       </template>
@@ -673,6 +678,9 @@ async function purgeAllData() {
         </template>
         <template #cell-date_added="{ value }">{{ formatDateTime(value) }}</template>
         <template #cell-status="{ value }">{{ value }}</template>
+        <template #cell-site_token="{ row }">
+          <span v-if="row.site_token">{{ row.site_token }}</span><span v-else>–</span>
+        </template>
         <template #row-actions="{ row }">
           <IconButton icon="arrowUp" label="Befördern" @click="promoteWaitlistEntry(row.id)" :disabled="waitlistLoading || row.status !== 'pending'" />
           <IconButton variant="danger" icon="trash" label="Löschen" @click="removeWaitlistEntry(row.id)" :disabled="waitlistLoading" />

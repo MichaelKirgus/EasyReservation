@@ -221,14 +221,23 @@ async function submitReservation() {
   loading.value = true
   try {
     const payload = { ...form.payload }
-    const res = await fetch(`${apiBase}/reservations`, {
+    const site_token = localStorage.getItem('site_token') || ''
+    let url = ''
+    let body = {
+      name: form.name,
+      email: form.email,
+      payload,
+      site_token,
+    }
+    if (slotsFull.value && waitlistEnabled.value) {
+      url = `${apiBase}/waitlist`
+    } else {
+      url = `${apiBase}/reservations`
+    }
+    const res = await fetch(url, {
       method: 'POST',
       headers: headers(true),
-      body: JSON.stringify({
-        name: form.name,
-        email: form.email,
-        payload,
-      }),
+      body: JSON.stringify(body),
     })
     const text = await res.text()
     let data = null

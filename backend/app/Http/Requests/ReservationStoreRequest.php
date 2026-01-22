@@ -17,6 +17,7 @@ class ReservationStoreRequest extends FormRequest
             'name' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'string', 'max:255'],
             'payload' => ['nullable', 'array'],
+            'site_token' => ['nullable', 'string', 'max:255'], // Site-Token erlauben
         ];
     }
 }

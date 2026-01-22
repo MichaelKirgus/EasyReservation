@@ -3,14 +3,16 @@
     "",
     "\\backend",
     "\\backend\\app",
-    "\\backend\\app\\Models",
-    "\\backend\\app\\Services",
-    "\\backend\\database",
-    "\\backend\\routes",
+    "\\backend\\app\\Http",
+    "\\backend\\app\\Http\\Controllers",
+    "\\backend\\app\\Http\\Controllers\\Api",
+    "\\backend\\app\\Http\\Middleware",
+    "\\backend\\app\\Http\\Requests",
+    "\\backend\\app\\Jobs",
     "\\frontend",
     "\\frontend\\src",
     "\\frontend\\src\\components"
   ],
-  "SelectedNode": "\\backend\\routes\\api.php",
+  "SelectedNode": "\\backend\\app\\Services\\ReservationValidationService.php",
   "PreviewInSolutionExplorer": false
 }

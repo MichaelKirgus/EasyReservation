@@ -17,6 +17,7 @@ class WaitlistEntry extends Model
         'date_added',
         'undo_token',
         'undo_used_at',
+        'site_token', // hinzugefügt
     ];
 
     protected $casts = [

@@ -15,6 +15,7 @@ class Reservation extends Model
         'undo_token',
         'date_added',
         'from_waitlist',
+        'site_token',
     ];
 
     protected $casts = [

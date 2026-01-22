@@ -21,7 +21,7 @@ class WaitlistService
         return (int) ($this->settings->get('waitlist_enabled', 0) ?? 0) === 1;
     }
 
-    public function addToWaitlist(string $name, ?string $email, ?array $payload = null): WaitlistEntry
+    public function addToWaitlist(string $name, ?string $email, ?array $payload = null, ?string $siteToken = null): WaitlistEntry
     {
         $name = trim($name);
         $email = trim((string) $email);
@@ -41,12 +41,23 @@ class WaitlistService
             throw new \RuntimeException('Already on waitlist.');
         }
 
+        // Automatisch einen gültigen Gast-Site-Token verwenden, falls keiner übergeben wurde
+        if (empty($siteToken)) {
+            $siteToken = \App\Models\User::query()
+                ->where('role', 'guest')
+                ->where('active', true)
+                ->whereNotNull('api_token')
+                ->orderByDesc('id')
+                ->value('api_token');
+        }
+
         return WaitlistEntry::create([
             'display_name' => $name,
             'email' => $email === '' ? null : $email,
             'payload' => $payload,
             'status' => 'pending',
             'undo_token' => (string) Str::uuid(),
+            'site_token' => $siteToken,
         ]);
     }
 
@@ -79,6 +90,7 @@ class WaitlistService
                 'payload' => $entry->payload,
                 'from_waitlist' => true,
                 'undo_token' => (string) Str::uuid(),
+                'site_token' => $entry->site_token,
             ]);
 
             $entry->status = 'promoted';
@@ -119,6 +131,7 @@ class WaitlistService
                 'payload' => $entry->payload,
                 'from_waitlist' => true,
                 'undo_token' => (string) Str::uuid(),
+                'site_token' => $entry->site_token,
             ]);
 
             $entry->status = 'promoted';

@@ -225,6 +225,12 @@ function handleHashChange() {
 }
 
 onMounted(() => {
+  // Site-Token aus URL übernehmen (falls vorhanden)
+  const urlParams = new URLSearchParams(window.location.search)
+  const siteToken = urlParams.get('site_token')
+  if (siteToken) {
+    localStorage.setItem('site_token', siteToken)
+  }
   const storedUser = localStorage.getItem('admin_user') || sessionStorage.getItem('admin_user')
   if (storedUser) {
     try { currentUser.value = JSON.parse(storedUser) } catch (_) { /* ignore */ }

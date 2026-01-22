@@ -38,11 +38,13 @@ class WaitlistController extends Controller
             'email' => ['nullable', 'email', 'max:255'],
             'payload' => ['nullable', 'array'],
             'notify' => ['nullable'],
+            'site_token' => ['nullable', 'string', 'max:255'], // site_token erlauben
         ]);
 
         $name = trim($data['name']);
         $email = trim((string) ($data['email'] ?? ''));
         $payload = $data['payload'] ?? [];
+        $siteToken = $data['site_token'] ?? null;
 
         if (! $this->validator->nameIsValid($name)) {
             return response()->json(['message' => 'Invalid name.'], 422);
@@ -53,7 +55,7 @@ class WaitlistController extends Controller
         }
 
         try {
-            $entry = $this->waitlist->addToWaitlist($name, $email, $payload);
+            $entry = $this->waitlist->addToWaitlist($name, $email, $payload, $siteToken);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
         }
