@@ -226,19 +226,14 @@ function handleHashChange() {
 
 onMounted(async () => {
   const url = new URL(window.location.href)
-  const t = url.searchParams.get('t')
-  if (t && !localStorage.getItem('admin_api_key')) {
-    localStorage.setItem('admin_api_key', t)
-  }
-  if (url.searchParams.has('t')) {
-    url.searchParams.delete('t')
-    window.history.replaceState({}, '', url.pathname + url.search + url.hash)
-  }
   // site_token aus ?t= speichern, falls vorhanden
   const urlParams = new URLSearchParams(window.location.search)
   const siteToken = urlParams.get('t')
   if (siteToken) {
     localStorage.setItem('site_token', siteToken)
+    // Entferne t aus der URL, falls vorhanden
+    urlParams.delete('t')
+    window.history.replaceState({}, '', url.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '') + url.hash)
   }
   const storedUser = localStorage.getItem('admin_user') || sessionStorage.getItem('admin_user')
   if (storedUser) {
