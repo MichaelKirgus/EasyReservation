@@ -225,9 +225,17 @@ function handleHashChange() {
 }
 
 onMounted(() => {
-  // Site-Token aus URL übernehmen (falls vorhanden)
+  const url = new URL(window.location.href)
+  const t = url.searchParams.get('t')
+  if (t && !localStorage.getItem('admin_api_key')) {
+    localStorage.setItem('admin_api_key', t)
+  }
+  if (url.searchParams.has('t')) {
+    url.searchParams.delete('t')
+    window.history.replaceState({}, '', url.pathname + url.search + url.hash)
+  }
   const urlParams = new URLSearchParams(window.location.search)
-  const siteToken = urlParams.get('site_token')
+  const siteToken = urlParams.get('t')
   if (siteToken) {
     localStorage.setItem('site_token', siteToken)
   }

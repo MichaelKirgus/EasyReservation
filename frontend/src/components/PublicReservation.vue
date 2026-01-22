@@ -406,21 +406,6 @@ function removeQueryParams(keys) {
 }
 
 onMounted(async () => {
-  const url = new URL(window.location.href)
-  let tParam = url.searchParams.get('t')
-  if (!tParam) {
-    const path = url.pathname || ''
-    const hash = url.hash || ''
-    const fromPath = path.startsWith('/t=') ? path.slice(3) : null
-    const fromHash = hash.startsWith('#t=') ? hash.slice(3) : null
-    tParam = fromPath || fromHash || ''
-  }
-  if (tParam) {
-    siteToken.value = tParam
-    publicApiKey.value = tParam
-    localStorage.setItem('site_token', tParam)
-    localStorage.setItem('public_api_key', tParam)
-  }
   syncCurrentUser()
   window.addEventListener('api-key-updated', onApiKeyUpdated)
   await fetchTranslations()
