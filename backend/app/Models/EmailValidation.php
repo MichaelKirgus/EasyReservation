@@ -21,6 +21,7 @@ class EmailValidation extends Model
         'reservation_id',
         'waitlist_entry_id',
         'last_error',
+        'site_token',
     ];
 
     protected $casts = [
