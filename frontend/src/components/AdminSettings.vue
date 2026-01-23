@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, watch, computed } from 'vue'
 import IconButton from './IconButton.vue'
+import SecretField from './SecretField.vue'
 import { settingsFields } from './settingsFields.js'
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
@@ -411,6 +412,9 @@ watch(() => props.langCode, () => fetchTranslations())
           </template>
           <template v-else-if="field.component === 'textarea'">
             <textarea v-model="settings[field.key]" rows="4"></textarea>
+          </template>
+          <template v-else-if="field.key === 'mail_password'">
+            <SecretField v-model="settings[field.key]" />
           </template>
           <template v-else>
             <input v-model="settings[field.key]" />

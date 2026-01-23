@@ -74,6 +74,7 @@ Route::middleware(['role:admin'])->group(function () {
     Route::patch('/admin/users/{user}', [UserController::class, 'update']);
     Route::delete('/admin/users/{user}', [UserController::class, 'destroy']);
     Route::post('/admin/users/{user}/rotate-token', [UserController::class, 'rotateToken']);
+    Route::post('/admin/users/{user}/reset-password', [UserController::class, 'resetPassword']);
 
     Route::get('/admin/waitlist', [WaitlistController::class, 'index']);
     Route::post('/admin/waitlist', [WaitlistController::class, 'store']);

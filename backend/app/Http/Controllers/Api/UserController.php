@@ -108,6 +108,20 @@ class UserController extends Controller
         ]);
     }
 
+    public function resetPassword(Request $request, User $user): JsonResponse
+    {
+        // Nur Admins dürfen diese Aktion durchführen
+        if (!($request->user() && $request->user()->role === 'admin')) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+        $request->validate([
+            'password' => ['required', 'string', 'min:6'],
+        ]);
+        $user->password = $request->input('password');
+        $user->save();
+        return response()->json(['message' => 'Passwort wurde geändert.']);
+    }
+
     protected function assertAnotherAdminExists(User $exclude): void
     {
         $hasOtherAdmin = User::query()

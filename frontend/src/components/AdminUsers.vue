@@ -2,6 +2,9 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
+import SecretField from './SecretField.vue'
+
+import ResetPasswordDialog from './ResetPasswordDialog.vue'
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
@@ -13,6 +16,11 @@ const currentUser = ref(JSON.parse(localStorage.getItem('admin_user') || 'null')
 const self2FA = ref({ enabled: false, qr: '', recovery: [], showQr: false, showRecovery: false, otp: '', message: '', error: '' })
 const selectedUsers = ref([])
 const lastAutoErrorAt = ref(0)
+const showToken = reactive({})
+
+const showResetPassword = ref(false)
+const resetUser = ref(null)
+const resetLoading = ref(false)
 
 const userColumns = [
   { key: 'id', label: 'ID', sortable: true },
@@ -40,6 +48,11 @@ function setMessage(msg) {
   error.value = ''
 }
 
+function closeResetPasswordDialog() {
+  showResetPassword.value = false;
+  resetUser.value = null;
+}
+
 function setError(msg, opts = {}) {
   if (opts.auto) {
     const now = Date.now()
@@ -56,6 +69,30 @@ function authHeaders() {
     Accept: 'application/json',
     'X-Api-Key': apiKey.value,
   }
+}
+
+async function resetPassword(user, password) {
+  resetLoading.value = true
+  try {
+    const res = await fetch(`${apiBase}/admin/users/${user.id}/reset-password`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ password })
+    })
+    if (!res.ok) throw new Error(await res.text())
+    setMessage('Kennwort wurde geändert.')
+    showResetPassword.value = false
+    resetUser.value = null
+  } catch (e) {
+    setError(`Kennwort-Reset fehlgeschlagen: ${e}`)
+  } finally {
+    resetLoading.value = false
+  }
+}
+
+function openResetPasswordDialog(row) {
+  resetUser.value = { ...row };
+  showResetPassword.value = true;
 }
 
 async function parseJsonSafe(res) {
@@ -265,7 +302,7 @@ async function enableSelf2FA() {
     await fetchSelf2FAStatus()
     await fetchSelf2FAQr()
     self2FA.value.showQr = true
-    self2FA.value.message = '2FA aktiviert. Bitte QR-Code scannen und OTP eingeben.'
+    self2FA.value.message = 'Bitte QR-Code scannen und OTP eingeben.'
   } catch (e) {
     self2FA.value.error = `Aktivierung fehlgeschlagen: ${e}`
   }
@@ -347,11 +384,6 @@ onUnmounted(() => {
 
 <template>
   <div class="stack">
-    <div class="controls">
-      <label>API-Key (Admin)
-        <input v-model="apiKey" placeholder="X-Api-Key" />
-      </label>
-    </div>
     <div v-if="message" class="message">{{ message }}</div>
     <div v-if="error" class="error">{{ error }}</div>
 
@@ -400,7 +432,9 @@ onUnmounted(() => {
         </label>
         <label class="inline">Aktiv<input type="checkbox" v-model="form.active" /></label>
         <label class="full">Passwort (optional)<input v-model="form.password" type="password" /></label>
-        <label class="full">API-Token (optional)<input v-model="form.api_token" /></label>
+        <label class="full">API-Token (optional)
+          <SecretField v-model="form.api_token" />
+        </label>
       </div>
       <IconButton icon="plus" label="Anlegen" @click="createUser" :disabled="loading" />
     </section>
@@ -441,9 +475,11 @@ onUnmounted(() => {
         </template>
         <template #cell-api_token="{ row }">
           <div class="token-cell">
-            <input
+            <SecretField
               v-if="isAdmin && !row.api_token_is_hashed"
               v-model="row.api_token"
+              :show="row.id ? showToken[row.id] : undefined"
+              @update:show="val => { if (row.id) showToken[row.id] = val }"
               @change="updateUser(row)"
               placeholder="Token"
             />
@@ -454,11 +490,20 @@ onUnmounted(() => {
           <IconButton icon="key" label="Token neu" @click="rotateToken(row, false)" :disabled="loading" />
           <IconButton icon="key" label="Token neu (gehasht)" @click="rotateToken(row, true)" :disabled="loading" />
           <IconButton icon="shield" label="2FA aktivieren" @click="enable2FA(row)" :disabled="loading || row.two_factor_secret || row.role === 'guest'" />
+          <IconButton icon="lock" label="Kennwort setzen" @click="openResetPasswordDialog(row)" :disabled="loading || row.role === 'guest'" />
           <IconButton icon="close" label="2FA deaktivieren" @click="disable2FA(row)" :disabled="loading || !row.two_factor_secret || row.role === 'guest'" />
           <IconButton icon="refresh" label="2FA zurücksetzen" @click="reset2FA(row)" :disabled="loading || !row.two_factor_secret || row.role === 'guest'" />
           <IconButton variant="danger" icon="trash" label="Löschen" @click="deleteUser(row)" :disabled="loading" />
         </template>
       </AdminDataTable>
+
+      <ResetPasswordDialog
+        v-if="showResetPassword && resetUser"
+        :user="resetUser"
+        :loading="resetLoading"
+        @submit="pwd => resetPassword(resetUser, pwd)"
+        @close="closeResetPasswordDialog"
+      />
     </section>
   </div>
 </template>

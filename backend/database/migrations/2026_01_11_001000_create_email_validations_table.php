@@ -22,6 +22,7 @@ return new class extends Migration {
             $table->timestamp('completed_at')->nullable();
             $table->unsignedBigInteger('reservation_id')->nullable();
             $table->unsignedBigInteger('waitlist_entry_id')->nullable();
+            $table->string('site_token', 255)->nullable(); // hinzugefügt
             $table->text('last_error')->nullable();
             $table->timestamps();
 

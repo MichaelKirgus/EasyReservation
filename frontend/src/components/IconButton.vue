@@ -12,6 +12,7 @@ const props = defineProps({
 })
 
 const ICONS = {
+  lock: { viewBox: '0 0 24 24', paths: ['M17 11V7a5 5 0 0 0-10 0v4', 'M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z', 'M12 17v-2'] },
   plus: { viewBox: '0 0 24 24', paths: ['M12 5v14', 'M5 12h14'] },
   trash: { viewBox: '0 0 24 24', paths: ['M6 7h12', 'M9 7V5h6v2', 'M10 11v6', 'M14 11v6', 'M5 7v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7'] },
   pencil: { viewBox: '0 0 24 24', paths: ['M12 20h9', 'M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5 3 21l1.5-4L16.5 3.5z'] },
@@ -35,6 +36,9 @@ const ICONS = {
   chevronLeft: { viewBox: '0 0 24 24', paths: ['M15 18 9 12l6-6'] },
   chevronRight: { viewBox: '0 0 24 24', paths: ['m9 18 6-6-6-6'] },
   play: { viewBox: '0 0 24 24', paths: ['M8 5v14l11-7z'] }, // Play-Icon hinzugefügt
+  eye: { viewBox: '0 0 24 24', paths: ['M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z', 'M12 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6z'] },
+  eyeOff: { viewBox: '0 0 24 24', paths: ['M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.81 21.81 0 0 1 5.06-6.06', 'M1 1l22 22', 'M9.53 9.53A3 3 0 0 0 12 15a3 3 0 0 0 2.47-5.47'] },
+  copy: { viewBox: '0 0 24 24', paths: ['M16 1H4a2 2 0 0 0-2 2v14', 'M8 5h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5z'] },
 }
 
 const iconDef = computed(() => ICONS[props.icon] || ICONS.plus)
