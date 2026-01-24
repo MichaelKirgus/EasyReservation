@@ -636,7 +636,19 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .top-image { text-align: center; margin-bottom: 0.75rem; }
 .top-image img { max-width: 100%; max-height: 240px; object-fit: contain; }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.5); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem; }
-.modal { background: #fff; border-radius: 10px; padding: 1rem; max-width: 420px; width: 100%; box-shadow: 0 20px 50px rgba(15,23,42,0.2); display: flex; flex-direction: column; gap: 0.75rem; }
+.modal {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 20px 50px rgba(15,23,42,0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 80vh;
+  overflow: auto;
+}
 .modal-text { margin: 0; font-size: 1rem; }
 .top-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }

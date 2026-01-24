@@ -217,7 +217,8 @@ class EmailValidationService
             throw new \RuntimeException('E-Mail ungültig.');
         }
 
-        return DB::transaction(function () use ($name, $email, $payload, $overflowEnabled) {
+        $siteToken = $validation->site_token ?? null;
+        return DB::transaction(function () use ($name, $email, $payload, $overflowEnabled, $siteToken) {
             $max = (int) ($this->settings->get('reservation_max', 0) ?? 0);
 
             $current = Reservation::query()->lockForUpdate()->count();
@@ -242,6 +243,7 @@ class EmailValidationService
                 'email' => $email === '' ? null : $email,
                 'payload' => $payload,
                 'undo_token' => (string) Str::uuid(),
+                'site_token' => $siteToken,
             ]);
         });
     }
