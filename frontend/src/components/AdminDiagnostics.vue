@@ -16,6 +16,11 @@ const refreshMs = 2000
 let timerId = null
 const lastAutoErrorAt = ref(0)
 
+const auditLogEnabled = import.meta.env.VITE_AUDIT_LOG !== 'FALSE'
+const auditLogCount = ref(null)
+const auditLogLoading = ref(false)
+const auditLogError = ref('')
+
 const jobColumns = [
   { key: 'finished_at', label: 'Fertig', sortable: true },
   { key: 'job', label: 'Job', sortable: true },
@@ -57,6 +62,23 @@ async function loadDiagnostics(opts = {}) {
     setError(`Fehler beim Laden: ${e}`, opts)
   } finally {
     loading.value = false
+  }
+}
+
+async function loadAuditLogCount() {
+  auditLogLoading.value = true
+  auditLogError.value = ''
+  try {
+    const res = await fetch(apiBase + '/audit-log/count', {
+      headers: { ...authHeaders() }
+    })
+    if (!res.ok) throw new Error('Fehler beim Laden der Audit-Log-Anzahl')
+    const data = await res.json()
+    auditLogCount.value = data.count
+  } catch (e) {
+    auditLogError.value = e.message || String(e)
+  } finally {
+    auditLogLoading.value = false
   }
 }
 
@@ -111,6 +133,7 @@ onMounted(() => {
   window.addEventListener('api-key-updated', handleKeyUpdate)
   if (apiKey.value) {
     loadDiagnostics()
+    loadAuditLogCount()
     if (autoRefreshEnabled.value) startAutoRefresh()
   }
 })
@@ -210,6 +233,27 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <div class="card">
+      <div class="card-header">
+        <h4>Audit-Log</h4>
+      </div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="label">Aktiviert</div>
+          <div class="value" :style="{ color: auditLogEnabled ? '#15803d' : '#b91c1c' }">
+            {{ auditLogEnabled ? 'Ja' : 'Nein' }}
+          </div>
+        </div>
+        <div class="info-item">
+          <div class="label">Einträge</div>
+          <div class="value">
+            <template v-if="auditLogLoading">Lade...</template>
+            <template v-else-if="auditLogError">{{ auditLogError }}</template>
+            <template v-else>{{ auditLogCount }}</template>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="card">
       <div class="card-header">

@@ -30,4 +30,14 @@ class AuditLogController extends Controller
         AuditLog::truncate();
         return response()->json(['message' => 'Audit-Log geleert']);
     }
+
+    public function count(Request $request)
+    {
+        $user = $request->user();
+        if (!in_array($user->role, ['admin', 'superadmin'])) {
+            abort(403);
+        }
+        $count = AuditLog::count();
+        return response()->json(['count' => $count]);
+    }
 }

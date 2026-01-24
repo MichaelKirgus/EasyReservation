@@ -114,7 +114,12 @@ class DiagnosticsService
         $error = null;
         try {
             if (config('queue.default') === 'redis') {
-                $rawKeys = \Illuminate\Support\Facades\Redis::keys('*');
+                $prefix = config('database.redis.options.prefix') ?? '';
+                $rawKeys = \Illuminate\Support\Facades\Redis::keys($prefix . '*');
+                // Fallback: falls kein Prefix, auch Standard-Keys anzeigen
+                if (!$rawKeys || count($rawKeys) === 0) {
+                    $rawKeys = \Illuminate\Support\Facades\Redis::keys('*');
+                }
                 foreach ($rawKeys as $key) {
                     $type = \Illuminate\Support\Facades\Redis::type($key);
                     $len = null;

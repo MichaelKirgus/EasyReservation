@@ -49,6 +49,7 @@ Route::middleware(['site-token'])->group(function () {
 });
 
 Route::middleware(['role:admin,superadmin'])->group(function () {
+    Route::get('/audit-log/count', [AuditLogController::class, 'count']);
     Route::get('/admin/reservations', [AdminReservationController::class, 'index']);
     Route::post('/admin/reservations', [AdminReservationController::class, 'store']);
     Route::patch('/admin/reservations/{reservation}', [AdminReservationController::class, 'update']);
