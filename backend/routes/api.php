@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\PlaceholderController;
 use App\Http\Controllers\Api\PrivacyPolicyController;
 use App\Http\Controllers\Api\TwoFactorApiController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AuditLogController;
 
 Route::options('/{any}', fn () => response()->noContent())->where('any', '.*');
 
@@ -47,7 +48,7 @@ Route::middleware(['site-token'])->group(function () {
     Route::post('/reservations/undo', [ReservationController::class, 'undo']);
 });
 
-Route::middleware(['role:admin'])->group(function () {
+Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::get('/admin/reservations', [AdminReservationController::class, 'index']);
     Route::post('/admin/reservations', [AdminReservationController::class, 'store']);
     Route::patch('/admin/reservations/{reservation}', [AdminReservationController::class, 'update']);
@@ -124,10 +125,10 @@ Route::middleware(['role:admin'])->group(function () {
     Route::post('/admin/webhook-templates/{id}/test', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'test']);
 });
 
-Route::middleware(['role:admin,moderator'])->group(function () {
+Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
     Route::get('/moderator/reservations', [AdminReservationController::class, 'index']);
     Route::post('/moderator/reservations', [AdminReservationController::class, 'store']);
-    Route::patch('/moderator/reservations/{reservation}', [AdminReservationController::class, 'update']);
+    Route::patch('/moderator/resersvations/{reservation}', [AdminReservationController::class, 'update']);
     Route::delete('/moderator/reservations/{reservation}', [AdminReservationController::class, 'destroy']);
     Route::get('/moderator/export', [AdminReservationController::class, 'export']);
     Route::get('/moderator/notification-defaults', [AdminReservationController::class, 'notificationDefaults']);
@@ -140,6 +141,7 @@ Route::middleware(['role:admin,moderator'])->group(function () {
     Route::delete('/moderator/waitlist/{entry}', [WaitlistController::class, 'destroy']);
 
     Route::get('/moderator/email-validations', [EmailValidationAdminController::class, 'index']);
+    Route::delete('/moderator/email-validations/{validation}', [EmailValidationAdminController::class, 'destroy']);
 
     Route::get('/moderator/email-validation-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'index']);
 
@@ -148,4 +150,9 @@ Route::middleware(['role:admin,moderator'])->group(function () {
     Route::get('/moderator/placeholders', [PlaceholderController::class, 'index']);
     Route::apiResource('/moderator/faqs', FaqController::class)->except(['create', 'edit', 'show']);
     Route::apiResource('/moderator/events', EventController::class)->except(['create', 'edit', 'show']);
+});
+
+Route::middleware(['role:superadmin'])->group(function () {
+    Route::get('/audit-logs', [\App\Http\Controllers\Api\AuditLogController::class, 'index']);
+    Route::post('/audit-logs/clear', [\App\Http\Controllers\Api\AuditLogController::class, 'clear']);
 });

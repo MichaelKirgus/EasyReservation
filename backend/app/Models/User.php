@@ -53,4 +53,11 @@ class User extends Authenticatable
             'active' => 'boolean',
         ];
     }
+    /**
+     * Prüft, ob der Benutzer SuperAdmin ist.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'superadmin';
+    }
 }
