@@ -32,26 +32,32 @@ class WaitlistService
             throw new \RuntimeException('Waitlist limit reached.');
         }
 
+        $user = auth()->user();
+        $adminExempt = (int)($this->settings->get('waitlist_duplicate_check_admin_exempt', 0) ?? 0) === 1;
+        $isAdminOrMod = $user && in_array($user->role, ['admin', 'moderator', 'superadmin']);
+        $skipDuplicateCheck = $adminExempt && $isAdminOrMod;
         $allowDuplicateName = (int)($this->settings->get('waitlist_allow_duplicate_name', 0) ?? 0) === 1;
         $allowDuplicateEmail = (int)($this->settings->get('waitlist_allow_duplicate_email', 0) ?? 0) === 1;
 
-        if (! $allowDuplicateName) {
-            $duplicateName = WaitlistEntry::query()
-                ->where('status', 'pending')
-                ->whereRaw('LOWER(display_name) = ?', [Str::lower($name)])
-                ->exists();
-            if ($duplicateName) {
-                throw new \RuntimeException('Name already on waitlist.');
+        if (! $skipDuplicateCheck) {
+            if (! $allowDuplicateName) {
+                $duplicateName = WaitlistEntry::query()
+                    ->where('status', 'pending')
+                    ->whereRaw('LOWER(display_name) = ?', [Str::lower($name)])
+                    ->exists();
+                if ($duplicateName) {
+                    throw new \RuntimeException('Name already on waitlist.');
+                }
             }
-        }
 
-        if (! $allowDuplicateEmail && $email !== null && $email !== '') {
-            $duplicateEmail = WaitlistEntry::query()
-                ->where('status', 'pending')
-                ->whereRaw('LOWER(email) = ?', [Str::lower($email)])
-                ->exists();
-            if ($duplicateEmail) {
-                throw new \RuntimeException('E-Mail already on waitlist.');
+            if (! $allowDuplicateEmail && $email !== null && $email !== '') {
+                $duplicateEmail = WaitlistEntry::query()
+                    ->where('status', 'pending')
+                    ->whereRaw('LOWER(email) = ?', [Str::lower($email)])
+                    ->exists();
+                if ($duplicateEmail) {
+                    throw new \RuntimeException('E-Mail already on waitlist.');
+                }
             }
         }
 
