@@ -123,8 +123,12 @@ async function login() {
 }
 
 function logout() {
-  localStorage.removeItem('admin_api_key')
-  localStorage.removeItem('admin_user')
+  if (appSettings.clear_localstorage_on_logout) {
+    localStorage.clear()
+  } else {
+    localStorage.removeItem('admin_api_key')
+    localStorage.removeItem('admin_user')
+  }
   sessionStorage.removeItem('admin_api_key')
   sessionStorage.removeItem('admin_user')
   currentUser.value = null
@@ -240,6 +244,7 @@ function handleHashChange() {
 }
 
 onMounted(async () => {
+  await fetchAppSettings()
   const storedUser = localStorage.getItem('admin_user') || sessionStorage.getItem('admin_user')
   if (storedUser) {
     try { currentUser.value = JSON.parse(storedUser) } catch (_) { /* ignore */ }
