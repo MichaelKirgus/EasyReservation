@@ -54,10 +54,10 @@ const tabGroups = computed(() => {
       label: 'Moderation',
       roles: ['superadmin', 'admin', 'moderator'],
       tabs: [
-        { key: 'admin-reservations', label: 'Reservierungen', roles: ['superadmin', 'admin', 'moderator'] },
-        { key: 'admin-email', label: 'E-Mail', roles: ['superadmin', 'admin', 'moderator'] },
-        { key: 'admin-faq', label: 'FAQ', roles: ['superadmin', 'admin', 'moderator'] },
-        { key: 'admin-events', label: 'Termine', roles: ['superadmin', 'admin', 'moderator'] },
+        { key: 'moderation-reservations', label: 'Reservierungen', roles: ['superadmin', 'admin', 'moderator'] },
+        { key: 'moderation-email', label: 'E-Mail', roles: ['superadmin', 'admin', 'moderator'] },
+        { key: 'moderation-faq', label: 'FAQ', roles: ['superadmin', 'admin', 'moderator'] },
+        { key: 'moderation-events', label: 'Termine', roles: ['superadmin', 'admin', 'moderator'] },
       ],
     },
     {
@@ -71,7 +71,7 @@ const tabGroups = computed(() => {
         { key: 'admin-custom-placeholders', label: 'Platzhalter', roles: ['superadmin', 'admin'] },
         { key: 'admin-form-fields', label: 'Formularfelder', roles: ['superadmin', 'admin'] },
         { key: 'admin-users', label: 'Benutzer', roles: ['superadmin', 'admin'] },
-        { key: 'admin-auditlog', label: 'Audit-Log', roles: ['superadmin'] },
+        { key: 'superadmin-auditlog', label: 'Audit-Log', roles: ['superadmin'] },
       ],
     },
   ];
@@ -376,17 +376,17 @@ async function fetchPrivacyEnabled() {
       <PublicReservation v-if="active === 'public'" :lang-code="selectedLang" />
       <PublicFaq v-else-if="active === 'public-faq'" :lang-code="selectedLang" />
       <PublicPrivacy v-else-if="active === 'public-privacy'" :lang-code="selectedLang" />
-      <AdminReservations v-else-if="active === 'admin-reservations'" />
-      <AdminEmailBroadcast v-else-if="active === 'admin-email'" />
-      <AdminFaq v-else-if="active === 'admin-faq'" />
-      <AdminEvents v-else-if="active === 'admin-events'" />
+      <AdminReservations v-else-if="active === 'moderation-reservations'" />
+      <AdminEmailBroadcast v-else-if="active === 'moderation-email'" />
+      <AdminFaq v-else-if="active === 'moderation-faq'" />
+      <AdminEvents v-else-if="active === 'moderation-events'" />
       <AdminDiagnostics v-else-if="active === 'admin-diagnostics'" />
       <AdminSettings v-else-if="active === 'admin-settings'" :lang-code="selectedLang" />
       <AdminScheduledTasks v-else-if="active === 'admin-scheduled-tasks'" />
       <FormFieldManager v-else-if="active === 'admin-form-fields'" :lang-code="selectedLang" />
       <AdminUsers v-else-if="active === 'admin-users'" />
       <AdminCustomPlaceholders v-else-if="active === 'admin-custom-placeholders'" />
-      <AdminAuditLog v-else-if="active === 'admin-auditlog'" />
+      <AdminAuditLog v-else-if="active === 'superadmin-auditlog'" />
     </section>
 
     <div v-if="showLogin" class="modal-backdrop" @click.self="showLogin = false">
