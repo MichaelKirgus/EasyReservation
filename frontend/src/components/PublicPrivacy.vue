@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import IconButton from './IconButton.vue'
 
 const props = defineProps({ langCode: { type: String, default: 'de' } })
 
@@ -123,7 +124,7 @@ function goBack() {
   <div class="privacy-page">
     <div class="top-row">
       <h2>{{ tr('privacy_title', 'Datenschutzerklärung') }}</h2>
-      <button class="ghost" type="button" @click="goBack">? Zurück</button>
+      <IconButton icon="chevronLeft" label="Zurück" variant="ghost" @click="goBack" />
     </div>
     <p class="hint">{{ tr('privacy_intro', 'Informationen zum Datenschutz.') }}</p>
 
