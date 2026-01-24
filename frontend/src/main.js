@@ -1,3 +1,7 @@
+import { createApp } from 'vue'
+import './style.css'
+import App from './App.vue'
+import router from './router'
 
 const url = new URL(window.location.href)
 const urlParams = new URLSearchParams(window.location.search)
@@ -9,8 +13,4 @@ if (siteToken) {
   window.location.reload()
 }
 
-import { createApp } from 'vue'
-import './style.css'
-import App from './App.vue'
-
-createApp(App).mount('#app')
+createApp(App).use(router).mount('#app')

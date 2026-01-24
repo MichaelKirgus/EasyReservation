@@ -1,81 +1,86 @@
 <script setup>
-import { ref, reactive, onMounted, computed, watch, onUnmounted } from 'vue'
-import PublicReservation from './components/PublicReservation.vue'
-import PublicFaq from './components/PublicFaq.vue'
-import AdminReservations from './components/AdminReservations.vue'
-import AdminSettings from './components/AdminSettings.vue'
-import FormFieldManager from './components/FormFieldManager.vue'
-import AdminUsers from './components/AdminUsers.vue'
-import AdminEmailBroadcast from './components/AdminEmailBroadcast.vue'
-import AdminFaq from './components/AdminFaq.vue'
-import AdminEvents from './components/AdminEvents.vue'
-import AdminScheduledTasks from './components/AdminScheduledTasks.vue'
-import AdminDiagnostics from './components/AdminDiagnostics.vue'
-import AdminCustomPlaceholders from './components/AdminCustomPlaceholders.vue'
-import AdminAuditLog from './components/AdminAuditLog.vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import languageIconSrc from './assets/icons/languageicon.svg'
 import flagDe from './assets/icons/flag-de.svg'
 import flagUs from './assets/icons/flag-us.svg'
 import IconButton from './components/IconButton.vue'
-import PublicPrivacy from './components/PublicPrivacy.vue'
 
 async function fetchAppSettings() {}
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
-const active = ref('public')
 const selectedLang = ref('de')
 const langMenuOpen = ref(false)
 const showMobileMenu = ref(false)
-const openGroups = ref({})
 const globalLoading = ref(false)
 const privacyEnabled = ref(false)
 const faqEnabled = ref(false)
 const privacyLoaded = ref(false)
 
-const tabGroups = computed(() => {
-  const publicTabs = [
-    { key: 'public', label: 'Reservierung', roles: ['guest', 'admin', 'superadmin', 'moderator', 'user'] },
-  ];
-  if (faqEnabled.value) {
-    publicTabs.push({ key: 'public-faq', label: 'FAQ', roles: ['guest', 'admin', 'superadmin', 'moderator', 'user'] });
+// Navigation-Konfiguration für Router-Links (als computed, damit show reaktiv ist)
+const navGroups = computed(() => [
+  {
+    id: 'public',
+    label: 'Öffentlich',
+    tabs: [
+      { to: '/', label: 'Reservierung', show: true },
+      { to: '/faq', label: 'FAQ', show: faqEnabled.value },
+      { to: '/privacy', label: 'Datenschutz', show: privacyEnabled.value },
+    ],
+  },
+  {
+    id: 'moderation',
+    label: 'Moderation',
+    tabs: [
+      { to: '/moderation/reservations', label: 'Reservierungen', show: true },
+      { to: '/moderation/email', label: 'E-Mail', show: true },
+      { to: '/moderation/faq', label: 'FAQ', show: true },
+      { to: '/moderation/events', label: 'Termine', show: true },
+    ],
+  },
+  {
+    id: 'administration',
+    label: 'Administration',
+    tabs: [
+      { to: '/admin/diagnostics', label: 'Diagnose', show: true },
+      { to: '/admin/settings', label: 'Einstellungen', show: true },
+      { to: '/admin/scheduled-tasks', label: 'Geplante Aufgaben', show: true },
+      { to: '/admin/custom-placeholders', label: 'Platzhalter', show: true },
+      { to: '/admin/form-fields', label: 'Formularfelder', show: true },
+      { to: '/admin/users', label: 'Benutzer', show: true },
+      { to: '/admin/auditlog', label: 'Audit-Log', show: currentUser.value?.role === 'superadmin' },
+    ],
+  },
+])
+
+const openDropdown = ref(null)
+const windowWidth = ref(window.innerWidth)
+
+function handleResize() {
+  windowWidth.value = window.innerWidth
+}
+
+function toggleDropdown(groupId) {
+  if (windowWidth.value > 768) {
+    openDropdown.value = openDropdown.value === groupId ? null : groupId
   }
-  if (privacyEnabled.value) {
-    publicTabs.push({ key: 'public-privacy', label: 'Datenschutz', roles: ['guest', 'admin', 'superadmin', 'moderator', 'user'] });
+}
+
+function closeDropdown(e) {
+  // Schließe Dropdown, wenn außerhalb geklickt wird (nur Desktop)
+  if (windowWidth.value > 768) {
+    openDropdown.value = null
   }
-  return [
-    {
-      id: 'public',
-      label: 'Öffentlich',
-      roles: ['guest', 'admin','superadmin', 'moderator', 'user'],
-      tabs: publicTabs,
-    },
-    {
-      id: 'moderation',
-      label: 'Moderation',
-      roles: ['superadmin', 'admin', 'moderator'],
-      tabs: [
-        { key: 'moderation-reservations', label: 'Reservierungen', roles: ['superadmin', 'admin', 'moderator'] },
-        { key: 'moderation-email', label: 'E-Mail', roles: ['superadmin', 'admin', 'moderator'] },
-        { key: 'moderation-faq', label: 'FAQ', roles: ['superadmin', 'admin', 'moderator'] },
-        { key: 'moderation-events', label: 'Termine', roles: ['superadmin', 'admin', 'moderator'] },
-      ],
-    },
-    {
-      id: 'administration',
-      label: 'Administration',
-      roles: ['superadmin', 'admin'],
-      tabs: [
-        { key: 'admin-diagnostics', label: 'Diagnose', roles: ['superadmin', 'admin'] },
-        { key: 'admin-settings', label: 'Einstellungen', roles: ['superadmin', 'admin'] },
-        { key: 'admin-scheduled-tasks', label: 'Geplante Aufgaben', roles: ['superadmin', 'admin'] },
-        { key: 'admin-custom-placeholders', label: 'Platzhalter', roles: ['superadmin', 'admin'] },
-        { key: 'admin-form-fields', label: 'Formularfelder', roles: ['superadmin', 'admin'] },
-        { key: 'admin-users', label: 'Benutzer', roles: ['superadmin', 'admin'] },
-        { key: 'superadmin-auditlog', label: 'Audit-Log', roles: ['superadmin'] },
-      ],
-    },
-  ];
-});
+}
+
+import { onBeforeUnmount } from 'vue'
+onMounted(() => {
+  document.addEventListener('click', closeDropdown)
+  window.addEventListener('resize', handleResize)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeDropdown)
+  window.removeEventListener('resize', handleResize)
+})
 
 const loginForm = reactive({ identifier: '', password: '' })
 const showOtp = ref(false)
@@ -160,99 +165,6 @@ function handleSwitchTab(e) {
 function handleLoadingStart() { globalLoading.value = true }
 function handleLoadingEnd() { globalLoading.value = false }
 
-const role = computed(() => currentUser.value?.role || 'guest')
-
-const visibleGroups = computed(() => {
-  return tabGroups.value
-    .filter(g => g.roles.includes(role.value))
-    .map(g => ({
-      ...g,
-      tabs: g.tabs.filter(t => t.roles.includes(role.value)),
-    }))
-    .filter(g => g.tabs.length > 0)
-})
-
-const visibleTabKeys = computed(() => visibleGroups.value.flatMap(g => g.tabs.map(t => t.key)))
-
-function firstVisibleTab() {
-  return visibleTabKeys.value[0] || 'public'
-}
-
-function tabKeyFromHash() {
-  const hash = window.location.hash.replace(/^#/, '') || ''
-  if (!hash) return null
-  if (hash === 'faq') return 'public-faq'
-  return hash
-}
-
-function hashFromTabKey(key) {
-  if (!key || key === 'public') return ''
-  if (key === 'public-faq') return 'faq'
-  return key
-}
-
-function updateHashFromActive() {
-  const slug = hashFromTabKey(active.value)
-  const newHash = slug ? `#${slug}` : ''
-  const target = `${location.pathname}${location.search}${newHash}`
-  const current = `${location.pathname}${location.search}${location.hash}`
-  if (target !== current) {
-    history.replaceState(null, '', target)
-  }
-}
-
-function ensureActiveTab() {
-  if (!visibleTabKeys.value.includes(active.value)) {
-    active.value = firstVisibleTab()
-  }
-  // leave groups closed by default
-}
-
-function syncActiveFromHash() {
-  const target = tabKeyFromHash()
-  if (target && visibleTabKeys.value.includes(target)) {
-    active.value = target
-  } else {
-    ensureActiveTab()
-  }
-}
-
-function isGroupOpen(id) {
-  return openGroups.value[id] === true;
-}
-
-function closeAllGroups() {
-  openGroups.value = {};
-}
-
-function toggleGroup(id) {
-  const willOpen = !isGroupOpen(id);
-  const nextState = {};
-  visibleGroups.value.forEach(g => {
-    nextState[g.id] = willOpen && g.id === id;
-  });
-  openGroups.value = nextState;
-}
-
-function openGroupForActive() {
-  const targetGroup = visibleGroups.value.find(g => g.tabs.some(t => t.key === active.value))
-  const nextState = {}
-  visibleGroups.value.forEach(g => {
-    nextState[g.id] = targetGroup ? g.id === targetGroup.id : false
-  })
-  openGroups.value = nextState
-}
-
-watch(visibleTabKeys, ensureActiveTab)
-watch(active, () => {
-  // close dropdowns after tab change
-  closeAllGroups()
-  updateHashFromActive()
-})
-
-function handleHashChange() {
-  syncActiveFromHash()
-}
 
 onMounted(async () => {
   await fetchAppSettings()
@@ -260,23 +172,12 @@ onMounted(async () => {
   if (storedUser) {
     try { currentUser.value = JSON.parse(storedUser) } catch (_) { /* ignore */ }
   }
-  window.addEventListener('switch-tab', handleSwitchTab)
   window.addEventListener('loading-start', handleLoadingStart)
   window.addEventListener('loading-end', handleLoadingEnd)
-  window.addEventListener('hashchange', handleHashChange)
   window.addEventListener('settings-updated', fetchPrivacyEnabled)
-  syncActiveFromHash()
-  ensureActiveTab()
   fetchPrivacyEnabled()
 })
 
-onUnmounted(() => {
-  window.removeEventListener('switch-tab', handleSwitchTab)
-  window.removeEventListener('loading-start', handleLoadingStart)
-  window.removeEventListener('loading-end', handleLoadingEnd)
-  window.removeEventListener('hashchange', handleHashChange)
-  window.removeEventListener('settings-updated', fetchPrivacyEnabled)
-})
 
 function switchLang(lang) {
   selectedLang.value = lang
@@ -318,24 +219,62 @@ async function fetchPrivacyEnabled() {
         <div class="left-actions">
           <button
             class="menu-toggle"
-            @click="() => { showMobileMenu = !showMobileMenu; if (showMobileMenu) { openGroupForActive(); } else { closeAllGroups(); } }"
+            @click="() => { showMobileMenu = !showMobileMenu }"
             aria-label="Menü umschalten"
           >
             <span></span><span></span><span></span>
           </button>
-          <nav class="tabs" :class="{ open: showMobileMenu }">
-            <div v-for="group in visibleGroups" :key="group.id" class="tab-group" :class="{ open: isGroupOpen(group.id) }">
-              <button class="tab-group-label" @click="toggleGroup(group.id)">{{ group.label }}</button>
-              <div v-if="isGroupOpen(group.id)" class="tab-group-tabs">
-                <button
-                  v-for="tab in group.tabs"
-                  :key="tab.key"
-                  :class="['tab', { active: active === tab.key } ]"
-                  @click="() => { active = tab.key; showMobileMenu = false; closeAllGroups(); }"
+          <nav class="tabs" :class="{ open: showMobileMenu }" v-if="privacyLoaded">
+            <div
+              class="tab-group-block"
+              v-for="group in navGroups"
+              :key="group.id"
+            >
+              <!-- Desktop: Dropdown-Trigger und Menü -->
+              <template v-if="windowWidth > 768">
+                <span
+                  class="tab-group-label dropdown-trigger"
+                  @click.stop="toggleDropdown(group.id)"
+                  :aria-expanded="openDropdown === group.id"
                 >
-                  {{ tab.label }}
-                </button>
-              </div>
+                  {{ group.label }}
+                </span>
+                <div
+                  v-if="group.tabs && group.tabs.length && openDropdown === group.id"
+                  class="tab-group-tabs dropdown open"
+                >
+                  <router-link
+                    v-for="tab in group.tabs.filter(tab => tab && tab.show)"
+                    :key="tab.to"
+                    class="tab"
+                    :to="tab.to"
+                    active-class="active"
+                    @click="openDropdown = null"
+                  >
+                    {{ tab.label }}
+                  </router-link>
+                </div>
+              </template>
+              <!-- Mobil: Inline-Tabs -->
+              <template v-else>
+                <span class="tab-group-label">{{ group.label }}</span>
+                <div
+                  v-if="group.tabs && group.tabs.length"
+                  class="tab-group-tabs"
+                  v-show="showMobileMenu"
+                >
+                  <router-link
+                    v-for="tab in group.tabs.filter(tab => tab && tab.show)"
+                    :key="tab.to"
+                    class="tab"
+                    :to="tab.to"
+                    active-class="active"
+                    @click="showMobileMenu = false"
+                  >
+                    {{ tab.label }}
+                  </router-link>
+                </div>
+              </template>
             </div>
           </nav>
         </div>
@@ -373,20 +312,7 @@ async function fetchPrivacyEnabled() {
       <div v-if="globalLoading || loadingAuth" class="loading-overlay" aria-busy="true" aria-live="polite">
         <div class="loader-spinner" aria-hidden="true"></div>
       </div>
-      <PublicReservation v-if="active === 'public'" :lang-code="selectedLang" />
-      <PublicFaq v-else-if="active === 'public-faq'" :lang-code="selectedLang" />
-      <PublicPrivacy v-else-if="active === 'public-privacy'" :lang-code="selectedLang" />
-      <AdminReservations v-else-if="active === 'moderation-reservations'" />
-      <AdminEmailBroadcast v-else-if="active === 'moderation-email'" />
-      <AdminFaq v-else-if="active === 'moderation-faq'" />
-      <AdminEvents v-else-if="active === 'moderation-events'" />
-      <AdminDiagnostics v-else-if="active === 'admin-diagnostics'" />
-      <AdminSettings v-else-if="active === 'admin-settings'" :lang-code="selectedLang" />
-      <AdminScheduledTasks v-else-if="active === 'admin-scheduled-tasks'" />
-      <FormFieldManager v-else-if="active === 'admin-form-fields'" :lang-code="selectedLang" />
-      <AdminUsers v-else-if="active === 'admin-users'" />
-      <AdminCustomPlaceholders v-else-if="active === 'admin-custom-placeholders'" />
-      <AdminAuditLog v-else-if="active === 'superadmin-auditlog'" />
+      <router-view :lang-code="selectedLang" />
     </section>
 
     <div v-if="showLogin" class="modal-backdrop" @click.self="showLogin = false">
@@ -467,61 +393,169 @@ async function fetchPrivacyEnabled() {
   border-radius: 2px;
 }
 
+
+
+
+
 .tabs {
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  align-items: center;
+  gap: 1.5rem;
+  align-items: flex-end;
+  position: relative;
+  z-index: 20;
 }
 
-.tab-group {
-  position: relative;
+
+.tab-group-block {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  gap: 0.2rem;
+  width: 100%;
 }
 
 .tab-group-label {
   font-weight: 700;
-  color: #0f172a;
-  padding: 0.35rem 0.55rem;
-  border: 1px solid #d1d5db;
-  background: #f8fafc;
-  border-radius: 6px;
-  text-align: left;
-  cursor: pointer;
-  min-width: 140px;
+  color: #1e293b;
+  background: #f1f5f9;
+  border-radius: 6px 6px 0 0;
+  padding: 0.25rem 0.7rem 0.15rem 0.7rem;
+  font-size: 1rem;
+  margin-bottom: 0.1rem;
+  border: none;
 }
 
-.tab-group.open .tab-group-label { background: #e0e7ff; border-color: #c7d2fe; }
 
 .tab-group-tabs {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  min-width: 180px;
-  background: #fff;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
-  padding: 0.4rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  z-index: 40;
+  flex-direction: row;
+  gap: 0.3rem;
+  width: 100%;
+}
+
+@media (min-width: 769px) {
+  .tab-group-block {
+    position: relative;
+    width: auto;
+    min-width: 0;
+    display: block;
+  }
+  .tab-group-label.dropdown-trigger {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    z-index: 21;
+    color: #1d4ed8;
+    background: #e0e7ff;
+    transition: background 0.15s, color 0.15s;
+    box-shadow: 0 1px 4px rgba(37,99,235,0.04);
+  }
+  .tab-group-label.dropdown-trigger:hover,
+  .tab-group-label.dropdown-trigger:focus {
+    background: #2563eb;
+    color: #fff;
+    outline: none;
+  }
+  .tab-group-tabs.dropdown {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: calc(100% + 8px);
+    min-width: 220px;
+    width: auto;
+    background: transparent;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(15,23,42,0.12);
+    flex-direction: column;
+    gap: 0;
+    padding: 0.2rem 0;
+    z-index: 22;
+    overflow: visible;
+  }
+  .tab-group-tabs.dropdown .tab {
+    background: #fff;
+    border-radius: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .tab-group-tabs.dropdown .tab {
+    background: #fff;
+    border-radius: 0;
+  }
+  .tab-group-tabs.dropdown .tab {
+    min-width: 160px;
+    white-space: nowrap;
+  }
+  .tab-group-tabs.dropdown.open {
+    display: flex;
+  }
+  .tab-group-tabs.dropdown .tab {
+    width: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fff;
+    color: #0f172a;
+    text-align: left;
+    font-size: 1rem;
+    padding: 0.5rem 1.2rem;
+    transition: background 0.15s, color 0.15s;
+  }
+  .tab-group-tabs.dropdown .tab:first-child {
+    border-top: none;
+  }
+  .tab-group-tabs.dropdown .tab:last-child {
+    border-bottom: none;
+  }
+  .tab-group-tabs.dropdown .tab:first-child:hover,
+  .tab-group-tabs.dropdown .tab:first-child:focus {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+  }
+  .tab-group-tabs.dropdown .tab:last-child:hover,
+  .tab-group-tabs.dropdown .tab:last-child:focus {
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+  }
+  .tab-group-tabs.dropdown .tab:hover,
+  .tab-group-tabs.dropdown .tab:focus,
+  .tab-group-tabs.dropdown .tab.active {
+    background: #2563eb;
+    color: #fff;
+    outline: none;
+    z-index: 2;
+  }
+  .tab-group-tabs.dropdown .tab:first-child:hover,
+  .tab-group-tabs.dropdown .tab:first-child:focus,
+  .tab-group-tabs.dropdown .tab:first-child.active {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+  }
+  .tab-group-tabs.dropdown .tab:last-child:hover,
+  .tab-group-tabs.dropdown .tab:last-child:focus,
+  .tab-group-tabs.dropdown .tab:last-child.active {
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+  }
 }
 
 .tab {
   border: 1px solid #d1d5db;
   background: #fff;
-  padding: 0.35rem 0.55rem;
+  padding: 0.35rem 0.7rem;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
   color: #0f172a;
   text-align: left;
-  width: 100%;
+  font-size: 1rem;
+  display: block;
+  width: auto;
+  text-decoration: none;
 }
 
 .tab.active {
@@ -530,6 +564,75 @@ async function fetchPrivacyEnabled() {
   border-color: #2563eb;
   box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
 }
+.right-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+@media (max-width: 900px) {
+  .tabs {
+    gap: 0.7rem;
+  }
+  .tab-group-label {
+    font-size: 0.98rem;
+    padding: 0.18rem 0.5rem 0.12rem 0.5rem;
+  }
+  .tab {
+    font-size: 0.98rem;
+    padding: 0.28rem 0.5rem;
+  }
+}
+
+
+
+@media (max-width: 768px) {
+  .tabs {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.7rem;
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15,23,42,0.12);
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    z-index: 100;
+    padding: 1rem 0.5rem 1rem 0.5rem;
+  }
+  .tabs.open {
+    display: flex;
+  }
+  .tab-group-block {
+    gap: 0.1rem;
+    width: 100%;
+  }
+  .tab-group-label {
+    width: 100%;
+    border-radius: 6px 6px 0 0;
+    background: #f1f5f9;
+    margin-bottom: 0.1rem;
+    padding: 0.22rem 0.7rem 0.12rem 0.7rem;
+  }
+  .tab-group-tabs {
+    flex-direction: column;
+    gap: 0.1rem;
+    width: 100%;
+  }
+  .tab {
+    width: 100%;
+    border-radius: 0 0 6px 6px;
+    padding: 0.32rem 0.7rem;
+    font-size: 1rem;
+    display: block;
+  }
+}
+
+
 
 .panel {
   background: var(--app-card-bg, rgba(255,255,255,0.9));
@@ -670,15 +773,10 @@ button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
   .menu-toggle { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; }
   .tabs { display: none; flex-direction: column; align-items: stretch; }
   .tabs.open { display: flex; }
-  .tab-group { width: 100%; }
-  .tab-group-label { width: 100%; }
-  .tab-group-tabs {
-    position: static;
-    width: 100%;
-    box-shadow: none;
-    border: 1px solid #d1d5db;
-    margin-top: 0.25rem;
-  }
+  .tab-group-block { gap: 0.1rem; }
+  .tab-group-label { width: 100%; border-radius: 6px 6px 0 0; background: #f1f5f9; margin-bottom: 0.1rem; padding: 0.22rem 0.7rem 0.12rem 0.7rem; }
+  .tab-group-tabs { flex-direction: column; gap: 0.1rem; width: 100%; }
+  .tab { width: 100%; border-radius: 0 0 6px 6px; padding: 0.32rem 0.7rem; font-size: 1rem; }
 }
 
 :global(.panel) .card {

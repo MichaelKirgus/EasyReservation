@@ -1,0 +1,41 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import PublicReservation from '../components/PublicReservation.vue'
+import PublicPrivacy from '../components/PublicPrivacy.vue'
+import PublicFaq from '../components/PublicFaq.vue'
+import AdminReservations from '../components/AdminReservations.vue'
+import AdminEmailBroadcast from '../components/AdminEmailBroadcast.vue'
+import AdminFaq from '../components/AdminFaq.vue'
+import AdminEvents from '../components/AdminEvents.vue'
+import AdminDiagnostics from '../components/AdminDiagnostics.vue'
+import AdminSettings from '../components/AdminSettings.vue'
+import AdminScheduledTasks from '../components/AdminScheduledTasks.vue'
+import FormFieldManager from '../components/FormFieldManager.vue'
+import AdminUsers from '../components/AdminUsers.vue'
+import AdminCustomPlaceholders from '../components/AdminCustomPlaceholders.vue'
+import AdminAuditLog from '../components/AdminAuditLog.vue'
+
+const routes = [
+  { path: '/', name: 'reservation', component: PublicReservation },
+  { path: '/privacy', name: 'privacy', component: PublicPrivacy },
+  { path: '/faq', name: 'faq', component: PublicFaq },
+  // Moderation
+  { path: '/moderation/reservations', name: 'moderation-reservations', component: AdminReservations },
+  { path: '/moderation/email', name: 'moderation-email', component: AdminEmailBroadcast },
+  { path: '/moderation/faq', name: 'moderation-faq', component: AdminFaq },
+  { path: '/moderation/events', name: 'moderation-events', component: AdminEvents },
+  // Administration
+  { path: '/admin/diagnostics', name: 'admin-diagnostics', component: AdminDiagnostics },
+  { path: '/admin/settings', name: 'admin-settings', component: AdminSettings },
+  { path: '/admin/scheduled-tasks', name: 'admin-scheduled-tasks', component: AdminScheduledTasks },
+  { path: '/admin/form-fields', name: 'admin-form-fields', component: FormFieldManager },
+  { path: '/admin/users', name: 'admin-users', component: AdminUsers },
+  { path: '/admin/custom-placeholders', name: 'admin-custom-placeholders', component: AdminCustomPlaceholders },
+  { path: '/admin/auditlog', name: 'superadmin-auditlog', component: AdminAuditLog },
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+})
+
+export default router
