@@ -71,6 +71,51 @@ class EmailValidationService
             $this->checkRateLimit($ip);
         }
 
+        $name = trim($name);
+        $email = trim((string) $email);
+
+        if ($type === 'reservation') {
+            $allowDuplicateName = (int)($this->settings->get('reservation_allow_duplicate_name', 0) ?? 0) === 1;
+            $allowDuplicateEmail = (int)($this->settings->get('reservation_allow_duplicate_email', 0) ?? 0) === 1;
+            if (! $allowDuplicateName) {
+                $duplicateName = Reservation::query()
+                    ->whereRaw('LOWER(display_name) = ?', [mb_strtolower($name)])
+                    ->exists();
+                if ($duplicateName) {
+                    throw new \RuntimeException('Name bereits reserviert.');
+                }
+            }
+            if (! $allowDuplicateEmail && $email !== null && $email !== '') {
+                $duplicateEmail = Reservation::query()
+                    ->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])
+                    ->exists();
+                if ($duplicateEmail) {
+                    throw new \RuntimeException('E-Mail bereits reserviert.');
+                }
+            }
+        } else if ($type === 'waitlist') {
+            $allowDuplicateName = (int)($this->settings->get('waitlist_allow_duplicate_name', 0) ?? 0) === 1;
+            $allowDuplicateEmail = (int)($this->settings->get('waitlist_allow_duplicate_email', 0) ?? 0) === 1;
+            if (! $allowDuplicateName) {
+                $duplicateName = WaitlistEntry::query()
+                    ->where('status', 'pending')
+                    ->whereRaw('LOWER(display_name) = ?', [mb_strtolower($name)])
+                    ->exists();
+                if ($duplicateName) {
+                    throw new \RuntimeException('Name bereits auf Warteliste.');
+                }
+            }
+            if (! $allowDuplicateEmail && $email !== null && $email !== '') {
+                $duplicateEmail = WaitlistEntry::query()
+                    ->where('status', 'pending')
+                    ->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])
+                    ->exists();
+                if ($duplicateEmail) {
+                    throw new \RuntimeException('E-Mail bereits auf Warteliste.');
+                }
+            }
+        }
+
         $validation = EmailValidation::create([
             'type' => $type,
             'display_name' => $name,

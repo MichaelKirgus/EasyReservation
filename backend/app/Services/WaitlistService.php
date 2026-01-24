@@ -32,13 +32,27 @@ class WaitlistService
             throw new \RuntimeException('Waitlist limit reached.');
         }
 
-        $duplicate = WaitlistEntry::query()
-            ->where('status', 'pending')
-            ->whereRaw('LOWER(display_name) = ?', [Str::lower($name)])
-            ->exists();
+        $allowDuplicateName = (int)($this->settings->get('waitlist_allow_duplicate_name', 0) ?? 0) === 1;
+        $allowDuplicateEmail = (int)($this->settings->get('waitlist_allow_duplicate_email', 0) ?? 0) === 1;
 
-        if ($duplicate) {
-            throw new \RuntimeException('Already on waitlist.');
+        if (! $allowDuplicateName) {
+            $duplicateName = WaitlistEntry::query()
+                ->where('status', 'pending')
+                ->whereRaw('LOWER(display_name) = ?', [Str::lower($name)])
+                ->exists();
+            if ($duplicateName) {
+                throw new \RuntimeException('Name already on waitlist.');
+            }
+        }
+
+        if (! $allowDuplicateEmail && $email !== null && $email !== '') {
+            $duplicateEmail = WaitlistEntry::query()
+                ->where('status', 'pending')
+                ->whereRaw('LOWER(email) = ?', [Str::lower($email)])
+                ->exists();
+            if ($duplicateEmail) {
+                throw new \RuntimeException('E-Mail already on waitlist.');
+            }
         }
 
         // Automatisch einen gültigen Gast-Site-Token verwenden, falls keiner übergeben wurde

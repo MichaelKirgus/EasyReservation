@@ -19,6 +19,8 @@ export const settingsFields = [
     { key: 'waitlist_show_public', type: 'boolean', default: 0 },
     { key: 'waitlist_public_align', type: 'text', default: 'left' },
     { key: 'waitlist_overflow_enabled', type: 'boolean', default: 1 },
+    { key: 'waitlist_allow_duplicate_email', type: 'boolean' },
+    { key: 'waitlist_allow_duplicate_name', type: 'boolean' },
     { key: 'reservation_attendees_align', type: 'text', default: 'left' },
     { key: 'waitlist_full_text', type: 'text', placeholders: true },
     { key: 'waitlist_join_button_text', type: 'text', placeholders: true },

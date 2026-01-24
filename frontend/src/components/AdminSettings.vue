@@ -66,6 +66,8 @@ const tabFieldMap = {
     'waitlist_limit',
     'waitlist_undo_enabled',
     'waitlist_overflow_enabled',
+    'waitlist_allow_duplicate_email',
+    'waitlist_allow_duplicate_name',
     'reservation_name_blacklist_enable',
     'reservation_name_blacklist',
     'reservation_name_blacklist_unicode_enable',
