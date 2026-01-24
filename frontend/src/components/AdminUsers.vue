@@ -424,6 +424,7 @@ onUnmounted(() => {
         <label>E-Mail<input v-model="form.email" /></label>
         <label>Rolle
           <select v-model="form.role">
+            <option value="superadmin">SuperAdmin</option>
             <option value="admin">Admin</option>
             <option value="moderator">Moderator</option>
             <option value="user">User</option>
@@ -464,6 +465,7 @@ onUnmounted(() => {
         </template>
         <template #cell-role="{ row }">
           <select v-model="row.role" @change="updateUser(row)">
+            <option value="superadmin">SuperAdmin</option>
             <option value="admin">Admin</option>
             <option value="moderator">Moderator</option>
             <option value="user">User</option>

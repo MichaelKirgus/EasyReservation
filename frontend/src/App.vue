@@ -12,6 +12,7 @@ import AdminEvents from './components/AdminEvents.vue'
 import AdminScheduledTasks from './components/AdminScheduledTasks.vue'
 import AdminDiagnostics from './components/AdminDiagnostics.vue'
 import AdminCustomPlaceholders from './components/AdminCustomPlaceholders.vue'
+import AdminAuditLog from './components/AdminAuditLog.vue'
 import languageIconSrc from './assets/icons/languageicon.svg'
 import flagDe from './assets/icons/flag-de.svg'
 import flagUs from './assets/icons/flag-us.svg'
@@ -31,35 +32,36 @@ const tabGroups = computed(() => [
   {
     id: 'public',
     label: 'Öffentlich',
-    roles: ['guest', 'admin', 'moderator', 'user'],
+    roles: ['guest', 'admin','superadmin', 'moderator', 'user'],
     tabs: [
-      { key: 'public', label: 'Reservierung', roles: ['guest', 'admin', 'moderator', 'user'] },
-      { key: 'public-faq', label: 'FAQ', roles: ['guest', 'admin', 'moderator', 'user'] },
-      ...(privacyEnabled.value ? [{ key: 'public-privacy', label: 'Datenschutz', roles: ['guest', 'admin', 'moderator', 'user'] }] : []),
+      { key: 'public', label: 'Reservierung', roles: ['guest', 'admin', 'superadmin', 'moderator', 'user'] },
+      { key: 'public-faq', label: 'FAQ', roles: ['guest', 'admin', 'superadmin', 'moderator', 'user'] },
+      ...(privacyEnabled.value ? [{ key: 'public-privacy', label: 'Datenschutz', roles: ['guest', 'admin', 'superadmin', 'moderator', 'user'] }] : []),
     ],
   },
   {
     id: 'moderation',
     label: 'Moderation',
-    roles: ['admin', 'moderator'],
+    roles: ['superadmin', 'admin', 'moderator'],
     tabs: [
-      { key: 'admin-reservations', label: 'Reservierungen', roles: ['admin', 'moderator'] },
-      { key: 'admin-email', label: 'E-Mail', roles: ['admin', 'moderator'] },
-      { key: 'admin-faq', label: 'FAQ', roles: ['admin', 'moderator'] },
-      { key: 'admin-events', label: 'Termine', roles: ['admin', 'moderator'] },
+      { key: 'admin-reservations', label: 'Reservierungen', roles: ['superadmin', 'admin', 'moderator'] },
+      { key: 'admin-email', label: 'E-Mail', roles: ['superadmin', 'admin', 'moderator'] },
+      { key: 'admin-faq', label: 'FAQ', roles: ['superadmin', 'admin', 'moderator'] },
+      { key: 'admin-events', label: 'Termine', roles: ['superadmin', 'admin', 'moderator'] },
     ],
   },
   {
     id: 'administration',
     label: 'Administration',
-    roles: ['admin'],
+    roles: ['superadmin', 'admin'],
     tabs: [
-      { key: 'admin-diagnostics', label: 'Diagnose', roles: ['admin'] },
-      { key: 'admin-settings', label: 'Einstellungen', roles: ['admin'] },
-      { key: 'admin-scheduled-tasks', label: 'Geplante Aufgaben', roles: ['admin'] },
-      { key: 'admin-custom-placeholders', label: 'Platzhalter', roles: ['admin'] },
-      { key: 'admin-form-fields', label: 'Formularfelder', roles: ['admin'] },
-      { key: 'admin-users', label: 'Benutzer', roles: ['admin'] },
+      { key: 'admin-diagnostics', label: 'Diagnose', roles: ['superadmin', 'admin'] },
+      { key: 'admin-settings', label: 'Einstellungen', roles: ['superadmin', 'admin'] },
+      { key: 'admin-scheduled-tasks', label: 'Geplante Aufgaben', roles: ['superadmin', 'admin'] },
+      { key: 'admin-custom-placeholders', label: 'Platzhalter', roles: ['superadmin', 'admin'] },
+      { key: 'admin-form-fields', label: 'Formularfelder', roles: ['superadmin', 'admin'] },
+      { key: 'admin-users', label: 'Benutzer', roles: ['superadmin', 'admin'] },
+      { key: 'admin-auditlog', label: 'Audit-Log', roles: ['superadmin'] },
     ],
   },
 ])
@@ -238,16 +240,6 @@ function handleHashChange() {
 }
 
 onMounted(async () => {
-  const url = new URL(window.location.href)
-  // site_token aus ?t= speichern, falls vorhanden
-  const urlParams = new URLSearchParams(window.location.search)
-  const siteToken = urlParams.get('t')
-  if (siteToken) {
-    localStorage.setItem('site_token', siteToken)
-    // Entferne t aus der URL, falls vorhanden
-    urlParams.delete('t')
-    window.history.replaceState({}, '', url.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '') + url.hash)
-  }
   const storedUser = localStorage.getItem('admin_user') || sessionStorage.getItem('admin_user')
   if (storedUser) {
     try { currentUser.value = JSON.parse(storedUser) } catch (_) { /* ignore */ }
@@ -365,6 +357,7 @@ async function fetchPrivacyEnabled() {
       <FormFieldManager v-else-if="active === 'admin-form-fields'" :lang-code="selectedLang" />
       <AdminUsers v-else-if="active === 'admin-users'" />
       <AdminCustomPlaceholders v-else-if="active === 'admin-custom-placeholders'" />
+      <AdminAuditLog v-else-if="active === 'admin-auditlog'" />
     </section>
 
     <div v-if="showLogin" class="modal-backdrop" @click.self="showLogin = false">
