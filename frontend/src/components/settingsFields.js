@@ -39,6 +39,8 @@ export const settingsFields = [
     { key: 'reservation_email_whitelist', type: 'text' },
     { key: 'reservation_email_whitelist_regex_enable', type: 'boolean' },
     { key: 'reservation_email_whitelist_regex', type: 'text' },
+    { key: 'reservation_allow_duplicate_email', type: 'boolean' },
+    { key: 'reservation_allow_duplicate_name', type: 'boolean' },
     { key: 'reservation_top_image', type: 'text' },
     { key: 'reservation_top_image_alt_description', type: 'text' },
     { key: 'reservation_top_image_max_width', type: 'text' },

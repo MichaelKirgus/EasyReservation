@@ -76,6 +76,8 @@ const tabFieldMap = {
     'reservation_email_whitelist',
     'reservation_email_whitelist_regex_enable',
     'reservation_email_whitelist_regex',
+    'reservation_allow_duplicate_email',
+    'reservation_allow_duplicate_name',
     'reservation_message_modal_enabled',
     'reservation_error_modal_enabled',
     'reservation_show_next_event',

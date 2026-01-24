@@ -218,7 +218,9 @@ class EmailValidationService
         }
 
         $siteToken = $validation->site_token ?? null;
-        return DB::transaction(function () use ($name, $email, $payload, $overflowEnabled, $siteToken) {
+        $allowDuplicateEmail = (int)($this->settings->get('reservation_allow_duplicate_email', 0) ?? 0) === 1;
+        $allowDuplicateName = (int)($this->settings->get('reservation_allow_duplicate_name', 0) ?? 0) === 1;
+        return DB::transaction(function () use ($name, $email, $payload, $overflowEnabled, $siteToken, $allowDuplicateEmail, $allowDuplicateName) {
             $max = (int) ($this->settings->get('reservation_max', 0) ?? 0);
 
             $current = Reservation::query()->lockForUpdate()->count();
@@ -229,13 +231,24 @@ class EmailValidationService
                 throw new \RuntimeException('Reservation limit reached.');
             }
 
-            $duplicate = Reservation::query()
-                ->whereRaw('LOWER(display_name) = ?', [mb_strtolower($name)])
-                ->lockForUpdate()
-                ->exists();
+            if (! $allowDuplicateName) {
+                $duplicateName = Reservation::query()
+                    ->whereRaw('LOWER(display_name) = ?', [mb_strtolower($name)])
+                    ->lockForUpdate()
+                    ->exists();
+                if ($duplicateName) {
+                    throw new \RuntimeException('Name already reserved.');
+                }
+            }
 
-            if ($duplicate) {
-                throw new \RuntimeException('Name already reserved.');
+            if (! $allowDuplicateEmail && $email !== null && $email !== '') {
+                $duplicateEmail = Reservation::query()
+                    ->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])
+                    ->lockForUpdate()
+                    ->exists();
+                if ($duplicateEmail) {
+                    throw new \RuntimeException('E-Mail bereits reserviert.');
+                }
             }
 
             return Reservation::create([
