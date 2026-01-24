@@ -13,8 +13,10 @@ class AuditLogMiddleware
 
         // Audit-Log nur aktiv, wenn AUDIT_LOG nicht FALSE ist
         if (env('AUDIT_LOG', 'TRUE') !== 'FALSE' && str_starts_with($request->path(), 'api/')) {
+            $siteToken = $request->header('X-Site-Token') ?? $request->input('site_token') ?? null;
             AuditLog::create([
                 'user_id' => auth()->id(),
+                'site_token' => $siteToken,
                 'route' => $request->path(),
                 'method' => $request->method(),
                 'payload' => Crypt::encryptString(json_encode($request->all())),

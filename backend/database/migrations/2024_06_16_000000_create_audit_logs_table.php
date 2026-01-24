@@ -9,6 +9,7 @@ return new class extends Migration {
         Schema::create('audit_logs', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id')->nullable();
+            $table->string('site_token')->nullable();
             $table->string('route');
             $table->string('method');
             $table->text('payload');
