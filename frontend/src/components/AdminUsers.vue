@@ -41,7 +41,10 @@ const form = reactive({
   api_token_is_hashed: false,
 })
 
-const isAdmin = computed(() => currentUser.value?.role === 'admin')
+const isAdmin = computed(() => {
+  const role = currentUser.value?.role?.toLowerCase?.() || '';
+  return role === 'admin' || role === 'superadmin';
+})
 
 function setMessage(msg) {
   message.value = msg
@@ -478,7 +481,7 @@ onUnmounted(() => {
         <template #cell-api_token="{ row }">
           <div class="token-cell">
             <SecretField
-              v-if="isAdmin && !row.api_token_is_hashed"
+              v-if="isAdmin && row.api_token && !row.api_token_is_hashed"
               v-model="row.api_token"
               :show="row.id ? showToken[row.id] : undefined"
               @update:show="val => { if (row.id) showToken[row.id] = val }"

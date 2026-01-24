@@ -54,6 +54,7 @@ const tabs = [
 const tabFieldMap = {
   general: new Set([
     'privacy_policy_enabled',
+    'faq_enabled',
     'reservation_enabled',
     'reservation_undo_enabled',
     'reservation_show_attendees_enabled',

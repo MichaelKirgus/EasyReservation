@@ -74,9 +74,37 @@ async function loadPrivacy() {
   }
 }
 
+
+async function checkAndLoadPrivacy() {
+  await fetchTranslations();
+  loading.value = true;
+  try {
+    // Erst /public/config laden
+    const siteToken = localStorage.getItem('site_token') || '';
+    const headersConfig = { 'Accept': 'application/json' };
+    if (siteToken) headersConfig['X-Site-Token'] = siteToken;
+    const res = await fetch(`${apiBase}/public/config`, { headers: headersConfig });
+    if (!res.ok) throw new Error('Config konnte nicht geladen werden');
+    const data = await res.json();
+    if (!data.privacy_policy_enabled) {
+      enabled.value = false;
+      privacy.value = '';
+      error.value = '';
+      loading.value = false;
+      return;
+    }
+    enabled.value = true;
+    await loadPrivacy();
+  } catch (e) {
+    enabled.value = false;
+    privacy.value = '';
+    error.value = `Datenschutzerklärung konnte nicht geladen werden: ${e.message || e}`;
+    loading.value = false;
+  }
+}
+
 onMounted(async () => {
-  await fetchTranslations()
-  await loadPrivacy()
+  await checkAndLoadPrivacy();
 })
 
 watch(() => props.langCode, async (val) => {

@@ -19,6 +19,8 @@ import flagUs from './assets/icons/flag-us.svg'
 import IconButton from './components/IconButton.vue'
 import PublicPrivacy from './components/PublicPrivacy.vue'
 
+async function fetchAppSettings() {}
+
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const active = ref('public')
 const selectedLang = ref('de')
@@ -27,44 +29,53 @@ const showMobileMenu = ref(false)
 const openGroups = ref({})
 const globalLoading = ref(false)
 const privacyEnabled = ref(false)
+const faqEnabled = ref(false)
+const privacyLoaded = ref(false)
 
-const tabGroups = computed(() => [
-  {
-    id: 'public',
-    label: 'Öffentlich',
-    roles: ['guest', 'admin','superadmin', 'moderator', 'user'],
-    tabs: [
-      { key: 'public', label: 'Reservierung', roles: ['guest', 'admin', 'superadmin', 'moderator', 'user'] },
-      { key: 'public-faq', label: 'FAQ', roles: ['guest', 'admin', 'superadmin', 'moderator', 'user'] },
-      ...(privacyEnabled.value ? [{ key: 'public-privacy', label: 'Datenschutz', roles: ['guest', 'admin', 'superadmin', 'moderator', 'user'] }] : []),
-    ],
-  },
-  {
-    id: 'moderation',
-    label: 'Moderation',
-    roles: ['superadmin', 'admin', 'moderator'],
-    tabs: [
-      { key: 'admin-reservations', label: 'Reservierungen', roles: ['superadmin', 'admin', 'moderator'] },
-      { key: 'admin-email', label: 'E-Mail', roles: ['superadmin', 'admin', 'moderator'] },
-      { key: 'admin-faq', label: 'FAQ', roles: ['superadmin', 'admin', 'moderator'] },
-      { key: 'admin-events', label: 'Termine', roles: ['superadmin', 'admin', 'moderator'] },
-    ],
-  },
-  {
-    id: 'administration',
-    label: 'Administration',
-    roles: ['superadmin', 'admin'],
-    tabs: [
-      { key: 'admin-diagnostics', label: 'Diagnose', roles: ['superadmin', 'admin'] },
-      { key: 'admin-settings', label: 'Einstellungen', roles: ['superadmin', 'admin'] },
-      { key: 'admin-scheduled-tasks', label: 'Geplante Aufgaben', roles: ['superadmin', 'admin'] },
-      { key: 'admin-custom-placeholders', label: 'Platzhalter', roles: ['superadmin', 'admin'] },
-      { key: 'admin-form-fields', label: 'Formularfelder', roles: ['superadmin', 'admin'] },
-      { key: 'admin-users', label: 'Benutzer', roles: ['superadmin', 'admin'] },
-      { key: 'admin-auditlog', label: 'Audit-Log', roles: ['superadmin'] },
-    ],
-  },
-])
+const tabGroups = computed(() => {
+  const publicTabs = [
+    { key: 'public', label: 'Reservierung', roles: ['guest', 'admin', 'superadmin', 'moderator', 'user'] },
+  ];
+  if (faqEnabled.value) {
+    publicTabs.push({ key: 'public-faq', label: 'FAQ', roles: ['guest', 'admin', 'superadmin', 'moderator', 'user'] });
+  }
+  if (privacyEnabled.value) {
+    publicTabs.push({ key: 'public-privacy', label: 'Datenschutz', roles: ['guest', 'admin', 'superadmin', 'moderator', 'user'] });
+  }
+  return [
+    {
+      id: 'public',
+      label: 'Öffentlich',
+      roles: ['guest', 'admin','superadmin', 'moderator', 'user'],
+      tabs: publicTabs,
+    },
+    {
+      id: 'moderation',
+      label: 'Moderation',
+      roles: ['superadmin', 'admin', 'moderator'],
+      tabs: [
+        { key: 'admin-reservations', label: 'Reservierungen', roles: ['superadmin', 'admin', 'moderator'] },
+        { key: 'admin-email', label: 'E-Mail', roles: ['superadmin', 'admin', 'moderator'] },
+        { key: 'admin-faq', label: 'FAQ', roles: ['superadmin', 'admin', 'moderator'] },
+        { key: 'admin-events', label: 'Termine', roles: ['superadmin', 'admin', 'moderator'] },
+      ],
+    },
+    {
+      id: 'administration',
+      label: 'Administration',
+      roles: ['superadmin', 'admin'],
+      tabs: [
+        { key: 'admin-diagnostics', label: 'Diagnose', roles: ['superadmin', 'admin'] },
+        { key: 'admin-settings', label: 'Einstellungen', roles: ['superadmin', 'admin'] },
+        { key: 'admin-scheduled-tasks', label: 'Geplante Aufgaben', roles: ['superadmin', 'admin'] },
+        { key: 'admin-custom-placeholders', label: 'Platzhalter', roles: ['superadmin', 'admin'] },
+        { key: 'admin-form-fields', label: 'Formularfelder', roles: ['superadmin', 'admin'] },
+        { key: 'admin-users', label: 'Benutzer', roles: ['superadmin', 'admin'] },
+        { key: 'admin-auditlog', label: 'Audit-Log', roles: ['superadmin'] },
+      ],
+    },
+  ];
+});
 
 const loginForm = reactive({ identifier: '', password: '' })
 const showOtp = ref(false)
@@ -281,15 +292,28 @@ async function fetchPrivacyEnabled() {
     const siteToken = localStorage.getItem('site_token') || '';
     const headers = { 'Accept': 'application/json' };
     if (siteToken) headers['X-Site-Token'] = siteToken;
-    const res = await fetch(`${apiBase}/privacy-policy`, { headers });
-    privacyEnabled.value = res.ok
-  } catch { privacyEnabled.value = false }
+    const res = await fetch(`${apiBase}/public/config`, { headers });
+    if (!res.ok) {
+      privacyEnabled.value = false;
+      faqEnabled.value = false;
+      privacyLoaded.value = true;
+      return;
+    }
+    const data = await res.json();
+    privacyEnabled.value = !!(data.privacy_policy_enabled);
+    faqEnabled.value = !!(data.faq_enabled);
+    privacyLoaded.value = true;
+  } catch {
+    privacyEnabled.value = false;
+    faqEnabled.value = false;
+    privacyLoaded.value = true;
+  }
 }
 </script>
 
 <template>
   <main class="page">
-    <header class="topbar">
+    <header class="topbar" v-if="privacyLoaded">
       <div class="brand-row">
         <div class="left-actions">
           <button

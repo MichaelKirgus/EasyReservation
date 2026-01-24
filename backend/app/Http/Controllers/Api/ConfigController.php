@@ -99,6 +99,9 @@ class ConfigController extends Controller
                 'waitlist_limit' => (int) ($settings['waitlist_limit'] ?? 0),
                 'waitlist_enabled' => $waitlistEnabled,
             ],
+            // explizit als Top-Level-Property für das Frontend
+            'privacy_policy_enabled' => (int)($settings['privacy_policy_enabled'] ?? 0) === 1,
+            'faq_enabled' => (int)($settings['faq_enabled'] ?? 0) === 1,
         ]);
     }
 }
