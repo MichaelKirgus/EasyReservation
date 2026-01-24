@@ -20,7 +20,7 @@ class AuthController extends Controller
 
         $user = User::query()
             ->where('active', true)
-            ->whereIn('role', ['admin', 'moderator', 'user', 'guest'])
+            ->whereIn('role', ['admin', 'moderator', 'user', 'guest', 'superadmin'])
             ->where(function ($q) use ($data) {
                 $q->where('email', $data['identifier'])->orWhere('name', $data['identifier']);
             })

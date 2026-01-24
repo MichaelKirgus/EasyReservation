@@ -60,7 +60,7 @@ class EmailValidationService
         Cache::put($key, $count + 1, now()->addHour());
     }
 
-    public function createRequest(string $type, string $name, ?string $email, array $payload = []): EmailValidation
+    public function createRequest(string $type, string $name, ?string $email, array $payload = [], ?string $siteToken = null): EmailValidation
     {
         $requiresEmail = $this->emailValidationEnabled();
         $requiresAdmin = $this->adminApprovalEnabled();
@@ -79,6 +79,7 @@ class EmailValidationService
             'token' => $requiresEmail ? (string) Str::uuid() : null,
             'status' => $requiresEmail ? 'email_pending' : ($requiresAdmin ? 'waiting_admin' : 'ready'),
             'requires_admin_approval' => $requiresAdmin,
+            'site_token' => $siteToken,
             'expires_at' => $requiresEmail ? now()->addMinutes((int) ($this->settings->get('email_validation_ttl_minutes', 1440))) : null,
             'validated_at' => $requiresEmail ? null : now(),
         ]);
@@ -107,12 +108,16 @@ class EmailValidationService
             $validation->status = 'expired';
             $validation->last_error = 'Token abgelaufen';
             $validation->save();
-            throw new \RuntimeException('Token abgelaufen.');
+            throw new \RuntimeException('Der Link ist abgelaufen.');
+        }
+
+        if (in_array($validation->status, ['completed', 'cancelled', 'expired', 'failed'])) {
+            throw new \RuntimeException('Der Link wurde bereits verwendet oder ist abgelaufen.');
         }
 
         if ($validation->validated_at) {
             if ($validation->status === 'completed') {
-                return ['status' => 'completed', 'validation' => $validation];
+                throw new \RuntimeException('Der Link wurde bereits verwendet.');
             }
         }
 
@@ -291,11 +296,12 @@ class EmailValidationService
 
         $params = ['v' => (string) $validation->token];
 
-        // Site-Token aus zugehöriger Reservation (falls vorhanden) anhängen
-        if (!empty($validation->reservation_id)) {
+        if (!empty($validation->site_token)) {
+            $params['t'] = $validation->site_token;
+        } else if (!empty($validation->reservation_id)) {
             $reservation = Reservation::find($validation->reservation_id);
             if ($reservation && !empty($reservation->site_token)) {
-                $params['site_token'] = $reservation->site_token;
+                $params['t'] = $reservation->site_token;
             }
         }
 
@@ -315,9 +321,8 @@ class EmailValidationService
         }
 
         $params = ['u' => (string) $reservation->undo_token];
-        // Site-Token aus Reservation an Link anhängen, falls vorhanden
         if (!empty($reservation->site_token)) {
-            $params['site_token'] = $reservation->site_token;
+            $params['t'] = $reservation->site_token;
         }
 
         return $this->appendQuery($base, $params);

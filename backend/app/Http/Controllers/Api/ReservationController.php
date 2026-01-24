@@ -117,7 +117,7 @@ class ReservationController extends Controller
 
         if ($validationFeatureEnabled) {
             try {
-                $validation = $this->emailValidation->createRequest($target, $name, $email, $payload);
+                $validation = $this->emailValidation->createRequest($target, $name, $email, $payload, $siteToken);
             } catch (\Throwable $e) {
                 return response()->json(['message' => $e->getMessage()], 500);
             }

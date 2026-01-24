@@ -39,6 +39,7 @@ class Kernel extends HttpKernel
 
         'api' => [
             SubstituteBindings::class,
+            \App\Http\Middleware\AuditLogMiddleware::class,
         ],
     ];
 

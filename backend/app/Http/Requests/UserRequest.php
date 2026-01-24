@@ -26,7 +26,7 @@ class UserRequest extends FormRequest
         return [
             'name' => [$required, 'string', 'max:255'],
             'email' => [$required, 'email', 'max:255', 'unique:users,email'.($userId ? ','.$userId : '')],
-            'role' => [$required, 'in:admin,moderator,user,guest'],
+            'role' => [$required, 'in:admin,moderator,user,guest,superadmin'],
             'active' => ['sometimes', 'boolean'],
             'password' => ['sometimes', 'nullable', 'string', 'min:8'],
             'api_token' => $tokenRules,
