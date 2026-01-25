@@ -28,6 +28,7 @@ class DiagnosticsService
                 'laravel_version' => app()->version(),
                 'queue_connection' => config('queue.default'),
                 'cache_store' => config('cache.default'),
+                'app_version' => env('APP_VERSION', 'unbekannt'),
             ],
             'latency' => [
                 'mysql' => $this->measure(fn () => DB::select('select 1')),

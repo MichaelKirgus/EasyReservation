@@ -11,6 +11,7 @@ const loading = ref(false)
 const message = ref('')
 const error = ref('')
 const diagnostics = ref(null)
+const frontendVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unbekannt'
 const autoRefreshEnabled = ref(localStorage.getItem('admin_diag_autorefresh') === '1')
 const refreshMs = 2000
 let timerId = null
@@ -164,6 +165,7 @@ onUnmounted(() => {
     <div v-if="message" class="message">{{ message }}</div>
     <div v-if="error" class="error">{{ error }}</div>
 
+
     <div class="card">
       <div class="card-header">
         <h4>System</h4>
@@ -173,6 +175,14 @@ onUnmounted(() => {
         <div class="info-item">
           <div class="label">App</div>
           <div class="value">{{ diagnostics.app.name }} ({{ diagnostics.app.environment }})</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Frontend-Version</div>
+          <div class="value">{{ frontendVersion }}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Backend-Version</div>
+          <div class="value">{{ diagnostics.app.app_version }}</div>
         </div>
         <div class="info-item">
           <div class="label">PHP</div>
