@@ -1,7 +1,9 @@
 <script setup>
+
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import api from '../api'
 
 const props = defineProps({ langCode: { type: String, default: 'de' } })
 
@@ -87,34 +89,26 @@ const renderFieldHelp = (field) => renderMarkdown(field.help_text || '')
 function setMessage(msg) { message.value = msg; error.value = '' }
 function setError(msg) { error.value = msg; message.value = '' }
 
-function headers(withJson = false) {
-  const h = { Accept: 'application/json' }
-  if (siteToken.value) h['X-Site-Token'] = siteToken.value
-  const adminKey = localStorage.getItem('admin_api_key') || ''
-  const apiKey = adminKey || publicApiKey.value
-  if (apiKey) h['X-Api-Key'] = apiKey
-  if (withJson) h['Content-Type'] = 'application/json'
-  return h
-}
+
+
 
 async function fetchJson(url, opts = {}) {
-  const res = await fetch(url, { ...opts })
-  const contentType = res.headers.get('content-type') || ''
-  const text = await res.text()
-  if (!res.ok) {
-    const snippet = text ? ` ${text.slice(0, 200)}` : ''
-    throw new Error(`HTTP ${res.status} ${res.statusText}${snippet}`)
+  try {
+    const response = await api({ url, ...opts })
+    return response.data
+  } catch (error) {
+    if (error.response) {
+      const msg = error.response.data?.message || error.response.statusText || error.message
+      throw new Error(msg)
+    }
+    throw error
   }
-  if (!contentType.includes('application/json')) {
-    const snippet = text ? ` (${contentType}): ${text.slice(0, 200)}` : ` (${contentType})`
-    throw new Error(`Unerwartetes Format${snippet}`)
-  }
-  return JSON.parse(text)
 }
+
 
 async function fetchTranslations() {
   try {
-    t.value = await fetchJson(`${apiBase}/translations/${lang.value}`, { headers: headers() })
+    t.value = await fetchJson(`/translations/${lang.value}`)
   } catch (_) {
     t.value = {}
   }
@@ -124,10 +118,11 @@ function tr(key, fallback = '') {
   return t.value[key] || fallback || key
 }
 
+
 async function loadConfig() {
   loading.value = true
   try {
-    const data = await fetchJson(`${apiBase}/public/config`, { headers: headers() })
+    const data = await fetchJson(`/public/config`)
     Object.assign(config.settings, data.settings || {})
     config.form_fields = data.form_fields || []
     config.attendees = data.attendees || []
@@ -197,6 +192,11 @@ const cardStyle = computed(() => {
   }
 })
 
+const loadingImageUrl = computed(() => {
+  const url = config.settings?.reservation_loading_image
+  return url ? mediaUrl(url) : ''
+})
+
 function mediaUrl(val) {
   if (!val) return ''
   if (val.startsWith('http://') || val.startsWith('https://')) return val
@@ -217,6 +217,7 @@ function validateRequiredFields() {
   return missing
 }
 
+
 async function submitReservation() {
   const missingRequired = validateRequiredFields()
   if (missingRequired.length) {
@@ -236,22 +237,11 @@ async function submitReservation() {
       site_token,
     }
     if (slotsFull.value && waitlistEnabled.value) {
-      url = `${apiBase}/waitlist`
+      url = `/waitlist`
     } else {
-      url = `${apiBase}/reservations`
+      url = `/reservations`
     }
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: headers(true),
-      body: JSON.stringify(body),
-    })
-    const text = await res.text()
-    let data = null
-    try { data = text ? JSON.parse(text) : null } catch (_) { data = null }
-    if (!res.ok) {
-      const msg = data?.message || text || res.statusText
-      throw new Error(msg)
-    }
+    const { data } = await api.post(url, body)
 
     if (data?.validation_pending) {
       if (data?.pending_admin) {
@@ -338,17 +328,13 @@ const waitlistPublicEnabled = computed(() => Number(config.settings?.waitlist_sh
 const waitlistAlign = computed(() => config.settings?.waitlist_public_align || 'left')
 const waitlistEntries = computed(() => Array.isArray(config.waitlist) ? config.waitlist : [])
 
+
 async function verifyTokenIfPresent() {
   const url = new URL(window.location.href)
   const token = url.searchParams.get('v')
   if (!token) return
   try {
-    const res = await fetch(`${apiBase}/email-validations/${encodeURIComponent(token)}`, { headers: headers() })
-    const text = await res.text()
-    let data = null
-    try { data = text ? JSON.parse(text) : null } catch (_) { data = null }
-    if (!res.ok) throw new Error(data?.message || text || res.statusText)
-
+    const { data } = await api.get(`/email-validations/${encodeURIComponent(token)}`)
     if (data?.pending_admin) {
       setMessage(renderMarkdown(config.settings.reservation_admin_validation_pending_text) ||  tr('reservation_admin_validation_pending_text', 'Bestätigung wartet auf Admin-Freigabe.'))
     } else if (data?.waitlist) {
@@ -364,16 +350,13 @@ async function verifyTokenIfPresent() {
   }
 }
 
+
 async function handleUndoTokenIfPresent() {
   const url = new URL(window.location.href)
   const token = url.searchParams.get('u')
   if (!token) return
   try {
-    const res = await fetch(`${apiBase}/reservations/undo-token/${encodeURIComponent(token)}`, { headers: headers() })
-    const text = await res.text()
-    let data = null
-    try { data = text ? JSON.parse(text) : null } catch (_) { data = null }
-    if (!res.ok) throw new Error(data?.message || text || res.statusText)
+    await api.get(`/reservations/undo-token/${encodeURIComponent(token)}`)
     setMessage(renderMarkdown(config.settings.reservation_undo_success_text) || tr('reservation_undo_success_text', 'Reservierung entfernt.'))
     await loadConfig()
   } catch (e) {
@@ -383,16 +366,13 @@ async function handleUndoTokenIfPresent() {
   }
 }
 
+
 async function handleWaitlistUndoTokenIfPresent() {
   const url = new URL(window.location.href)
   const token = url.searchParams.get('wu')
   if (!token) return
   try {
-    const res = await fetch(`${apiBase}/waitlist/undo-token/${encodeURIComponent(token)}`, { headers: headers() })
-    const text = await res.text()
-    let data = null
-    try { data = text ? JSON.parse(text) : null } catch (_) { data = null }
-    if (!res.ok) throw new Error(data?.message || text || res.statusText)
+    await api.get(`/waitlist/undo-token/${encodeURIComponent(token)}`)
     setMessage(renderMarkdown(config.settings.waitlist_undo_success_text) || tr('waitlist_undo_success_text', 'Reservierung entfernt.'))
     await loadConfig()
   } catch (e) {
@@ -486,7 +466,7 @@ function goToGDPR() {
   <div class="page" :style="backgroundStyle">
     <div class="backdrop">
       <div v-if="loading" class="loading-overlay" aria-live="polite" aria-busy="true">
-        <img v-if="loadingImageUrl" :src="loadingImageUrl" alt="Loading" class="loader-image" />
+        <img v-if="loadingImageUrl.value" :src="loadingImageUrl.value" alt="Loading" class="loader-image" />
         <div v-else class="loader-spinner" aria-hidden="true"></div>
       </div>
       <div v-if="message" class="message" v-html="message"></div>
@@ -498,14 +478,14 @@ function goToGDPR() {
           <button @click="() => { message = ''; error = '' }">{{ tr('modal_close', 'OK') }}</button>
         </div>
       </div>
-
+    <div>{{ loadingImageUrl.value }}</div>
       <section class="card" :style="cardStyle">
         <div class="button-row">
             <div v-if="Number(config.settings.show_faq_button_landing_enabled) === 1">
-               <button type="button" class="ghost" @click="goToFaq" :style="{ color: config.settings.faq_button_color || 'white', backgroundColor: config.settings.faq_button_backgroundcolor || '#2563eb', borderColor: config.settings.faq_button_border_color || '#2563eb' }">{{ tr('faq_button_text_label', 'FAQ') }}</button>
+               <button type="button" class="ghost" @click="this.$router.push('/faq') " :style="{ color: config.settings.faq_button_color || 'white', backgroundColor: config.settings.faq_button_backgroundcolor || '#2563eb', borderColor: config.settings.faq_button_border_color || '#2563eb' }">{{ tr('faq_button_text_label', 'FAQ') }}</button>
             </div>
             <div v-if="Number(config.settings.show_gdpr_button_landing_enabled) === 1">
-               <button type="button" class="ghost" @click="goToGDPR" :style="{ color: config.settings.gdpr_button_color || 'white', backgroundColor: config.settings.gdpr_button_backgroundcolor || '#2563eb', borderColor: config.settings.gdpr_button_border_color || '#2563eb' }">{{ tr('gdpr_button_text_label', 'Privacy') }}</button>
+               <button type="button" class="ghost" @click="this.$router.push('/privacy') " :style="{ color: config.settings.gdpr_button_color || 'white', backgroundColor: config.settings.gdpr_button_backgroundcolor || '#2563eb', borderColor: config.settings.gdpr_button_border_color || '#2563eb' }">{{ tr('gdpr_button_text_label', 'Privacy') }}</button>
             </div>
         </div>
         <div v-if="config.settings.reservation_top_image" class="top-image">

@@ -1,9 +1,11 @@
 <script setup>
+
 import { ref, reactive, onMounted, computed } from 'vue'
 import languageIconSrc from './assets/icons/languageicon.svg'
 import flagDe from './assets/icons/flag-de.svg'
 import flagUs from './assets/icons/flag-us.svg'
 import IconButton from './components/IconButton.vue'
+import api from './api'
 
 
 // Reaktives Objekt für App-Einstellungen
@@ -12,14 +14,11 @@ const appSettings = reactive({ clear_localstorage_on_logout: false })
 // Lädt App-Einstellungen von der API und speichert sie in appSettings
 async function fetchAppSettings() {
   try {
-    const res = await fetch(`${apiBase}/public/config`, { headers: { 'Accept': 'application/json' } })
-    if (res.ok) {
-      const data = await res.json()
-      // Übertrage alle Properties in appSettings
-      Object.keys(data).forEach(key => {
-        appSettings[key] = data[key]
-      })
-    }
+    const { data } = await api.get('/public/config')
+    // Übertrage alle Properties in appSettings
+    Object.keys(data).forEach(key => {
+      appSettings[key] = data[key]
+    })
   } catch (e) {
     // Fehler ignorieren, Standardwerte bleiben erhalten
   }
@@ -34,41 +33,61 @@ const privacyEnabled = ref(false)
 const faqEnabled = ref(false)
 const privacyLoaded = ref(false)
 
-// Navigation-Konfiguration für Router-Links (als computed, damit show reaktiv ist)
-const navGroups = computed(() => [
-  {
-    id: 'public',
-    label: 'Öffentlich',
-    tabs: [
-      { to: '/', label: 'Reservierung', show: true },
-      { to: '/faq', label: 'FAQ', show: faqEnabled.value },
-      { to: '/privacy', label: 'Datenschutz', show: privacyEnabled.value },
-    ],
-  },
-  {
-    id: 'moderation',
-    label: 'Moderation',
-    tabs: [
-      { to: '/moderation/reservations', label: 'Reservierungen', show: true },
-      { to: '/moderation/email', label: 'E-Mail', show: true },
-      { to: '/moderation/faq', label: 'FAQ', show: true },
-      { to: '/moderation/events', label: 'Termine', show: true },
-    ],
-  },
-  {
-    id: 'administration',
-    label: 'Administration',
-    tabs: [
-      { to: '/admin/diagnostics', label: 'Diagnose', show: true },
-      { to: '/admin/settings', label: 'Einstellungen', show: true },
-      { to: '/admin/scheduled-tasks', label: 'Geplante Aufgaben', show: true },
-      { to: '/admin/custom-placeholders', label: 'Platzhalter', show: true },
-      { to: '/admin/form-fields', label: 'Formularfelder', show: true },
-      { to: '/admin/users', label: 'Benutzer', show: true },
-      { to: '/admin/auditlog', label: 'Audit-Log', show: currentUser.value?.role === 'superadmin' },
-    ],
-  },
-])
+// Navigation-Konfiguration für Router-Links (defensiv, damit keine undefined-Gruppen entstehen)
+const navGroups = computed(() => {
+  const safeFaq = typeof faqEnabled === 'object' && faqEnabled !== null && 'value' in faqEnabled ? faqEnabled.value : false;
+  const safePrivacy = typeof privacyEnabled === 'object' && privacyEnabled !== null && 'value' in privacyEnabled ? privacyEnabled.value : false;
+  const publicTabs = [
+    { to: '/', label: 'Reservierung', show: true },
+  ];
+  if (safeFaq) publicTabs.push({ to: '/faq', label: 'FAQ', show: true });
+  if (safePrivacy) publicTabs.push({ to: '/privacy', label: 'Datenschutz', show: true });
+  const groups = [
+    {
+      id: 'public',
+      label: 'Öffentlich',
+      tabs: publicTabs,
+    },
+    {
+      id: 'moderation',
+      label: 'Moderation',
+      tabs: [
+        { to: '/moderation/reservations', label: 'Reservierungen', show: !!(currentUser && currentUser.role) },
+        { to: '/moderation/email', label: 'E-Mail', show: !!(currentUser && currentUser.role) },
+        { to: '/moderation/faq', label: 'FAQ', show: !!(currentUser && currentUser.role) },
+        { to: '/moderation/events', label: 'Termine', show: !!(currentUser && currentUser.role) },
+      ],
+    },
+    {
+      id: 'administration',
+      label: 'Administration',
+      tabs: [
+        { to: '/admin/diagnostics', label: 'Diagnose', show: !!(currentUser && currentUser.role) },
+        { to: '/admin/settings', label: 'Einstellungen', show: !!(currentUser && currentUser.role) },
+        { to: '/admin/scheduled-tasks', label: 'Geplante Aufgaben', show: !!(currentUser && currentUser.role) },
+        { to: '/admin/custom-placeholders', label: 'Platzhalter', show: !!(currentUser && currentUser.role) },
+        { to: '/admin/form-fields', label: 'Formularfelder', show: !!(currentUser && currentUser.role) },
+        { to: '/admin/users', label: 'Benutzer', show: !!(currentUser && currentUser.role) },
+        { to: '/admin/auditlog', label: 'Audit-Log', show: currentUser && currentUser.role === 'superadmin' },
+      ],
+    },
+  ];
+  // Filtere Tabs und Gruppen, die keine sichtbaren Tabs haben (außer public)
+  return groups
+    .map(group => ({
+      ...group,
+      tabs: group.id === 'public'
+        ? group.tabs // Keine Filterung für 'public'
+        : group.tabs.filter(tab => {
+            const show = tab.show;
+            if (show === true) return true;
+            if (show === false || show == null) return false;
+            if (typeof show === 'object' && show !== null && 'value' in show) return !!show.value;
+            return !!show;
+          }),
+    }))
+    .filter(group => group.id === 'public' || group.tabs.length > 0);
+});
 
 const openDropdown = ref(null)
 const windowWidth = ref(window.innerWidth)
@@ -100,13 +119,18 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
 })
 
+
 const loginForm = reactive({ identifier: '', password: '' })
 const showOtp = ref(false)
 const authMessage = ref('')
 const authError = ref('')
 const loadingAuth = ref(false)
 const showLogin = ref(false)
-const currentUser = ref(null)
+let storedUser = null;
+try {
+  storedUser = localStorage.getItem('admin_user') || sessionStorage.getItem('admin_user');
+} catch (_) {}
+const currentUser = reactive(storedUser ? JSON.parse(storedUser) : {})
 const rememberMe = ref(true)
 
 function setAuthMessage(msg) { authMessage.value = msg; authError.value = '' }
@@ -139,7 +163,7 @@ async function login() {
     storage.setItem('admin_api_key', token)
     otherStorage.removeItem('admin_api_key')
     if (data.user) {
-      currentUser.value = data.user
+      Object.assign(currentUser, data.user)
       storage.setItem('admin_user', JSON.stringify(data.user))
       otherStorage.removeItem('admin_user')
     }
@@ -148,7 +172,6 @@ async function login() {
     loginForm.password = ''
     showLogin.value = false
     showOtp.value = false
-    ensureActiveTab()
   } catch (e) {
     setAuthError(`Login fehlgeschlagen: ${e}`)
   } finally {
@@ -165,10 +188,9 @@ function logout() {
   }
   sessionStorage.removeItem('admin_api_key')
   sessionStorage.removeItem('admin_user')
-  currentUser.value = null
+  Object.keys(currentUser).forEach(k => delete currentUser[k])
   window.dispatchEvent(new CustomEvent('api-key-updated', { detail: '' }))
   setAuthMessage('Abgemeldet.')
-  ensureActiveTab()
 }
 
 function handleSwitchTab(e) {
@@ -185,11 +207,7 @@ function handleLoadingEnd() { globalLoading.value = false }
 
 
 onMounted(async () => {
-  await fetchAppSettings(); // AppSettings werden beim Start geladen
-  const storedUser = localStorage.getItem('admin_user') || sessionStorage.getItem('admin_user')
-  if (storedUser) {
-    try { currentUser.value = JSON.parse(storedUser) } catch (_) { /* ignore */ }
-  }
+  await fetchAppSettings();
   window.addEventListener('loading-start', handleLoadingStart)
   window.addEventListener('loading-end', handleLoadingEnd)
   window.addEventListener('settings-updated', fetchPrivacyEnabled)
@@ -208,17 +226,7 @@ function flagSrc(lang) {
 
 async function fetchPrivacyEnabled() {
   try {
-    const siteToken = localStorage.getItem('site_token') || '';
-    const headers = { 'Accept': 'application/json' };
-    if (siteToken) headers['X-Site-Token'] = siteToken;
-    const res = await fetch(`${apiBase}/public/config`, { headers });
-    if (!res.ok) {
-      privacyEnabled.value = false;
-      faqEnabled.value = false;
-      privacyLoaded.value = true;
-      return;
-    }
-    const data = await res.json();
+    const { data } = await api.get('/public/config')
     privacyEnabled.value = !!(data.privacy_policy_enabled);
     faqEnabled.value = !!(data.faq_enabled);
     privacyLoaded.value = true;
@@ -258,11 +266,12 @@ async function fetchPrivacyEnabled() {
                   {{ group.label }}
                 </span>
                 <div
-                  v-if="group.tabs && group.tabs.length && openDropdown === group.id"
-                  class="tab-group-tabs dropdown open"
+                  v-if="group.tabs && group.tabs.length"
+                  class="tab-group-tabs dropdown"
+                  :class="{ open: openDropdown === group.id }"
                 >
                   <router-link
-                    v-for="tab in group.tabs.filter(tab => tab && tab.show)"
+                    v-for="tab in group.tabs"
                     :key="tab.to"
                     class="tab"
                     :to="tab.to"
@@ -282,7 +291,7 @@ async function fetchPrivacyEnabled() {
                   v-show="showMobileMenu"
                 >
                   <router-link
-                    v-for="tab in group.tabs.filter(tab => tab && tab.show)"
+                    v-for="tab in group.tabs"
                     :key="tab.to"
                     class="tab"
                     :to="tab.to"
@@ -314,7 +323,7 @@ async function fetchPrivacyEnabled() {
             </div>
           </div>
           <div class="auth-block">
-            <IconButton icon="login" label="Anmelden" class="ghost" size="sm" @click="showLogin = true" v-if="!currentUser" />
+            <IconButton icon="login" label="Anmelden" class="ghost" size="sm" @click="showLogin = true" v-if="!currentUser.name" />
             <div v-else class="user-pill">
               <span class="user-name">{{ currentUser.name }} ({{ currentUser.role }})</span>
               <IconButton icon="logout" label="Abmelden" class="ghost" size="sm" @click="logout" />
@@ -410,9 +419,6 @@ async function fetchPrivacyEnabled() {
   background: #0f172a;
   border-radius: 2px;
 }
-
-
-
 
 
 .tabs {
@@ -604,7 +610,6 @@ async function fetchPrivacyEnabled() {
 }
 
 
-
 @media (max-width: 768px) {
   .tabs {
     flex-direction: column;
@@ -649,8 +654,6 @@ async function fetchPrivacyEnabled() {
     display: block;
   }
 }
-
-
 
 .panel {
   background: var(--app-card-bg, rgba(255,255,255,0.9));

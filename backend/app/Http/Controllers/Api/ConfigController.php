@@ -11,8 +11,11 @@ use App\Services\EventService;
 use App\Services\PlaceholderService;
 use Illuminate\Http\JsonResponse;
 
+
+
 class ConfigController extends Controller
 {
+
     public function __construct(
         private readonly SettingsService $settings,
         private readonly EventService $events,
@@ -23,6 +26,19 @@ class ConfigController extends Controller
     public function show(): JsonResponse
     {
         $settings = $this->settings->all();
+
+        $user = auth()->user();
+        $whitelistFile = null;
+        if (!$user) {
+            $whitelistFile = resource_path('settings-whitelists/public.json');
+        } elseif (in_array($user->role, ['user', 'moderator'])) {
+            $whitelistFile = resource_path('settings-whitelists/user.json');
+        } // Admin/Superadmin: All settings.
+
+        if ($whitelistFile && file_exists($whitelistFile)) {
+            $keys = json_decode(file_get_contents($whitelistFile), true);
+            $settings = array_intersect_key($settings, array_flip($keys));
+        }
 
         $formFields = FormField::query()
             ->where('active', true)
@@ -38,7 +54,7 @@ class ConfigController extends Controller
                 ->map(fn ($r) => [
                     'display_name' => $r->display_name,
                     'date_added' => $r->date_added,
-                ]);
+                ])->all();
         }
 
         $max = (int) ($settings['reservation_max'] ?? 0);
@@ -78,13 +94,23 @@ class ConfigController extends Controller
             }
         }
 
-        $waitlistEntries = collect();
+        $waitlistEntries = [];
         $showWaitlistPublic = (int) ($settings['waitlist_show_public'] ?? 0) === 1;
         if ($waitlistEnabled && $showWaitlistPublic) {
             $waitlistEntries = WaitlistEntry::query()
                 ->where('status', 'pending')
                 ->orderBy('date_added')
-                ->get(['display_name', 'date_added']);
+                ->get(['display_name', 'date_added'])
+                ->map(fn ($w) => [
+                    'display_name' => $w->display_name,
+                    'date_added' => $w->date_added,
+                ])->all();
+        }
+
+        // Für Public: date_added entfernen
+        if (!$user) {
+            $attendees = array_map(fn($a) => ['display_name' => $a['display_name']], $attendees);
+            $waitlistEntries = array_map(fn($w) => ['display_name' => $w['display_name']], $waitlistEntries);
         }
 
         return response()->json([
