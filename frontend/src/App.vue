@@ -168,7 +168,6 @@ async function login() {
       otherStorage.removeItem('admin_user')
     }
     window.dispatchEvent(new CustomEvent('api-key-updated', { detail: token }))
-    setAuthMessage(`Angemeldet als ${data.user?.name || ''} (${data.user?.role || ''}).`)
     loginForm.password = ''
     showLogin.value = false
     showOtp.value = false
