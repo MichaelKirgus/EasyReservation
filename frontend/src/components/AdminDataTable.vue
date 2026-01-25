@@ -137,9 +137,10 @@ function toggleSort(key) {
 const displayColumns = computed(() => props.columns.filter(c => isVisible(c.key)))
 
 const filteredRows = computed(() => {
-  if (!props.enableSearch || !search.value.trim()) return props.rows
+  const rows = Array.isArray(props.rows) ? props.rows : []
+  if (!props.enableSearch || !search.value.trim()) return rows
   const term = search.value.toLowerCase()
-  return props.rows.filter((row) => {
+  return rows.filter((row) => {
     return props.columns.some((col) => {
       const val = row[col.key]
       if (val == null) return false

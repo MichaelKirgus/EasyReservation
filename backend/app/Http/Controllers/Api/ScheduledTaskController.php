@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\ScheduledTask;
 use Illuminate\Support\Carbon;
+use App\Services\ScheduledTaskService;
 
 class ScheduledTaskController extends Controller
 {
@@ -87,13 +88,9 @@ class ScheduledTaskController extends Controller
     {
         $task = ScheduledTask::findOrFail($id);
         if (!$task->executed && $task->active) {
-            // Sofort ausführen, wie im Command
             try {
-                // ... gleiche Logik wie im Command, ggf. auslagern ...
-                // Hier nur als Platzhalter:
-                $task->run_at = now();
-                $task->executed = false;
-                $task->save();
+                $service = app(ScheduledTaskService::class);
+                $service->executeTask($task);
             } catch (\Throwable $e) {
                 return response()->json(['error' => $e->getMessage()], 500);
             }

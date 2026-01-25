@@ -58,27 +58,34 @@ class WebhookTemplateController extends Controller
      */
     public function test($id)
     {
-        $template = WebhookTemplate::findOrFail($id);
-        $placeholderService = app(\App\Services\PlaceholderService::class);
-        $webhookService = app(\App\Services\WebhookService::class);
+        try {
+            $template = WebhookTemplate::findOrFail($id);
+            $placeholderService = app(\App\Services\PlaceholderService::class);
+            $webhookService = app(\App\Services\WebhookService::class);
 
-        // Platzhalter-Kontext: Für Testzwecke ggf. leer oder Dummy-Daten
-        $context = [];
-        // Payload und Header-Template auflösen
-        $payload = $template->payload_template;
-        $headers = $template->headers_template;
-        // Platzhalter ersetzen
-        $payload = $placeholderService->replaceString($payload);
-        $headersArr = [];
-        if ($headers) {
-            try {
-                $headersArr = json_decode($placeholderService->replaceString($headers), true) ?: [];
-            } catch (\Throwable $e) {
-                $headersArr = [];
+            // Platzhalter-Kontext: Für Testzwecke ggf. leer oder Dummy-Daten
+            $context = [];
+            // Payload und Header-Template auflösen
+            $payload = $template->payload_template;
+            $headers = $template->headers_template;
+            // Platzhalter ersetzen
+            $payload = $placeholderService->replaceString($payload);
+            $headersArr = [];
+            if ($headers) {
+                try {
+                    $headersArr = json_decode($placeholderService->replaceString($headers), true) ?: [];
+                } catch (\Throwable $e) {
+                    $headersArr = [];
+                }
             }
+            // Versenden
+            $webhookService->send($template->url, json_decode($payload, true) ?: [], $headersArr);
+            return response()->json(['success' => true, 'message' => 'Webhook wurde gesendet.']);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Fehler: ' . $e->getMessage(),
+            ], 500);
         }
-        // Versenden
-        $result = $webhookService->send($template->url, json_decode($payload, true) ?: [], $headersArr);
-        return response()->json(['success' => true, 'message' => 'Webhook wurde testweise gesendet.']);
     }
 }

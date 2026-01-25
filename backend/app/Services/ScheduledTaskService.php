@@ -37,11 +37,79 @@ class ScheduledTaskService
             ->get();
 
         foreach ($dueTasks as $task) {
-            // Hier: Eigentliche Ausführung der Aufgabe (z.B. Mail, Webhook, ...)
-            // $this->executeTask($task);
+            $this->executeTask($task);
+        }
+        // Letzte Ausführung im Cache speichern
+        \Cache::put('scheduler:last_executed_at', now(), 86400);
+    }
+
+    /**
+     * Führt eine einzelne geplante Aufgabe aus (Logik wie im Command)
+     */
+    public function executeTask(ScheduledTask $task): void
+    {
+        try {
+            switch ($task->type) {
+                case 'attendees_email_broadcast': {
+                    $service = app(\App\Services\EmailBroadcastService::class);
+                    $service->sendTemplateToReservationList($task->options['event_id'] ?? $task->reference_id, $task->options['template_id'] ?? null);
+                    break;
+                }
+                case 'waitlist_email_broadcast': {
+                    $service = app(\App\Services\EmailBroadcastService::class);
+                    $service->queueBroadcast(
+                        $task->options['template_id'] ?? null,
+                        'waitlist',
+                        true,
+                        [],
+                        [],
+                        [],
+                        true
+                    );
+                    break;
+                }
+                case 'custom_email_broadcast': {
+                    $service = app(\App\Services\EmailBroadcastService::class);
+                    $customRecipients = $task->options['custom_recipients'] ?? [];
+                    $service->queueBroadcast(
+                        $task->options['template_id'] ?? null,
+                        'selection',
+                        false,
+                        [],
+                        [],
+                        $customRecipients,
+                        true
+                    );
+                    break;
+                }
+                case 'change_setting':
+                    $key = $task->options['setting_key'] ?? null;
+                    $value = $task->options['setting_value'] ?? null;
+                    if ($key !== null) {
+                        \App\Models\Setting::updateOrCreate(['key' => $key], ['value' => $value]);
+                    }
+                    break;
+                case 'webhook':
+                    $webhookService = app(\App\Services\WebhookService::class);
+                    $webhookId = $task->options['webhook_template_id'] ?? null;
+                    $payload = $task->options['payload'] ?? [];
+                    if ($webhookId) {
+                        $webhookService->sendTemplate($webhookId, $payload);
+                    } else {
+                        \Log::warning('Webhook-Task ohne webhook_template_id: ' . $task->id);
+                    }
+                    break;
+                // Weitere Typen hier ergänzen
+                default:
+                    // Unbekannter Task-Typ
+                    \Log::warning('Unbekannter Task-Typ: ' . $task->type);
+            }
             $task->executed = true;
             $task->executed_at = now();
             $task->save();
+        } catch (\Throwable $e) {
+            \Log::error('Fehler beim Ausführen von ScheduledTask ' . $task->id . ': ' . $e->getMessage());
+            throw $e;
         }
     }
 }

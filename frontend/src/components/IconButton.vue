@@ -23,7 +23,7 @@ const ICONS = {
   send: { viewBox: '0 0 24 24', paths: ['M22 2L11 13', 'M22 2 15 22 11 13 2 9z'] },
   check: { viewBox: '0 0 24 24', paths: ['m5 13 4 4L19 7'] },
   mail: { viewBox: '0 0 24 24', paths: ['M4 6h16v12H4z', 'm4 8 4 3 4-3'] },
-  close: { viewBox: '0 0 24 24', paths: ['M18 6 6 18', 'm6-12 12 12'] },
+  close: { viewBox: '0 0 24 24', paths: ['M18 6L6 18', 'M6 6l12 12'] },
   shield: { viewBox: '0 0 24 24', paths: ['M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'] },
   arrowUp: { viewBox: '0 0 24 24', paths: ['M12 19V5', 'M5 12l7-7 7 7'] },
   key: { viewBox: '0 0 24 24', paths: ['M21 7a4 4 0 1 0-5 3.87V13l-2 2-2-2-2 2-2-2-2 2v3h3l2-2 2 2 5-5V10.87A4 4 0 0 0 21 7z', 'M19 7a2 2 0 1 1-4 0 2 2 0 0 1 4 0z'] },

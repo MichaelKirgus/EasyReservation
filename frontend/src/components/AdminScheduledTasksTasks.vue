@@ -28,7 +28,7 @@
         <input type="checkbox" :checked="row.active" @change="toggleActive(row)" :disabled="loading" />
       </template>
       <template #row-actions="{ row }">
-        <IconButton icon="play" label="Sofort ausführen" class="ghost" @click="runNow(row)" :disabled="loading || row.executed || !row.active" />
+        <IconButton icon="play" label="Sofort ausführen" class="ghost" @click="runNow(row)" :disabled="loading" />
         <IconButton icon="pencil" label="Bearbeiten" class="ghost" @click="editTask(row)" :disabled="loading" />
         <IconButton icon="trash" label="Löschen" class="ghost" @click="deleteTask(row)" :disabled="loading" />
       </template>
@@ -36,6 +36,7 @@
     <TaskDialog
       v-if="showDialog"
       :task="selectedTask"
+      :key="selectedTask ? selectedTask.id || 'new' : 'new'"
       @close="closeDialog"
       @save="saveTask"
     />
@@ -71,7 +72,18 @@ const selectedTask = ref(null)
 
 const columns = [
   { key: 'id', label: 'ID' },
-  { key: 'type', label: 'Typ' },
+  { key: 'type', label: 'Typ',
+    formatter: (type) => {
+      switch (type) {
+        case 'attendees_email_broadcast': return 'E-Mail an Teilnehmer';
+        case 'waitlist_email_broadcast': return 'E-Mail an Warteliste';
+        case 'custom_email_broadcast': return 'E-Mail an benutzerdefinierte Adressen';
+        case 'change_setting': return 'Einstellung ändern';
+        case 'webhook': return 'Webhook';
+        default: return type;
+      }
+    }
+  },
   { key: 'run_at', label: 'Ausführungszeit' },
   { key: 'planned_run_at', label: 'Geplantes Ausführungsdatum' },
   { key: 'reference_type', label: 'Referenztyp' },
@@ -101,8 +113,9 @@ function fetchTasks() {
 }
 
 function editTask(task) {
-  selectedTask.value = { ...task }
-  showDialog.value = true
+  // Erstelle eine tiefe Kopie, um Proxy-Probleme zu vermeiden
+  selectedTask.value = JSON.parse(JSON.stringify(task));
+  showDialog.value = true;
 }
 
 function createTask() {
@@ -136,7 +149,8 @@ function saveTask(task) {
 }
 
 function closeDialog() {
-  showDialog.value = false
+  selectedTask.value = null;
+  showDialog.value = false;
 }
 
 function toggleActive(task) {

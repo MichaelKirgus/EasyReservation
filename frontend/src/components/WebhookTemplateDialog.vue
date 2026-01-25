@@ -24,7 +24,7 @@
         <textarea v-model="form.headers_template" rows="3" style="font-family:monospace;width:100%"></textarea>
       </div>
       <div class="form-actions" style="display:flex;gap:0.5em;justify-content:flex-end;">
-        <IconButton icon="x" label="Abbrechen" variant="ghost" type="button" @click="$emit('close')" />
+        <IconButton icon="close" label="Abbrechen" variant="ghost" type="button" @click="$emit('close')" />
         <IconButton icon="check" label="Speichern" type="submit" />
       </div>
     </form>

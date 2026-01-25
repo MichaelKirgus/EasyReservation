@@ -54,7 +54,7 @@
       </label>
       <div style="margin-top:1em;display:flex;gap:0.5em;justify-content:flex-end;">
         <IconButton icon="check" label="Speichern" type="submit" />
-        <IconButton icon="x" label="Abbrechen" variant="ghost" type="button" @click="$emit('close')" />
+        <IconButton icon="close" label="Abbrechen" variant="ghost" type="button" @click="$emit('close')" />
       </div>
     </form>
   </div>

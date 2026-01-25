@@ -8,9 +8,11 @@
         </label>
         <select v-model="form.type" required>
           <option value="">Bitte wählen…</option>
-          <option value="email_broadcast">E-Mail an Teilnehmer</option>
+          <option value="attendees_email_broadcast">E-Mail an Teilnehmer</option>
+          <option value="waitlist_email_broadcast">E-Mail an Warteliste</option>
+          <option value="custom_email_broadcast">E-Mail an benutzerdefinierte Adressen</option>
           <option value="change_setting">Einstellung ändern</option>
-          <!-- Weitere Typen hier ergänzen -->
+          <option value="webhook">Webhook</option>
         </select>
       </div>
       <div>
@@ -81,12 +83,25 @@
           <input v-model="settingValue" type="text" required />
         </template>
       </div>
-      <div v-if="form.type === 'email_broadcast'">
+      <div v-if="form.type === 'attendees_email_broadcast' || form.type === 'waitlist_email_broadcast' || form.type === 'custom_email_broadcast'">
         <label>E-Mail-Vorlage:</label>
         <select v-model.number="selectedTemplateId" required>
           <option value="">Bitte wählen…</option>
           <option v-for="tpl in emailTemplates" :key="tpl.id" :value="tpl.id">
             {{ tpl.name || tpl.subject || ('Vorlage #' + tpl.id) }} (ID: {{ tpl.id }})
+          </option>
+        </select>
+      </div>
+      <div v-if="form.type === 'custom_email_broadcast'">
+        <label>Empfänger (eine Adresse pro Zeile, optional mit Name):</label>
+        <textarea v-model="customEmails" placeholder="max@example.com\nAnna <anna@example.com>\n..."></textarea>
+      </div>
+      <div v-if="form.type === 'webhook'">
+        <label>Webhook-Vorlage:</label>
+        <select v-model.number="selectedWebhookTemplateId" required>
+          <option value="">Bitte wählen…</option>
+          <option v-for="tpl in webhookTemplates" :key="tpl.id" :value="tpl.id">
+            {{ tpl.name || ('Webhook #' + tpl.id) }} (ID: {{ tpl.id }})
           </option>
         </select>
       </div>
@@ -96,7 +111,7 @@
       </div>
       <div style="margin-top:1em; display:flex; gap:0.5em; justify-content:flex-end;">
         <IconButton icon="check" label="Speichern" type="submit" />
-        <IconButton icon="x" label="Abbrechen" variant="ghost" type="button" @click="$emit('close')" />
+        <IconButton icon="close" label="Abbrechen" variant="ghost" type="button" @click="$emit('close')" />
       </div>
     </form>
   </div>
@@ -129,7 +144,10 @@ const form = ref({
 
 const referenceObjects = ref([])
 const emailTemplates = ref([])
+const customEmails = ref('');
 const selectedTemplateId = ref('')
+const webhookTemplates = ref([])
+const selectedWebhookTemplateId = ref('')
 const settingKeys = ref([])
 const selectedSettingKey = ref('')
 const settingValue = ref('')
@@ -164,6 +182,15 @@ function convertSettingValue(val, type) {
   return val ?? '';
 }
 
+// Hilfsfunktion für das richtige Datumsformat im Input
+function toDatetimeLocal(val) {
+  if (!val) return '';
+  const d = new Date(val);
+  if (isNaN(d)) return '';
+  const pad = n => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 const relativeFieldsMap = {
   event: ['start_at', 'end_at'],
   reservation: ['created_at', 'updated_at'],
@@ -191,6 +218,10 @@ onMounted(async () => {
     emailTemplates.value = tplRes.data
   } catch {}
   try {
+    const whRes = await axios.get('/api/admin/webhook-templates', apiConfig())
+    webhookTemplates.value = whRes.data
+  } catch {}
+  try {
     const keysRes = await axios.get('/api/admin/settings-keys', apiConfig())
     settingKeys.value = keysRes.data
   } catch {}
@@ -201,11 +232,31 @@ onMounted(async () => {
 let loadedFromTask = false
 watch(() => props.task, (task) => {
   if (task) {
-    form.value = { ...task, options: task.options || {}, reference_type: task.reference_type || 'event' }
-    if (form.value.type === 'email_broadcast') {
+    // Erstelle ein Plain-Object, um Vue-Proxy-Probleme zu vermeiden
+    form.value = JSON.parse(JSON.stringify({ ...task, options: task.options || {}, reference_type: task.reference_type || 'event' }))
+    // Korrigiere das Datumsformat für das Input-Feld
+    form.value.run_at = toDatetimeLocal(task.run_at || '');
+    if (
+      form.value.type === 'attendees_email_broadcast' ||
+      form.value.type === 'waitlist_email_broadcast' ||
+      form.value.type === 'custom_email_broadcast'
+    ) {
       selectedTemplateId.value = form.value.options?.template_id || ''
     } else {
       selectedTemplateId.value = ''
+    }
+    if (form.value.type === 'custom_email_broadcast') {
+      // custom_recipients als Zeilen-String
+      customEmails.value = (form.value.options?.custom_recipients || [])
+        .map(r => r.name ? `${r.name} <${r.email}>` : r.email)
+        .join('\n')
+    } else {
+      customEmails.value = ''
+    }
+    if (form.value.type === 'webhook') {
+      selectedWebhookTemplateId.value = form.value.options?.webhook_template_id || ''
+    } else {
+      selectedWebhookTemplateId.value = ''
     }
     if (form.value.type === 'change_setting') {
       selectedSettingKey.value = form.value.options?.key || ''
@@ -228,8 +279,10 @@ watch(() => props.task, (task) => {
       executed: false,
     }
     selectedTemplateId.value = ''
+    selectedWebhookTemplateId.value = ''
     selectedSettingKey.value = ''
     settingValue.value = ''
+    customEmails.value = ''
     loadedFromTask = false
   }
 }, { immediate: true })
@@ -250,6 +303,21 @@ watch(selectedSettingKey, async (key) => {
   }
 })
 
+function parseCustomEmails(str) {
+  // Zeilenweise, Format: Name <mail@x.de> oder nur mail@x.de
+  return str.split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .map(line => {
+      const match = line.match(/^(.*?)\s*<([^>]+)>$/)
+      if (match) {
+        return { name: match[1].trim(), email: match[2].trim() }
+      } else {
+        return { email: line }
+      }
+    })
+}
+
 function submit() {
   // Dynamisch options bauen je nach Typ
   const payload = { ...form.value }
@@ -257,8 +325,18 @@ function submit() {
   if (!payload.run_at || payload.run_at === '') {
     payload.run_at = null;
   }
-  if (form.value.type === 'email_broadcast') {
+  if ([
+    'attendees_email_broadcast',
+    'waitlist_email_broadcast',
+    'custom_email_broadcast'
+  ].includes(form.value.type)) {
     payload.options = { ...payload.options, template_id: selectedTemplateId.value }
+  }
+  if (form.value.type === 'custom_email_broadcast') {
+    payload.options = { ...payload.options, custom_recipients: parseCustomEmails(customEmails.value) }
+  }
+  if (form.value.type === 'webhook') {
+    payload.options = { ...payload.options, webhook_template_id: selectedWebhookTemplateId.value }
   } else if (form.value.type === 'change_setting') {
     let value = settingValue.value
     // Typkonvertierung für Boolean/Number

@@ -241,4 +241,27 @@ class EmailBroadcastService
         return str_contains($template->subject ?? '', '{{attach_event_ical}}')
             || str_contains($template->body ?? '', '{{attach_event_ical}}');
     }
+
+    /**
+     * Versendet ein E-Mail-Template an alle Reservierungen eines Events (Bulk über queueBroadcast).
+     * @param int $eventId
+     * @param int|null $templateId
+     */
+    public function sendTemplateToReservationList($eventId, $templateId = null)
+    {
+        if (!$templateId) {
+            // Kein Template angegeben, nichts tun
+            return;
+        }
+        // Nutze die bestehende Bulk-Logik
+        $this->queueBroadcast(
+            $templateId,
+            'reservations', // scope: nur Reservierungen
+            true,           // sendToAll: alle Teilnehmer
+            [],             // reservationIds
+            [],             // waitlistIds
+            [],             // customRecipients
+            true            // deduplicate
+        );
+    }
 }

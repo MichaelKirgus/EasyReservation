@@ -14,7 +14,9 @@ class DiagnosticsService
         $lastExecuted = \App\Models\ScheduledTask::whereNotNull('executed_at')->orderByDesc('executed_at')->first();
         $nextRun = \App\Models\ScheduledTask::where('executed', false)->where('active', true)->whereNotNull('run_at')->orderBy('run_at')->first();
         $schedulerActive = false;
-        $lastExecutedAt = $lastExecuted?->executed_at;
+        // NEU: Wert aus Cache lesen
+        $lastExecutedAtCache = \Cache::get('scheduler:last_executed_at');
+        $lastExecutedAt = $lastExecutedAtCache ? (is_string($lastExecutedAtCache) ? \Carbon\Carbon::parse($lastExecutedAtCache) : $lastExecutedAtCache) : $lastExecuted?->executed_at;
         if ($lastExecutedAt) {
             $diff = now()->diffInMinutes($lastExecutedAt);
             $schedulerActive = $diff < 10; // z.B. aktiv, wenn <10min her

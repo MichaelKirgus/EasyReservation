@@ -76,6 +76,18 @@ function deleteTemplate(template) {
   }
 }
 
+function testTemplate(row) {
+  loading.value = true
+  axios.post(`/api/admin/webhook-templates/${row.id}/test`, {}, apiConfig())
+    .then(res => {
+      alert(res.data.message || 'Webhook wurde gesendet.')
+    })
+    .catch(err => {
+      alert(err.response?.data?.message || 'Fehler beim Senden des Webhooks.')
+    })
+    .finally(() => { loading.value = false })
+}
+
 function saveTemplate(template) {
   loading.value = true
   const req = template.id
