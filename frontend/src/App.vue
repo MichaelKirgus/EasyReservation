@@ -5,7 +5,25 @@ import flagDe from './assets/icons/flag-de.svg'
 import flagUs from './assets/icons/flag-us.svg'
 import IconButton from './components/IconButton.vue'
 
-async function fetchAppSettings() {}
+
+// Reaktives Objekt für App-Einstellungen
+const appSettings = reactive({ clear_localstorage_on_logout: false })
+
+// Lädt App-Einstellungen von der API und speichert sie in appSettings
+async function fetchAppSettings() {
+  try {
+    const res = await fetch(`${apiBase}/public/config`, { headers: { 'Accept': 'application/json' } })
+    if (res.ok) {
+      const data = await res.json()
+      // Übertrage alle Properties in appSettings
+      Object.keys(data).forEach(key => {
+        appSettings[key] = data[key]
+      })
+    }
+  } catch (e) {
+    // Fehler ignorieren, Standardwerte bleiben erhalten
+  }
+}
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const selectedLang = ref('de')
@@ -167,7 +185,7 @@ function handleLoadingEnd() { globalLoading.value = false }
 
 
 onMounted(async () => {
-  await fetchAppSettings()
+  await fetchAppSettings(); // AppSettings werden beim Start geladen
   const storedUser = localStorage.getItem('admin_user') || sessionStorage.getItem('admin_user')
   if (storedUser) {
     try { currentUser.value = JSON.parse(storedUser) } catch (_) { /* ignore */ }
