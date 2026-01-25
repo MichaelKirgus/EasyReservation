@@ -20,6 +20,8 @@ class DiagnosticsService
             $schedulerActive = $diff < 10; // z.B. aktiv, wenn <10min her
         }
         return [
+            'server_time' => now()->toIso8601String(),
+            'server_timezone' => config('app.timezone', date_default_timezone_get()),
             'timestamp' => now()->toIso8601String(),
             'app' => [
                 'name' => config('app.name'),

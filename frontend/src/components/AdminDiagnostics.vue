@@ -1,5 +1,14 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
+
+// Client-Zeit und Zeitzone
+const clientTime = ref(new Date().toISOString())
+const clientTimezone = ref(Intl.DateTimeFormat().resolvedOptions().timeZone)
+
+let clientTimer = null
+function updateClientTime() {
+  clientTime.value = new Date().toISOString()
+}
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 import RedisKeysTable from './RedisKeysTable.vue'
@@ -200,10 +209,37 @@ onUnmounted(() => {
           <div class="label">Cache</div>
           <div class="value">{{ diagnostics.app.cache_store }}</div>
         </div>
-      </div>
+        <div class="info-item">
+          <div class="label">Laufende Jobs</div>
+          <div class="value">{{ diagnostics.queue.processing_jobs }}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Aktive Worker</div>
+          <div class="value">{{ diagnostics.queue.worker_count }}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Queue-Typ</div>
+          <div class="value">{{ diagnostics.queue.connection }}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Serverzeit</div>
+          <div class="value">{{ formatDateTime(diagnostics?.server_time) }}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Server-Zeitzone</div>
+          <div class="value">{{ diagnostics?.server_timezone }}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Lokale Zeit (Client)</div>
+          <div class="value">{{ formatDateTime(clientTime) }}</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Lokale Zeitzone (Client)</div>
+          <div class="value">{{ clientTimezone }}</div>
+        </div>
+       </div>
       <p v-else class="muted">Keine Daten geladen.</p>
     </div>
-
 
     <div class="card">
       <div class="card-header">
@@ -261,26 +297,6 @@ onUnmounted(() => {
             <template v-else-if="auditLogError">{{ auditLogError }}</template>
             <template v-else>{{ auditLogCount }}</template>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h4>Queue/Worker-Status</h4>
-      </div>
-      <div class="info-grid" v-if="diagnostics?.queue">
-        <div class="info-item">
-          <div class="label">Laufende Jobs</div>
-          <div class="value">{{ diagnostics.queue.processing_jobs }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">Aktive Worker</div>
-          <div class="value">{{ diagnostics.queue.worker_count }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">Queue-Typ</div>
-          <div class="value">{{ diagnostics.queue.connection }}</div>
         </div>
       </div>
     </div>
