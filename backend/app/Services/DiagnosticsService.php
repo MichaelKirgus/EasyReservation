@@ -111,41 +111,72 @@ class DiagnosticsService
 
     public function redisKeys(): array
     {
-        $keys = [];
-        $error = null;
-        try {
-            if (config('queue.default') === 'redis') {
-                $prefix = config('database.redis.options.prefix') ?? '';
-                $rawKeys = \Illuminate\Support\Facades\Redis::keys($prefix . '*');
-                // Fallback: falls kein Prefix, auch Standard-Keys anzeigen
-                if (!$rawKeys || count($rawKeys) === 0) {
-                    $rawKeys = \Illuminate\Support\Facades\Redis::keys('*');
+        $connections = [
+            'default' => [
+                'name' => 'default',
+                'db' => config('database.redis.default.database', 0),
+            ],
+            'cache' => [
+                'name' => 'cache',
+                'db' => config('database.redis.cache.database', 1),
+            ],
+            'queue' => [
+                'name' => 'queue',
+                'db' => config('database.redis.queue.database', 2),
+            ],
+        ];
+        // Session-Store prüfen
+        $sessionDriver = config('session.driver');
+        if ($sessionDriver === 'redis') {
+            $sessionConn = config('session.connection', 'default');
+            $sessionDb = config('database.redis.' . $sessionConn . '.database', 0);
+            $connections['session'] = [
+                'name' => $sessionConn,
+                'db' => $sessionDb,
+            ];
+        }
+
+        $result = [];
+        foreach ($connections as $key => $conn) {
+            $keys = [];
+            $error = null;
+            try {
+                $redis = \Illuminate\Support\Facades\Redis::connection($conn['name']);
+                // DB explizit auswählen (nur relevant für phpredis, aber schadet nicht)
+                if (method_exists($redis, 'client')) {
+                    $redis->client()->select($conn['db']);
+                } else {
+                    $redis->select($conn['db']);
                 }
-                foreach ($rawKeys as $key) {
-                    $type = \Illuminate\Support\Facades\Redis::type($key);
+                $rawKeys = $redis->keys('*');
+                foreach ($rawKeys as $keyName) {
+                    $type = $redis->type($keyName);
                     $len = null;
                     if ($type === 'list') {
-                        $len = \Illuminate\Support\Facades\Redis::llen($key);
+                        $len = $redis->llen($keyName);
                     } elseif ($type === 'set') {
-                        $len = \Illuminate\Support\Facades\Redis::scard($key);
+                        $len = $redis->scard($keyName);
                     } elseif ($type === 'zset') {
-                        $len = \Illuminate\Support\Facades\Redis::zcard($key);
+                        $len = $redis->zcard($keyName);
                     } elseif ($type === 'hash') {
-                        $len = \Illuminate\Support\Facades\Redis::hlen($key);
+                        $len = $redis->hlen($keyName);
                     }
                     $keys[] = [
-                        'key' => $key,
+                        'key' => $keyName,
                         'type' => $type,
                         'length' => $len,
                     ];
                 }
+            } catch (\Throwable $e) {
+                $error = $e->getMessage();
             }
-        } catch (\Throwable $e) {
-            $error = $e->getMessage();
+            $result[] = [
+                'connection' => $conn['name'],
+                'db' => $conn['db'],
+                'keys' => $keys,
+                'error' => $error,
+            ];
         }
-        return [
-            'keys' => $keys,
-            'error' => $error,
-        ];
+        return $result;
     }
 }
