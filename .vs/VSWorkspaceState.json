@@ -4,13 +4,13 @@
     "\\backend",
     "\\backend\\app",
     "\\backend\\app\\Http",
-    "\\backend\\app\\Http\\Requests",
-    "\\backend\\app\\Jobs",
-    "\\backend\\app\\Services",
-    "\\backend\\database",
-    "\\backend\\database\\migrations",
-    "\\backend\\routes"
+    "\\backend\\app\\Http\\Controllers",
+    "\\backend\\app\\Http\\Controllers\\Api",
+    "\\backend\\config",
+    "\\backend\\routes",
+    "\\frontend",
+    "\\frontend\\src"
   ],
-  "SelectedNode": "\\backend\\app\\Services\\EmailValidationService.php",
+  "SelectedNode": "\\backend\\config\\queue.php",
   "PreviewInSolutionExplorer": false
 }
