@@ -1,3 +1,6 @@
+ARG APP_VERSION=unknown
+ENV APP_VERSION=$APP_VERSION
+
 FROM node:22 AS builder
 WORKDIR /app
 COPY package*.json ./
