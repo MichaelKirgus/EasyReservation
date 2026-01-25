@@ -1,7 +1,8 @@
+FROM composer:2.6 AS vendor
+
 ARG APP_VERSION=unknown
 ENV APP_VERSION=$APP_VERSION
 
-FROM composer:2.6 AS vendor
 WORKDIR /app
 COPY . .
 RUN composer install --no-dev --prefer-dist --optimize-autoloader
