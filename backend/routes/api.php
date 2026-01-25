@@ -26,12 +26,13 @@ use App\Http\Controllers\Api\AuditLogController;
 Route::options('/{any}', fn () => response()->noContent())->where('any', '.*');
 
 Route::post('/auth/login', [AuthController::class, 'login']);
-Route::middleware(['role:admin,moderator,user'])->group(function () {
+Route::middleware(['role:superadmin,admin,moderator,user'])->group(function () {
     Route::post('/self-2fa/enable', [TwoFactorApiController::class, 'enable']);
     Route::delete('/self-2fa/disable', [TwoFactorApiController::class, 'disable']);
     Route::get('/self-2fa/qr', [TwoFactorApiController::class, 'qr']);
     Route::get('/self-2fa/recovery', [TwoFactorApiController::class, 'recovery']);
     Route::post('/self-2fa/confirm', [TwoFactorApiController::class, 'confirm']);
+    Route::get('/self-2fa/status', [TwoFactorApiController::class, 'status']);
 });
 
 Route::get('/translations/{lang}', [TranslationController::class, 'show']);

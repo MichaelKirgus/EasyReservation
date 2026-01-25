@@ -289,10 +289,10 @@ async function reset2FA(user) {
 // 2FA Self-Management: Routen ohne /api, mit credentials: 'include'
 async function fetchSelf2FAStatus() {
   try {
-    const res = await fetch(`${apiBase}/user`, { headers: authHeaders(), credentials: 'include' })
+    const res = await fetch(`${apiBase}/self-2fa/status`, { headers: authHeaders(), credentials: 'include' })
     if (!res.ok) return
-    const user = await parseJsonSafe(res)
-    self2FA.value.enabled = !!user.two_factor_secret
+    const data = await parseJsonSafe(res)
+    self2FA.value.enabled = !!data.two_factor_enabled
   } catch {}
 }
 

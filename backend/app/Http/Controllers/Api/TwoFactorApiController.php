@@ -49,14 +49,51 @@ class TwoFactorApiController extends Controller
     public function confirm(Request $request)
     {
         $user = Auth::user();
+        $ip = $request->ip();
         $validator = Validator::make($request->all(), [
             'code' => ['required', 'string'],
         ]);
-        $validator->validate();
+        if ($validator->fails()) {
+            \Log::warning('2FA confirm failed: validation error', [
+                'user_id' => $user?->id,
+                'email' => $user?->email,
+                'ip' => $ip,
+                'errors' => $validator->errors()->toArray(),
+                'input' => $request->all(),
+            ]);
+            return response()->json([
+                'confirmed' => false,
+                'message' => 'The provided two factor authentication code was invalid.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
         $result = app(ConfirmTwoFactorAuthentication::class)($user, $request->input('code'));
         if ($result) {
+            \Log::info('2FA confirm success', [
+                'user_id' => $user?->id,
+                'email' => $user?->email,
+                'ip' => $ip,
+            ]);
             return response()->json(['confirmed' => true]);
         }
-        return response()->json(['confirmed' => false], 422);
+        \Log::warning('2FA confirm failed: invalid code', [
+            'user_id' => $user?->id,
+            'email' => $user?->email,
+            'ip' => $ip,
+            'input' => $request->all(),
+        ]);
+        return response()->json([
+            'confirmed' => false,
+            'message' => 'The provided two factor authentication code was invalid.',
+            'errors' => ['code' => ['The provided two factor authentication code was invalid.']],
+        ], 422);
+    }
+
+    public function status(Request $request)
+    {
+        $user = Auth::user();
+        return response()->json([
+            'two_factor_enabled' => !empty($user->two_factor_secret),
+        ]);
     }
 }
