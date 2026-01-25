@@ -16,6 +16,11 @@ jobs:
         run: |
           REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           echo "repo=$REPO" >> $GITHUB_OUTPUT
+      - name: Write version file
+        run: |
+          VERSION=$(git describe --tags --always)
+          echo "$VERSION" > backend/version.txt
+          echo "$VERSION" > frontend/version.txt
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -23,9 +28,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.IMAGE_PUSH_TOKEN }}
       - name: Build Docker image for backend
-        run: docker build -t ghcr.io/${{ steps.vars-repo.outputs.repo }}/backend:latest ./backend
+        run: docker build --build-arg APP_VERSION=$(cat backend/version.txt) -t ghcr.io/${{ steps.vars-repo.outputs.repo }}/backend:latest ./backend
       - name: Build Docker image for frontend
-        run: docker build -t ghcr.io/${{ steps.vars-repo.outputs.repo }}/frontend:latest ./frontend
+        run: docker build --build-arg APP_VERSION=$(cat frontend/version.txt) -t ghcr.io/${{ steps.vars-repo.outputs.repo }}/frontend:latest ./frontend
       - name: Push Docker image for backend
         run: docker push ghcr.io/${{ steps.vars-repo.outputs.repo }}/backend:latest
       - name: Push Docker image for frontend
