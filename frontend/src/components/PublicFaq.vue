@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useBackgroundImage } from '../composables/useBackgroundImage'
 import IconButton from './IconButton.vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'

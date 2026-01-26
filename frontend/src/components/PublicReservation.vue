@@ -1,6 +1,8 @@
 <script setup>
 
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useBackgroundImage } from '../composables/useBackgroundImage'
+import { useRouter } from 'vue-router'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import api from '../api'
@@ -131,7 +133,7 @@ async function loadConfig() {
     localStorage.setItem('site_token', siteToken.value || '')
     updateFavicon(config.settings?.reservation_page_favicon)
     updateTitle(config.settings?.reservation_page_title || config.settings?.reservation_name || 'Reservierung')
-    applyBackgroundImage()
+    // applyBackgroundImage entfernt, da jetzt Composable genutzt wird
     console.debug('Konfiguration geladen.')
   } catch (e) {
     setError(`Laden fehlgeschlagen: ${e.message}`)
@@ -157,32 +159,8 @@ const backgroundStyle = computed(() => {
   return { minHeight: '100vh' }
 })
 
-function applyBackgroundImage() {
-  if (typeof document === 'undefined') return
-  const img = config.settings?.reservation_page_background_image || ''
-  const opacity = Math.min(100, Math.max(0, Number(config.settings?.reservation_background_opacity ?? 60)))
-  const alpha = (100 - opacity) / 100
-  if (img) {
-    const url = mediaUrl(img)
-    const value = `linear-gradient(rgba(255,255,255,${alpha}), rgba(255,255,255,${alpha})), url('${url}')`
-    const root = document.body.style
-    root.setProperty('--app-bg', value)
-    root.setProperty('--app-bg-size', 'cover')
-    root.setProperty('--app-bg-position', 'center')
-    root.setProperty('--app-bg-repeat', 'no-repeat')
-    root.setProperty('--app-bg-attachment', 'fixed')
-  } else {
-    const root = document.body.style
-    root.removeProperty('--app-bg')
-    root.removeProperty('--app-bg-size')
-    root.removeProperty('--app-bg-position')
-    root.removeProperty('--app-bg-repeat')
-    root.removeProperty('--app-bg-attachment')
-  }
-
-  const cardOpacity = Math.min(100, Math.max(0, Number(config.settings?.reservation_card_opacity ?? 90))) / 100
-  document.body.style.setProperty('--app-card-bg', `rgba(255,255,255,${cardOpacity})`)
-}
+// Hintergrundbild-Logik auslagern
+useBackgroundImage(config.settings, mediaBase)
 
 const cardStyle = computed(() => {
   const opacity = Math.min(100, Math.max(0, Number(config.settings?.reservation_card_opacity ?? 90)))
@@ -454,11 +432,12 @@ function applyCustomCss(css) {
   }
 }
 
+const router = useRouter()
 function goToFaq() {
-  window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'public-faq' }))
-    }
+  router.push('/faq')
+}
 function goToGDPR() {
-  window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'public-privacy' }))
+  router.push('/privacy')
 }
 </script>
 
@@ -482,10 +461,10 @@ function goToGDPR() {
       <section class="card" :style="cardStyle">
         <div class="button-row">
             <div v-if="Number(config.settings.show_faq_button_landing_enabled) === 1">
-               <button type="button" class="ghost" @click="this.$router.push('/faq') " :style="{ color: config.settings.faq_button_color || 'white', backgroundColor: config.settings.faq_button_backgroundcolor || '#2563eb', borderColor: config.settings.faq_button_border_color || '#2563eb' }">{{ tr('faq_button_text_label', 'FAQ') }}</button>
+               <button type="button" class="ghost" @click="goToFaq" :style="{ color: config.settings.faq_button_color || 'white', backgroundColor: config.settings.faq_button_backgroundcolor || '#2563eb', borderColor: config.settings.faq_button_border_color || '#2563eb' }">{{ tr('faq_button_text_label', 'FAQ') }}</button>
             </div>
             <div v-if="Number(config.settings.show_gdpr_button_landing_enabled) === 1">
-               <button type="button" class="ghost" @click="this.$router.push('/privacy') " :style="{ color: config.settings.gdpr_button_color || 'white', backgroundColor: config.settings.gdpr_button_backgroundcolor || '#2563eb', borderColor: config.settings.gdpr_button_border_color || '#2563eb' }">{{ tr('gdpr_button_text_label', 'Privacy') }}</button>
+               <button type="button" class="ghost" @click="goToGDPR" :style="{ color: config.settings.gdpr_button_color || 'white', backgroundColor: config.settings.gdpr_button_backgroundcolor || '#2563eb', borderColor: config.settings.gdpr_button_border_color || '#2563eb' }">{{ tr('gdpr_button_text_label', 'Privacy') }}</button>
             </div>
         </div>
         <div v-if="config.settings.reservation_top_image" class="top-image">
