@@ -1,6 +1,7 @@
 <script setup>
 
 import { ref, reactive, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import LoginDialog from './components/LoginDialog.vue'
 import languageIconSrc from './assets/icons/languageicon.svg'
 import flagDe from './assets/icons/flag-de.svg'
@@ -26,6 +27,7 @@ async function fetchAppSettings() {
 }
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
+const router = useRouter()
 const selectedLang = ref('de')
 const langMenuOpen = ref(false)
 const showMobileMenu = ref(false)
@@ -204,6 +206,7 @@ function logout() {
   Object.keys(currentUser).forEach(k => delete currentUser[k])
   window.dispatchEvent(new CustomEvent('api-key-updated', { detail: '' }))
   setAuthMessage('Abgemeldet.')
+  router.push('/')
 }
 
 function handleSwitchTab(e) {
