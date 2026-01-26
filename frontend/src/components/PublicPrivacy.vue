@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useBackgroundImage } from '../composables/useBackgroundImage'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
@@ -116,8 +117,9 @@ watch(() => props.langCode, async (val) => {
   }
 })
 
+const router = useRouter()
 function goBack() {
-  window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'public' }))
+  router.push('/')
 }
 </script>
 

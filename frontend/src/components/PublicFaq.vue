@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useBackgroundImage } from '../composables/useBackgroundImage'
 import IconButton from './IconButton.vue'
 import { marked } from 'marked'
@@ -104,8 +105,9 @@ watch(() => props.langCode, async (val) => {
 })
 
 const hasFaqs = computed(() => (faqs.value?.length || 0) > 0)
+const router = useRouter()
 function goBack() {
-  window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'public' }))
+  router.push('/')
 }
 </script>
 
