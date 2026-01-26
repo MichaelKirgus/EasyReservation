@@ -450,10 +450,10 @@ async function createReservation() {
     const res = await apiFetch(`reservations?${notifyQuery()}`, { method: 'POST', body: JSON.stringify(body) })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
-    const created = JSON.parse(text)
-    data.value = [created, ...data.value]
+    // Nach erfolgreichem Anlegen Liste neu laden, nicht manuell hinzufügen
     newReservation.value = { name: '', email: '', payloadJson: '' }
     setMessage('Reservierung angelegt.')
+    await load()
   } catch (e) {
     setError(`Anlegen fehlgeschlagen: ${e}`)
   } finally { loading.value = false }
@@ -472,10 +472,10 @@ async function createWaitlistEntry() {
     const res = await apiFetch('waitlist', { method: 'POST', body: JSON.stringify(body) })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
-    const created = JSON.parse(text)
-    waitlist.value = [...waitlist.value, created]
+    // Nach erfolgreichem Anlegen Liste neu laden, nicht manuell hinzufügen
     newWaitlist.value = { name: '', email: '', payloadJson: '' }
     setMessage('Auf Warteliste gesetzt.')
+    await loadWaitlist()
   } catch (e) {
     setError(`Anlegen fehlgeschlagen: ${e}`)
   } finally { waitlistLoading.value = false }

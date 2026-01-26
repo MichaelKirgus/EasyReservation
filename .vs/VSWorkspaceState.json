@@ -3,14 +3,14 @@
     "",
     "\\backend",
     "\\backend\\app",
-    "\\backend\\app\\Http",
-    "\\backend\\app\\Http\\Controllers",
-    "\\backend\\app\\Http\\Controllers\\Api",
+    "\\backend\\app\\Jobs",
+    "\\backend\\app\\Models",
     "\\backend\\config",
-    "\\backend\\routes",
-    "\\frontend",
-    "\\frontend\\src"
+    "\\backend\\config\\settings-whitelists",
+    "\\backend\\resources",
+    "\\backend\\resources\\lang",
+    "\\backend\\resources\\settings-whitelists"
   ],
-  "SelectedNode": "\\backend\\config\\queue.php",
+  "SelectedNode": "\\frontend\\src\\components\\AdminWebhookTemplates.vue",
   "PreviewInSolutionExplorer": false
 }
