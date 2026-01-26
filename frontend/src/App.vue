@@ -125,6 +125,7 @@ const loginForm = reactive({ identifier: '', password: '', otp: '' })
 const showOtp = ref(false)
 const authMessage = ref('')
 const authError = ref('')
+let authMessageTimeout = null
 const loadingAuth = ref(false)
 const showLogin = ref(false)
 let storedUser = null;
@@ -134,7 +135,17 @@ try {
 const currentUser = reactive(storedUser ? JSON.parse(storedUser) : {})
 const rememberMe = ref(true)
 
-function setAuthMessage(msg) { authMessage.value = msg; authError.value = '' }
+function setAuthMessage(msg) {
+  authMessage.value = msg;
+  authError.value = '';
+  if (authMessageTimeout) clearTimeout(authMessageTimeout);
+  if (msg) {
+    authMessageTimeout = setTimeout(() => {
+      authMessage.value = '';
+      authMessageTimeout = null;
+    }, 3000);
+  }
+}
 function setAuthError(msg) { authError.value = msg; authMessage.value = '' }
 
 async function login() {
