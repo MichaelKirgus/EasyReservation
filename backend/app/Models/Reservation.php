@@ -24,6 +24,16 @@ class Reservation extends Model
         'from_waitlist' => 'boolean',
     ];
 
+    public function emailValidations()
+    {
+        return $this->hasMany(\App\Models\EmailValidation::class, 'reservation_id');
+    }
+
+    public function waitlistEntries()
+    {
+        return $this->hasMany(\App\Models\WaitlistEntry::class, 'reservation_id');
+    }
+
     protected static function booted(): void
     {
         static::creating(function (Reservation $reservation) {
@@ -33,6 +43,12 @@ class Reservation extends Model
             if (empty($reservation->undo_token)) {
                 $reservation->undo_token = (string) Str::uuid();
             }
+        });
+
+        static::deleting(function (Reservation $reservation) {
+            // Lösche abhängige EmailValidations und WaitlistEntries über die reservation_id
+            $reservation->emailValidations()->delete();
+            $reservation->waitlistEntries()->delete();
         });
     }
 }
