@@ -4,6 +4,7 @@ namespace App\Services;
 use App\Models\ScheduledTask;
 use App\Models\Event;
 use Illuminate\Support\Carbon;
+use App\Jobs\ExecuteScheduledTaskJob;
 
 class ScheduledTaskService
 {
@@ -39,7 +40,7 @@ class ScheduledTaskService
         foreach ($dueTasks as $task) {
             $this->executeTask($task);
         }
-        // Letzte Ausführung im Cache speichern
+        // Letzte Ausführung IMMER im Cache speichern, auch wenn keine Tasks fällig waren
         \Cache::put('scheduler:last_executed_at', now(), 86400);
     }
 
@@ -111,5 +112,14 @@ class ScheduledTaskService
             \Log::error('Fehler beim Ausführen von ScheduledTask ' . $task->id . ': ' . $e->getMessage());
             throw $e;
         }
+    }
+    /**
+     * Stellt die Ausführung einer geplanten Aufgabe in die Queue (für manuelle Ausführung)
+     */
+    public function queueTaskExecution(ScheduledTask $task): void
+    {
+        // Die eigentliche Ausführung erfolgt asynchron als Job, damit sie im Protokoll sichtbar ist
+        \Log::info('ScheduledTaskService: queueTaskExecution für Task ' . $task->id);
+        ExecuteScheduledTaskJob::dispatch($task->id);
     }
 }

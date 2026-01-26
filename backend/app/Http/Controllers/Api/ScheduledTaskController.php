@@ -87,13 +87,12 @@ class ScheduledTaskController extends Controller
     public function runNow($id)
     {
         $task = ScheduledTask::findOrFail($id);
-        if (!$task->executed && $task->active) {
-            try {
-                $service = app(ScheduledTaskService::class);
-                $service->executeTask($task);
-            } catch (\Throwable $e) {
-                return response()->json(['error' => $e->getMessage()], 500);
-            }
+        try {
+            // Unabhängig vom Status: Job für die Ausführung erzeugen und in die Queue stellen
+            $service = app(ScheduledTaskService::class);
+            $service->queueTaskExecution($task);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
         return response()->json($task);
     }
