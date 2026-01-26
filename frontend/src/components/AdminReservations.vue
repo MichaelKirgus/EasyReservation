@@ -172,18 +172,26 @@ async function reloadAll(opts = {}) {
 }
 
 async function removeItem(id) {
-  if (!confirm('Eintrag löschen?')) return
-  loading.value = true
+  if (window.__reservationDeleteInProgress) return;
+  window.__reservationDeleteInProgress = true;
+  if (!confirm('Eintrag löschen?')) {
+    window.__reservationDeleteInProgress = false;
+    return;
+  }
+  loading.value = true;
   try {
-    const res = await apiFetch(`reservations/${id}?${notifyQuery()}`, { method: 'DELETE' })
-    const text = await res.text()
-    if (!res.ok) throw new Error(text)
-    data.value = data.value.filter(r => r.id !== id)
-    setMessage('Eintrag gelöscht.')
-    await reloadAll()
+    const res = await apiFetch(`reservations/${id}?${notifyQuery()}`, { method: 'DELETE' });
+    const text = await res.text();
+    if (!res.ok) throw new Error(text);
+    data.value = data.value.filter(r => r.id !== id);
+    setMessage('Eintrag gelöscht.');
+    await reloadAll();
   } catch (e) {
-    setError(`Löschen fehlgeschlagen: ${e}`)
-  } finally { loading.value = false }
+    setError(`Löschen fehlgeschlagen: ${e}`);
+  } finally {
+    loading.value = false;
+    window.__reservationDeleteInProgress = false;
+  }
 }
 
 async function bulkDeleteReservations() {
@@ -257,18 +265,24 @@ async function saveEmail(r) {
 }
 
 async function removeWaitlistEntry(id) {
-  if (!confirm('Wartelisten-Eintrag löschen?')) return
-  waitlistLoading.value = true
+  if (window.__waitlistDeleteInProgress) return;
+  window.__waitlistDeleteInProgress = true;
+  if (!confirm('Wartelisten-Eintrag löschen?')) {
+    window.__waitlistDeleteInProgress = false;
+    return;
+  }
+  waitlistLoading.value = true;
   try {
-    const res = await apiFetch(`waitlist/${id}`, { method: 'DELETE' })
-    const text = await res.text()
-    if (!res.ok) throw new Error(text)
-    waitlist.value = waitlist.value.filter(w => w.id !== id)
-    setMessage('Wartelisten-Eintrag gelöscht.')
+    const res = await apiFetch(`waitlist/${id}`, { method: 'DELETE' });
+    const text = await res.text();
+    if (!res.ok) throw new Error(text);
+    waitlist.value = waitlist.value.filter(w => w.id !== id);
+    setMessage('Wartelisten-Eintrag gelöscht.');
   } catch (e) {
-    setError(`Löschen fehlgeschlagen: ${e}`)
+    setError(`Löschen fehlgeschlagen: ${e}`);
   } finally {
-    waitlistLoading.value = false
+    waitlistLoading.value = false;
+    window.__waitlistDeleteInProgress = false;
   }
 }
 
@@ -427,6 +441,14 @@ watch(notifyOnChange, (val) => localStorage.setItem('admin_notify_on_change', va
 
 onMounted(() => {
   window.addEventListener('api-key-updated', handleKeyUpdate)
+  // site_token aus erster Reservierung oder Warteliste übernehmen, falls nicht gesetzt
+  if (!localStorage.getItem('site_token')) {
+    if (data.value.length > 0 && data.value[0].site_token) {
+      localStorage.setItem('site_token', data.value[0].site_token)
+    } else if (waitlist.value.length > 0 && waitlist.value[0].site_token) {
+      localStorage.setItem('site_token', waitlist.value[0].site_token)
+    }
+  }
   if (apiKey.value) {
     loadNotifyDefaults()
     reloadAll()
@@ -438,47 +460,65 @@ onUnmounted(() => {
 })
 
 async function createReservation() {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (window.__reservationCreateInProgress) return;
+  window.__reservationCreateInProgress = true;
+  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); window.__reservationCreateInProgress = false; return }
   const payload = (() => {
     try { return parsePayload(newReservation.value.payloadJson) } catch (e) { setError(e.message); return null }
   })()
-  if (payload === null) return
+  if (payload === null) { window.__reservationCreateInProgress = false; return }
   loading.value = true
   try {
-    const body = { name: newReservation.value.name, email: newReservation.value.email }
+    // site_token aus localStorage holen
+    const site_token = localStorage.getItem('site_token') || ''
+    const body = { name: newReservation.value.name, email: newReservation.value.email, site_token }
     if (payload !== undefined) body.payload = payload
     const res = await apiFetch(`reservations?${notifyQuery()}`, { method: 'POST', body: JSON.stringify(body) })
     const text = await res.text()
-    if (!res.ok) throw new Error(text)
-    // Nach erfolgreichem Anlegen Liste neu laden, nicht manuell hinzufügen
+    if (!res.ok) {
+      if (res.status === 409) throw new Error('Reservierung existiert bereits oder Konflikt mit site_token.')
+      throw new Error(text)
+    }
     newReservation.value = { name: '', email: '', payloadJson: '' }
     setMessage('Reservierung angelegt.')
     await load()
   } catch (e) {
-    setError(`Anlegen fehlgeschlagen: ${e}`)
-  } finally { loading.value = false }
+    setError(`Anlegen fehlgeschlagen: ${e.message || e}`)
+  } finally {
+    loading.value = false;
+    window.__reservationCreateInProgress = false;
+  }
 }
 
 async function createWaitlistEntry() {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (window.__waitlistCreateInProgress) return;
+  window.__waitlistCreateInProgress = true;
+  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); window.__waitlistCreateInProgress = false; return }
   const payload = (() => {
     try { return parsePayload(newWaitlist.value.payloadJson) } catch (e) { setError(e.message); return null }
   })()
-  if (payload === null) return
+  if (payload === null) { window.__waitlistCreateInProgress = false; return }
   waitlistLoading.value = true
   try {
-    const body = { name: newWaitlist.value.name, email: newWaitlist.value.email }
+    // site_token aus localStorage holen
+    const site_token = localStorage.getItem('site_token') || ''
+    const body = { name: newWaitlist.value.name, email: newWaitlist.value.email, site_token }
     if (payload !== undefined) body.payload = payload
     const res = await apiFetch('waitlist', { method: 'POST', body: JSON.stringify(body) })
     const text = await res.text()
-    if (!res.ok) throw new Error(text)
-    // Nach erfolgreichem Anlegen Liste neu laden, nicht manuell hinzufügen
+    if (!res.ok) {
+      if (res.status === 409) throw new Error('Wartelisteneintrag existiert bereits oder Konflikt mit site_token.')
+      throw new Error(text)
+    }
     newWaitlist.value = { name: '', email: '', payloadJson: '' }
     setMessage('Auf Warteliste gesetzt.')
     await loadWaitlist()
   } catch (e) {
-    setError(`Anlegen fehlgeschlagen: ${e}`)
-  } finally { waitlistLoading.value = false }
+    setError(`Anlegen fehlgeschlagen: ${e.message || e}`)
+  } finally {
+    waitlistLoading.value = false;
+    window.__waitlistCreateInProgress = false;
+  }
 }
 
 async function updateWaitlistEntry(entry) {
@@ -601,7 +641,7 @@ async function purgeAllData() {
         <input v-model="newReservation.name" placeholder="Name" />
         <input v-model="newReservation.email" placeholder="E-Mail" />
         <input v-model="newReservation.payloadJson" placeholder="Payload (JSON, optional)" />
-        <IconButton icon="plus" label="Reservierung hinzufügen" variant="success" @click="createReservation" :disabled="loading" />
+        <IconButton type="button" icon="plus" label="Reservierung hinzufügen" variant="success" @click.stop="createReservation" :disabled="loading" />
       </div>
     </div>
 
@@ -637,7 +677,7 @@ async function purgeAllData() {
         <span v-if="row.site_token">{{ row.site_token }}</span><span v-else>–</span>
       </template>
       <template #row-actions="{ row }">
-        <IconButton class="danger" variant="danger" icon="trash" label="Löschen" @click="removeItem(row.id)" />
+        <IconButton class="danger" variant="danger" icon="trash" label="Löschen" @click.stop="removeItem(row.id)" />
       </template>
     </AdminDataTable>
 
@@ -650,7 +690,7 @@ async function purgeAllData() {
           <input v-model="newWaitlist.name" placeholder="Name" />
           <input v-model="newWaitlist.email" placeholder="E-Mail" />
           <input v-model="newWaitlist.payloadJson" placeholder="Payload (JSON, optional)" />
-          <IconButton icon="plus" label="Auf Warteliste setzen" variant="success" @click="createWaitlistEntry" :disabled="waitlistLoading" />
+          <IconButton type="button" icon="plus" label="Auf Warteliste setzen" variant="success" @click.stop="createWaitlistEntry" :disabled="waitlistLoading" />
         </div>
       </div>
       <AdminDataTable
@@ -682,8 +722,8 @@ async function purgeAllData() {
           <span v-if="row.site_token">{{ row.site_token }}</span><span v-else>–</span>
         </template>
         <template #row-actions="{ row }">
-          <IconButton icon="arrowUp" label="Befördern" @click="promoteWaitlistEntry(row.id)" :disabled="waitlistLoading || row.status !== 'pending'" />
-          <IconButton variant="danger" icon="trash" label="Löschen" @click="removeWaitlistEntry(row.id)" :disabled="waitlistLoading" />
+          <IconButton icon="arrowUp" label="Befördern" @click.stop="promoteWaitlistEntry(row.id)" :disabled="waitlistLoading || row.status !== 'pending'" />
+          <IconButton variant="danger" icon="trash" label="Löschen" @click.stop="removeWaitlistEntry(row.id)" :disabled="waitlistLoading" />
         </template>
       </AdminDataTable>
     </div>

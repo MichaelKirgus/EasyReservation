@@ -34,7 +34,7 @@
       <template #row-actions="{ row }">
         <IconButton icon="play" label="Simulieren" class="ghost" @click="simulate(row)" :disabled="loading || !row.active" />
         <IconButton icon="pencil" label="Bearbeiten" class="ghost" @click="editTrigger(row)" :disabled="loading" />
-        <IconButton icon="trash" label="Löschen" class="ghost" @click.stop="deleteTrigger(row)" :disabled="loading" />
+        <IconButton icon="trash" label="Löschen" class="ghost" variant="danger" @click.stop="deleteTrigger(row)" :disabled="loading" />
       </template>
     </AdminDataTable>
     <TriggerDialog

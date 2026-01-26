@@ -13,7 +13,7 @@
       <template #row-actions="{ row }">
         <IconButton icon="play" label="Testen" class="ghost" @click="testTemplate(row)" :disabled="loading" />
         <IconButton icon="pencil" label="Bearbeiten" class="ghost" @click="editTemplate(row)" :disabled="loading" />
-        <IconButton icon="trash" label="Löschen" class="ghost" @click="deleteTemplate(row)" :disabled="loading" />
+        <IconButton icon="trash" label="Löschen" class="ghost" variant="danger" @click="deleteTemplate(row)" :disabled="loading" />
       </template>
     </AdminDataTable>
     <div v-if="showDialog">
