@@ -1,6 +1,7 @@
 <script setup>
 
 import { ref, reactive, onMounted, computed } from 'vue'
+import LoginDialog from './components/LoginDialog.vue'
 import languageIconSrc from './assets/icons/languageicon.svg'
 import flagDe from './assets/icons/flag-de.svg'
 import flagUs from './assets/icons/flag-us.svg'
@@ -120,7 +121,7 @@ onBeforeUnmount(() => {
 })
 
 
-const loginForm = reactive({ identifier: '', password: '' })
+const loginForm = reactive({ identifier: '', password: '', otp: '' })
 const showOtp = ref(false)
 const authMessage = ref('')
 const authError = ref('')
@@ -168,7 +169,9 @@ async function login() {
       otherStorage.removeItem('admin_user')
     }
     window.dispatchEvent(new CustomEvent('api-key-updated', { detail: token }))
+    loginForm.identifier = ''
     loginForm.password = ''
+    loginForm.otp = ''
     showLogin.value = false
     showOtp.value = false
   } catch (e) {
@@ -341,29 +344,13 @@ async function fetchPrivacyEnabled() {
       <router-view :lang-code="selectedLang" />
     </section>
 
-    <div v-if="showLogin" class="modal-backdrop" @click.self="showLogin = false">
-      <div class="modal">
-        <h3>Anmelden</h3>
-        <label class="form-field">Benutzername/E-Mail
-          <input v-model="loginForm.identifier" />
-        </label>
-        <label class="form-field">Passwort
-          <input v-model="loginForm.password" type="password" placeholder="••••••" />
-        </label>
-        <label v-if="showOtp" class="form-field">OTP-Code
-          <input v-model="loginForm.otp" placeholder="123456" />
-        </label>
-        <label class="checkbox">
-          <input type="checkbox" v-model="rememberMe" />
-          <span>Angemeldet bleiben</span>
-        </label>
-        <div class="modal-actions">
-          <button @click="login" :disabled="loadingAuth">Anmelden</button>
-          <button class="ghost" type="button" @click="showLogin = false">Abbrechen</button>
-        </div>
-        <div v-if="authError" class="error">{{ authError }}</div>
-      </div>
-    </div>
+    <LoginDialog
+      v-model="showLogin"
+      :loading="loadingAuth"
+      :error="authError"
+      :showOtp="showOtp"
+      @login="(form) => { Object.assign(loginForm, form); login(); }"
+    />
   </main>
 </template>
 
