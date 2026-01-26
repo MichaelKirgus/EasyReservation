@@ -124,6 +124,7 @@ const classes = computed(() => ['icon-btn', `variant-${props.variant}`, `size-${
 }
 .icon-btn.variant-ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
 .icon-btn.variant-danger { background: #dc2626; color: #fff; border-color: #b91c1c; }
+.icon-btn.variant-success {background: #22c55e; color: #fff; border-color: #16a34a; }
 .icon-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .size-sm { width: 34px; height: 34px; }
 .size-md { width: 40px; height: 40px; }

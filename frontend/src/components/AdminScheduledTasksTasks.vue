@@ -3,7 +3,7 @@
     <!-- Ausgelagerter Inhalt aus AdminScheduledTasks.vue für geplante Aufgaben -->
     <h2 style="display:flex;align-items:center;justify-content:space-between;">
       <span>Geplante Aufgaben</span>
-      <IconButton icon="plus" label="Neue Aufgabe" class="primary" @click="createTask" />
+      <IconButton icon="plus" label="Neue Aufgabe" class="primary" variant="success" @click="createTask" />
     </h2>
     <div v-if="nextRunAt" class="info-box" style="margin-bottom:0.5em;">
       <strong>Nächste geplante Ausführung:</strong>

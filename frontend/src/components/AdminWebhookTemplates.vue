@@ -3,7 +3,7 @@
   <div>
     <h2 style="display:flex;align-items:center;justify-content:space-between;">
       <span>Webhook-Vorlagen</span>
-      <IconButton icon="plus" label="Neue Vorlage" class="primary" @click="createTemplate" />
+      <IconButton icon="plus" label="Neue Vorlage" class="primary" variant="success" @click="createTemplate" />
     </h2>
     <AdminDataTable
       :columns="columns"

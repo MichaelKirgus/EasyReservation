@@ -2,7 +2,7 @@
   <div>
     <h2 style="display:flex;align-items:center;justify-content:space-between;">
       <span>Ereignis-Trigger</span>
-      <IconButton icon="plus" label="Neuer Trigger" class="primary" @click="createTrigger" />
+      <IconButton icon="plus" label="Neuer Trigger" class="primary" variant="success" @click="createTrigger" />
     </h2>
     <AdminDataTable
       :columns="columns"

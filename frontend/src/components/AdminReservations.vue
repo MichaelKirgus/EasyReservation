@@ -601,7 +601,7 @@ async function purgeAllData() {
         <input v-model="newReservation.name" placeholder="Name" />
         <input v-model="newReservation.email" placeholder="E-Mail" />
         <input v-model="newReservation.payloadJson" placeholder="Payload (JSON, optional)" />
-        <IconButton icon="plus" label="Reservierung hinzufügen" @click="createReservation" :disabled="loading" />
+        <IconButton icon="plus" label="Reservierung hinzufügen" variant="success" @click="createReservation" :disabled="loading" />
       </div>
     </div>
 
@@ -650,7 +650,7 @@ async function purgeAllData() {
           <input v-model="newWaitlist.name" placeholder="Name" />
           <input v-model="newWaitlist.email" placeholder="E-Mail" />
           <input v-model="newWaitlist.payloadJson" placeholder="Payload (JSON, optional)" />
-          <IconButton icon="plus" label="Auf Warteliste setzen" @click="createWaitlistEntry" :disabled="waitlistLoading" />
+          <IconButton icon="plus" label="Auf Warteliste setzen" variant="success" @click="createWaitlistEntry" :disabled="waitlistLoading" />
         </div>
       </div>
       <AdminDataTable

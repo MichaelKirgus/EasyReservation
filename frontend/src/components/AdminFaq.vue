@@ -171,7 +171,7 @@ onUnmounted(() => {
         <textarea v-model="newFaq.answer" rows="3" placeholder="Antwort"></textarea>
       </label>
       <div class="actions">
-        <IconButton icon="plus" label="Anlegen" @click="createFaq" :disabled="loading" />
+        <IconButton icon="plus" label="Anlegen" variant="success" @click="createFaq" :disabled="loading" />
       </div>
     </div>
 

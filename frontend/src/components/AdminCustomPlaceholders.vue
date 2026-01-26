@@ -1,7 +1,7 @@
 
 <template>
   <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-    <IconButton icon="plus" label="Platzhalter hinzufügen" @click="openAddDialog" />
+    <IconButton icon="plus" label="Platzhalter hinzufügen" variant="success" @click="openAddDialog" />
   </div>
   <AdminDataTable
     :columns="columns"
@@ -34,7 +34,7 @@
       </label>
       <div class="modal-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
         <IconButton icon="check" label="Speichern" @click="saveDialog" :disabled="!dialogData.key || !dialogData.value" />
-        <IconButton icon="x" label="Abbrechen" variant="ghost" @click="closeDialog" />
+        <IconButton icon="close" label="Abbrechen" variant="danger" @click="closeDialog" />
       </div>
     </div>
   </div>

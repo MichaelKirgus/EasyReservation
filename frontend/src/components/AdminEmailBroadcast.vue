@@ -307,13 +307,13 @@ watch(() => props.defaultSubTab, (val) => {
       <div class="card">
         <div class="card-header">
           <h4>Zusätzliche Empfänger (optional)</h4>
-          <IconButton class="ghost" variant="ghost" type="button" icon="plus" label="Empfänger hinzufügen" @click="addCustomRecipient" />
+          <IconButton class="ghost" variant="success" type="button" icon="plus" label="Empfänger hinzufügen" @click="addCustomRecipient" />
         </div>
         <div class="inline-fields">
           <div v-for="(r, idx) in form.customRecipients" :key="idx" class="inline-row">
             <input v-model="r.name" placeholder="Name (optional)" />
             <input v-model="r.email" placeholder="E-Mail" />
-            <IconButton class="ghost" variant="ghost" type="button" icon="trash" label="Entfernen" @click="removeCustomRecipient(idx)" />
+            <IconButton class="ghost" variant="danger" type="button" icon="trash" label="Entfernen" @click="removeCustomRecipient(idx)" />
           </div>
         </div>
       </div>

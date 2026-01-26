@@ -12,7 +12,7 @@
         <div v-if="error" class="error">{{ error }}</div>
         <div class="actions">
           <IconButton icon="check" label="Speichern" type="submit" />
-          <IconButton icon="x" label="Abbrechen" variant="ghost" type="button" @click="$emit('close')" />
+          <IconButton icon="close" label="Abbrechen" variant="danger" type="button" @click="$emit('close')" />
         </div>
       </form>
     </div>
