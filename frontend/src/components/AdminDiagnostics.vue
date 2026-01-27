@@ -11,7 +11,33 @@ function updateClientTime() {
 }
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
-import RedisKeysTable from './RedisKeysTable.vue'
+
+const workerStatus = ref([])
+const workerLoading = ref(false)
+const workerColumns = [
+  { key: 'worker_id', label: 'Worker-ID' },
+  { key: 'ip', label: 'IP' },
+  { key: 'timestamp', label: 'Letzter Heartbeat' },
+  { key: 'memory', label: 'Speicher (MB)' },
+  { key: 'redis_latency', label: 'Redis-Latenz (ms)' },
+  { key: 'total_jobs', label: 'Jobs gesamt' },
+  { key: 'last_job_time', label: 'Letzter Job (Zeitpunkt)' },
+  { key: 'last_job_duration', label: 'Letzter Job (Dauer, ms)' },
+  { key: 'jobs', label: 'Aktive Jobs' },
+]
+
+async function loadWorkerStatus() {
+  workerLoading.value = true
+  try {
+    const res = await fetch(apiBase + '/diagnostics/workers', { headers: authHeaders() })
+    if (!res.ok) throw new Error(await res.text())
+    workerStatus.value = await res.json()
+  } catch (e) {
+    setError('Fehler beim Laden der Worker-Diagnose: ' + (e.message || e))
+  } finally {
+    workerLoading.value = false
+  }
+}
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
@@ -21,7 +47,7 @@ const message = ref('')
 const error = ref('')
 const diagnostics = ref(null)
 const frontendVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unbekannt'
-const autoRefreshEnabled = ref(localStorage.getItem('admin_diag_autorefresh') === '1')
+const autoRefreshEnabled = ref(Boolean(localStorage.getItem('admin_diag_autorefresh') === '1'));
 const refreshMs = 2000
 let timerId = null
 const lastAutoErrorAt = ref(0)
@@ -97,6 +123,8 @@ function startAutoRefresh() {
   if (!autoRefreshEnabled.value) return
   timerId = setInterval(() => {
     loadDiagnostics({ auto: true })
+    loadWorkerStatus()
+    loadAuditLogCount()
   }, refreshMs)
 }
 
@@ -133,6 +161,9 @@ function handleKeyUpdate(e) {
 watch(autoRefreshEnabled, (val) => {
   localStorage.setItem('admin_diag_autorefresh', val ? '1' : '0')
   if (val) {
+    loadDiagnostics({ auto: true })
+    loadWorkerStatus()
+    loadAuditLogCount()
     startAutoRefresh()
   } else {
     stopAutoRefresh()
@@ -145,6 +176,7 @@ onMounted(() => {
     loadDiagnostics()
     loadAuditLogCount()
     if (autoRefreshEnabled.value) startAutoRefresh()
+    loadWorkerStatus()
   }
 })
 
@@ -173,7 +205,6 @@ onUnmounted(() => {
 
     <div v-if="message" class="message">{{ message }}</div>
     <div v-if="error" class="error">{{ error }}</div>
-
 
     <div class="card">
       <div class="card-header">
@@ -211,11 +242,11 @@ onUnmounted(() => {
         </div>
         <div class="info-item">
           <div class="label">Laufende Jobs</div>
-          <div class="value">{{ diagnostics.queue.processing_jobs }}</div>
+          <div class="value">{{ workerStatus.reduce((sum, w) => sum + (Array.isArray(w.jobs) ? w.jobs.length : (w.jobs && typeof w.jobs === 'object' ? Object.keys(w.jobs).length : 0)), 0) }}</div>
         </div>
         <div class="info-item">
           <div class="label">Aktive Worker</div>
-          <div class="value">{{ diagnostics.queue.worker_count }}</div>
+          <div class="value">{{ workerStatus.length }}</div>
         </div>
         <div class="info-item">
           <div class="label">Queue-Typ</div>
@@ -301,7 +332,31 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <RedisKeysTable :api-base="apiBase" :api-key="apiKey" />
+    <div class="card">
+      <div class="card-header">
+        <h4>Worker-Status</h4>
+        <IconButton icon="refresh" size="sm" label="Aktualisieren" @click="loadWorkerStatus" :disabled="workerLoading" />
+      </div>
+      <AdminDataTable
+        :columns="workerColumns"
+        :rows="workerStatus"
+        :loading="workerLoading"
+        :page-size="20"
+        persist-key="admin-worker-status"
+        empty-text="Keine aktiven Worker gefunden."
+      >
+        <template #cell-timestamp="{ value }">{{ formatDateTime(value) }}</template>
+        <template #cell-last_job_time="{ value }">{{ formatDateTime(value) }}</template>
+        <template #cell-jobs="{ row }">
+          <ul v-if="row.jobs && row.jobs.length">
+            <li v-for="(job, idx) in row.jobs" :key="idx">
+              {{ job.name || job.id || JSON.stringify(job) }}
+            </li>
+          </ul>
+          <span v-else>–</span>
+        </template>
+      </AdminDataTable>
+    </div>
 
     <div class="card">
       <div class="card-header">
