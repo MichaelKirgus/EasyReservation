@@ -51,4 +51,9 @@ class WorkerStatusService
             return [];
         }
     }
+
+    public function getStore()
+    {
+        return $this->store;
+    }
 }

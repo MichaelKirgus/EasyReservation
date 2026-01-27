@@ -1,32 +1,23 @@
 <?php
 
-namespace App\Listeners;
+namespace App\Jobs;
 
-use Illuminate\Queue\Events\JobProcessed;
 use App\Services\WorkerStatusService;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 
-class UpdateWorkerStats
+class WorkerHeartbeatJob implements ShouldQueue
 {
-    public function handle(JobProcessed $event)
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public $queue = 'heartbeat'; // niedrige Prio-Queue
+
+    public function handle()
     {
         $workerId = gethostname() . ':' . getmypid();
-        $store = app(WorkerStatusService::class)->getStore();
-        $statsKey = "worker_stats:$workerId";
-        $stats = $store->get($statsKey) ?: [
-            'total_jobs' => 0,
-            'last_job_time' => null,
-            'last_job_duration' => null,
-        ];
-
-        $stats['total_jobs']++;
-        $stats['last_job_time'] = now()->timestamp;
-        // Versuche die Laufzeit zu bestimmen (optional, falls im Job-Objekt verfügbar)
-        $payload = $event->job->payload();
-        $stats['last_job_duration'] = isset($payload['runtime_ms']) ? $payload['runtime_ms'] : null;
-
-        $store->put($statsKey, $stats, 3600 * 24 * 7);
-
-        // Heartbeat/Status schreiben
         $ip = gethostbyname(gethostname());
         $memory = memory_get_usage(true);
         $redisStart = microtime(true);
@@ -37,6 +28,14 @@ class UpdateWorkerStats
             $redisLatency = null;
         }
         $jobs = [];
+        $store = app(WorkerStatusService::class)->getStore();
+        $statsKey = "worker_stats:$workerId";
+        $stats = $store->get($statsKey) ?: [
+            'total_jobs' => 0,
+            'last_job_time' => null,
+            'last_job_duration' => null,
+        ];
+        $store->put($statsKey, $stats, 3600 * 24 * 7);
         app(WorkerStatusService::class)->setStatus($workerId, [
             'ip' => $ip,
             'timestamp' => now()->timestamp,

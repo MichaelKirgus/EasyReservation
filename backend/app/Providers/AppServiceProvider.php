@@ -47,5 +47,8 @@ class AppServiceProvider extends ServiceProvider
                 DB::purge('mysql');
             }
         }
+
+        // Heartbeat-Logik wurde entfernt. Die Aktualisierung erfolgt ausschließlich über den Scheduler-Command worker:heartbeat.
     }
+
 }
