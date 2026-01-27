@@ -12,6 +12,8 @@ class WorkerHeartbeat extends Command
 
     public function handle()
     {
+        \Log::info('HeartbeatJob ausgeführt.');
+
         $workerId = gethostname() . ':' . getmypid();
         $ip = gethostbyname(gethostname());
         $memory = memory_get_usage(true);
