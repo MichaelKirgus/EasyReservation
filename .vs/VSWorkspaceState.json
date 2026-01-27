@@ -3,14 +3,15 @@
     "",
     "\\backend",
     "\\backend\\app",
-    "\\backend\\app\\Jobs",
-    "\\backend\\app\\Models",
-    "\\backend\\config",
-    "\\backend\\config\\settings-whitelists",
-    "\\backend\\resources",
-    "\\backend\\resources\\lang",
-    "\\backend\\resources\\settings-whitelists"
+    "\\backend\\app\\Console",
+    "\\backend\\app\\Http",
+    "\\backend\\app\\Http\\Middleware",
+    "\\backend\\bootstrap",
+    "\\backend\\public",
+    "\\backend\\routes",
+    "\\frontend",
+    "\\frontend\\src"
   ],
-  "SelectedNode": "\\frontend\\src\\components\\AdminWebhookTemplates.vue",
+  "SelectedNode": "\\backend\\app\\Http\\Middleware\\AuditLogMiddleware.php",
   "PreviewInSolutionExplorer": false
 }

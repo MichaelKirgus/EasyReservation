@@ -54,10 +54,11 @@ async function loadFaqs() {
 }
 
 async function createFaq() {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (window.__faqCreateInProgress) return;
+  window.__faqCreateInProgress = true;
+  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); window.__faqCreateInProgress = false; return }
   if (!newFaq.question.trim() || !newFaq.answer.trim()) {
-    setError('Bitte Frage und Antwort ausfüllen.')
-    return
+    setError('Bitte Frage und Antwort ausfüllen.'); window.__faqCreateInProgress = false; return
   }
   loading.value = true
   try {
@@ -76,7 +77,8 @@ async function createFaq() {
   } catch (e) {
     setError(`Erstellen fehlgeschlagen: ${e}`)
   } finally {
-    loading.value = false
+    loading.value = false;
+    window.__faqCreateInProgress = false;
   }
 }
 
@@ -106,8 +108,10 @@ async function updateFaq(faq) {
 }
 
 async function deleteFaq(id) {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
-  if (!confirm('Eintrag wirklich löschen?')) return
+  if (window.__faqDeleteInProgress) return;
+  window.__faqDeleteInProgress = true;
+  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); window.__faqDeleteInProgress = false; return }
+  if (!confirm('Eintrag wirklich löschen?')) { window.__faqDeleteInProgress = false; return }
   loading.value = true
   try {
     const res = await apiFetch(`faqs/${id}`, { method: 'DELETE' })
@@ -118,7 +122,8 @@ async function deleteFaq(id) {
   } catch (e) {
     setError(`Löschen fehlgeschlagen: ${e}`)
   } finally {
-    loading.value = false
+    loading.value = false;
+    window.__faqDeleteInProgress = false;
   }
 }
 

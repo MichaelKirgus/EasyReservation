@@ -537,7 +537,9 @@ async function updateWaitlistEntry(entry) {
 }
 
 async function promoteWaitlistEntry(id) {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (window.__promoteInProgress) return;
+  window.__promoteInProgress = true;
+  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); window.__promoteInProgress = false; return }
   waitlistLoading.value = true
   try {
     const res = await apiFetch(`waitlist/${id}/promote`, { method: 'POST' })
@@ -547,7 +549,10 @@ async function promoteWaitlistEntry(id) {
     await reloadAll()
   } catch (e) {
     setError(`Befördern fehlgeschlagen: ${e}`)
-  } finally { waitlistLoading.value = false }
+  } finally {
+    waitlistLoading.value = false;
+    window.__promoteInProgress = false;
+  }
 }
 
 async function loadRateLimits() {
