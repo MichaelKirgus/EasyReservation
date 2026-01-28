@@ -5,7 +5,7 @@ COPY . .
 RUN composer install --no-dev --prefer-dist --optimize-autoloader
 FROM php:8.3-fpm-alpine
 RUN apk add --no-cache nginx git unzip libpng-dev oniguruma-dev libxml2-dev curl \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd busybox-suid
 
 ARG APP_VERSION=unknown
 ENV APP_VERSION=$APP_VERSION
@@ -38,6 +38,8 @@ RUN mkdir -p /var/www/storage/app/private
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 RUN chmod +x /entrypoint.sh
+RUN chmod +x /entrypoint_worker.sh
+RUN chmod +x /entrypoint_scheduler.sh
 
 EXPOSE 8080
 

@@ -4,14 +4,14 @@
     "\\backend",
     "\\backend\\app",
     "\\backend\\app\\Console",
+    "\\backend\\app\\Console\\Commands",
     "\\backend\\app\\Http",
-    "\\backend\\app\\Http\\Middleware",
-    "\\backend\\bootstrap",
-    "\\backend\\public",
-    "\\backend\\routes",
-    "\\frontend",
-    "\\frontend\\src"
+    "\\backend\\app\\Http\\Controllers",
+    "\\backend\\app\\Http\\Controllers\\Api",
+    "\\backend\\app\\Jobs",
+    "\\backend\\app\\Listeners",
+    "\\backend\\app\\Providers"
   ],
-  "SelectedNode": "\\backend\\app\\Http\\Middleware\\AuditLogMiddleware.php",
+  "SelectedNode": "\\backend\\app\\Console\\Kernel.php",
   "PreviewInSolutionExplorer": false
 }

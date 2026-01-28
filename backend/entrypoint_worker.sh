@@ -1,5 +1,4 @@
 #!/bin/sh
 echo "* * * * * php /var/www/artisan worker:heartbeat" > /etc/crontabs/root
 crond &
-php-fpm &
-nginx -g "daemon off;"
+php artisan queue:work redis --queue=default,heartbeat,work
