@@ -63,22 +63,10 @@ class EmailBroadcastService
 
         $queued = 0;
         $skippedBlacklisted = 0;
+        $validator = app(\App\Services\ReservationValidationService::class);
         foreach ($recipients as $recipient) {
             $email = $recipient['email'] ?? '';
-            $domainBlacklist = $this->settings->get('mail_debug_domain_blacklist', '');
-            $blacklisted = false;
-            if ($domainBlacklist && $email) {
-                $blacklist = array_filter(array_map('trim', explode(',', $domainBlacklist)));
-                $emailDomain = Str::lower(substr(strrchr($email, '@'), 1));
-                foreach ($blacklist as $blockedDomain) {
-                    if ($emailDomain === Str::lower($blockedDomain)) {
-                        $blacklisted = true;
-                        break;
-                    }
-                }
-            }
-            if ($blacklisted) {
-                // Log as warning in JobLog
+            if ($validator->isDebugBlacklistedEmail($email)) {
                 JobLog::create([
                     'job' => 'EmailBroadcastService',
                     'queue' => 'mail',

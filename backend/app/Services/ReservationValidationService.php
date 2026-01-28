@@ -173,4 +173,26 @@ class ReservationValidationService
 
         return $missing;
     }
+
+    /**
+     * Prüft, ob eine E-Mail auf der Debug-Domain-Blacklist steht (mail_debug_domain_blacklist).
+     * Diese Funktion ist nur für Debug-Zwecke gedacht, um Test-Domains vom Versand auszuschließen.
+     */
+    public function isDebugBlacklistedEmail(?string $email): bool
+    {
+        $email = trim((string) $email);
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+        $domainBlacklist = $this->settings->get('mail_debug_domain_blacklist', '');
+        if (!$domainBlacklist) return false;
+        $blacklist = array_filter(array_map('trim', explode(',', $domainBlacklist)));
+        $emailDomain = strtolower(substr(strrchr($email, '@'), 1));
+        foreach ($blacklist as $blockedDomain) {
+            if ($emailDomain === strtolower($blockedDomain)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

@@ -35,7 +35,7 @@ class WorkerHeartbeatJob implements ShouldQueue
             'last_job_time' => null,
             'last_job_duration' => null,
         ];
-        $store->put($statsKey, $stats, 3600 * 24 * 7);
+        $store->put($statsKey, $stats, 1800); // 30 Minuten
         app(WorkerStatusService::class)->setStatus($workerId, [
             'ip' => $ip,
             'timestamp' => now()->timestamp,

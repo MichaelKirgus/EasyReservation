@@ -32,20 +32,10 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
 
     public function handle(): void
     {
-        // Blacklist-Prüfung
-        $domainBlacklist = config('mail.mail_debug_domain_blacklist', '');
-        $blacklisted = false;
-        if ($domainBlacklist && $this->toEmail) {
-            $blacklist = array_filter(array_map('trim', explode(',', $domainBlacklist)));
+        // Zentrale Debug-Blacklist-Prüfung
+        $validator = app(\App\Services\ReservationValidationService::class);
+        if ($validator->isDebugBlacklistedEmail($this->toEmail)) {
             $emailDomain = strtolower(substr(strrchr($this->toEmail, '@'), 1));
-            foreach ($blacklist as $blockedDomain) {
-                if ($emailDomain === strtolower($blockedDomain)) {
-                    $blacklisted = true;
-                    break;
-                }
-            }
-        }
-        if ($blacklisted) {
             JobLog::create([
                 'job' => 'SendMailJob',
                 'message' => "Adress for domain ($emailDomain) not sent: {$this->toEmail}",
