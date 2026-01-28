@@ -30,6 +30,8 @@ COPY --from=vendor /app/vendor /var/www/vendor
 
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY entrypoint.sh /entrypoint.sh
+COPY entrypoint_worker.sh /entrypoint_worker.sh
+COPY entrypoint_scheduler.sh /entrypoint_scheduler.sh
 COPY prod.env /var/www/.env
 
 RUN php artisan storage:link
