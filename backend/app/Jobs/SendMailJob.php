@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Str;
+use App\Models\JobLog;
 
 class SendMailJob implements ShouldQueue, ShouldBeUnique
 {
@@ -31,6 +32,28 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
 
     public function handle(): void
     {
+        // Blacklist-Prüfung
+        $domainBlacklist = config('mail.mail_debug_domain_blacklist', '');
+        $blacklisted = false;
+        if ($domainBlacklist && $this->toEmail) {
+            $blacklist = array_filter(array_map('trim', explode(',', $domainBlacklist)));
+            $emailDomain = strtolower(substr(strrchr($this->toEmail, '@'), 1));
+            foreach ($blacklist as $blockedDomain) {
+                if ($emailDomain === strtolower($blockedDomain)) {
+                    $blacklisted = true;
+                    break;
+                }
+            }
+        }
+        if ($blacklisted) {
+            JobLog::create([
+                'job' => 'SendMailJob',
+                'message' => "Adress for domain ($emailDomain) not sent: {$this->toEmail}",
+                'status' => 'skipped',
+            ]);
+            return;
+        }
+
         $mailerName = 'dynamic_'.md5(json_encode($this->mailerConfig)).'_'.Str::random(6);
         Config::set('mail.mailers.'.$mailerName, $this->mailerConfig);
 
