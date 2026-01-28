@@ -57,8 +57,9 @@ function apiConfig() {
 
 function formatDateTime(val) {
   if (!val) return '–';
+  // Falls kein Z oder Zeitzonen-Offset, als UTC interpretieren
   let iso = val.replace(' ', 'T');
-  if (!iso.endsWith('Z')) iso += 'Z';
+  if (!/Z|[+-]\d{2}:\d{2}$/.test(iso)) iso += 'Z';
   const d = new Date(iso);
   if (isNaN(d)) return val;
   return d.toLocaleString();

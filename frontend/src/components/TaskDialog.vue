@@ -185,9 +185,13 @@ function convertSettingValue(val, type) {
 // Hilfsfunktion für das richtige Datumsformat im Input
 function toDatetimeLocal(val) {
   if (!val) return '';
-  const d = new Date(val);
+  let iso = val.replace(' ', 'T');
+  // Falls kein Z oder Zeitzonen-Offset, als UTC interpretieren
+  if (!/Z|[+-]\d{2}:\d{2}$/.test(iso)) iso += 'Z';
+  const d = new Date(iso);
   if (isNaN(d)) return '';
   const pad = n => n.toString().padStart(2, '0');
+  // Lokale Zeit für das Input-Feld erzeugen
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
@@ -318,36 +322,46 @@ function parseCustomEmails(str) {
     })
 }
 
+function toUtcIsoString(localDateTimeStr) {
+  if (!localDateTimeStr) return null;
+  // localDateTimeStr: "2024-06-18T12:00"
+  const d = new Date(localDateTimeStr);
+  if (isNaN(d)) return null;
+  return d.toISOString().replace('.000', ''); // z.B. "2024-06-18T10:00:00Z"
+}
+
 function submit() {
   // Dynamisch options bauen je nach Typ
-  const payload = { ...form.value }
+  const payload = { ...form.value };
   // run_at auf null setzen, wenn leer
   if (!payload.run_at || payload.run_at === '') {
     payload.run_at = null;
+  } else {
+    payload.run_at = toUtcIsoString(payload.run_at);
   }
   if ([
     'attendees_email_broadcast',
     'waitlist_email_broadcast',
     'custom_email_broadcast'
   ].includes(form.value.type)) {
-    payload.options = { ...payload.options, template_id: selectedTemplateId.value }
+    payload.options = { ...payload.options, template_id: selectedTemplateId.value };
   }
   if (form.value.type === 'custom_email_broadcast') {
-    payload.options = { ...payload.options, custom_recipients: parseCustomEmails(customEmails.value) }
+    payload.options = { ...payload.options, custom_recipients: parseCustomEmails(customEmails.value) };
   }
   if (form.value.type === 'webhook') {
-    payload.options = { ...payload.options, webhook_template_id: selectedWebhookTemplateId.value }
+    payload.options = { ...payload.options, webhook_template_id: selectedWebhookTemplateId.value };
   } else if (form.value.type === 'change_setting') {
-    let value = settingValue.value
+    let value = settingValue.value;
     // Typkonvertierung für Boolean/Number
     if (currentSettingField.value.type === 'boolean') {
       value = value ? '1' : '0'; // String statt Boolean!
     } else if (currentSettingField.value.type === 'number') {
-      value = value === '' ? null : Number(value)
+      value = value === '' ? null : Number(value);
     }
-    payload.options = { key: selectedSettingKey.value, value }
+    payload.options = { key: selectedSettingKey.value, value };
   }
-  emit('save', payload)
+  emit('save', payload);
 }
 </script>
 
