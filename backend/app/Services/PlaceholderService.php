@@ -21,7 +21,7 @@ class PlaceholderService
     ) {
     }
 
-    public function replacements(): array
+    public function replacements(array $recipient = []): array
     {
         $next = $this->events->next();
         $dateFormat = (string) ($this->settings->get('event_date_format', 'Y-m-d') ?: 'Y-m-d');
@@ -76,8 +76,14 @@ class PlaceholderService
             '{{attach_event_ical}}' => '',
         ];
         $custom = $this->customPlaceholders->getAll();
-        // Feste Platzhalter überschreiben benutzerdefinierte bei gleichem Key
-        return array_merge($custom, $core);
+        $recipientTokens = [
+            '{{name}}' => $recipient['name'] ?? '',
+            '{{email}}' => $recipient['email'] ?? '',
+            '{{undo_link}}' => $recipient['undo_link'] ?? '',
+            '{{validation_link}}' => $recipient['validation_link'] ?? '',
+        ];
+        // Reihenfolge: custom < core < recipientTokens (Empfänger-spezifische überschreiben alles)
+        return array_merge($custom, $core, $recipientTokens);
     }
 
     public function tokens(): array
@@ -90,15 +96,7 @@ class PlaceholderService
         return $tokens;
     }
 
-    public function recipientReplacements(array $recipient = []): array
-    {
-        return [
-            '{{name}}' => $recipient['name'] ?? '',
-            '{{email}}' => $recipient['email'] ?? '',
-            '{{undo_link}}' => $recipient['undo_link'] ?? '',
-            '{{validation_link}}' => $recipient['validation_link'] ?? '',
-        ];
-    }
+
 
     public function replaceString(?string $value): string
     {

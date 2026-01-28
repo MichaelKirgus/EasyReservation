@@ -56,7 +56,7 @@ class EmailBroadcastService
             $duplicatesRemoved = $before - $recipients->count();
         }
 
-        $baseReplacements = $this->placeholders->replacements();
+        // Empfänger-Platzhalter werden direkt in replacements() gemerged
 
         $wantsIcs = $this->templateWantsIcs($template);
         $icsAttachment = $wantsIcs ? $this->ics->nextEventAttachment() : null;
@@ -79,15 +79,12 @@ class EmailBroadcastService
                 $skippedBlacklisted++;
                 continue;
             }
-            $replacements = [
-                ...$baseReplacements,
-                ...$this->placeholders->recipientReplacements([
-                    'name' => $recipient['name'] ?? '',
-                    'email' => $recipient['email'] ?? '',
-                    'undo_link' => $recipient['undo_link'] ?? '',
-                    'validation_link' => '',
-                ]),
-            ];
+            $replacements = $this->placeholders->replacements([
+                'name' => $recipient['name'] ?? '',
+                'email' => $recipient['email'] ?? '',
+                'undo_link' => $recipient['undo_link'] ?? '',
+                'validation_link' => '',
+            ]);
 
             $subject = $this->renderTemplate($template->subject, $replacements);
             $body = $this->renderTemplate($template->body, $replacements);
