@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 
 // Client-Zeit und Zeitzone
 const clientTime = ref(new Date().toISOString())
@@ -12,8 +12,9 @@ function updateClientTime() {
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 
-const workerStatus = ref([])
-const workerLoading = ref(false)
+// Worker-Status direkt aus diagnostics.queue.workers beziehen
+const workerStatus = computed(() => diagnostics.value?.queue?.workers || [])
+const workerLoading = ref(false) // bleibt für Kompatibilität, ist aber immer false
 const workerColumns = [
   { key: 'worker_id', label: 'Worker-ID' },
   { key: 'ip', label: 'IP' },
@@ -26,18 +27,7 @@ const workerColumns = [
   { key: 'jobs', label: 'Aktive Jobs' },
 ]
 
-async function loadWorkerStatus() {
-  workerLoading.value = true
-  try {
-    const res = await fetch(apiBase + '/diagnostics/workers', { headers: authHeaders() })
-    if (!res.ok) throw new Error(await res.text())
-    workerStatus.value = await res.json()
-  } catch (e) {
-    setError('Fehler beim Laden der Worker-Diagnose: ' + (e.message || e))
-  } finally {
-    workerLoading.value = false
-  }
-}
+
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
@@ -123,7 +113,6 @@ function startAutoRefresh() {
   if (!autoRefreshEnabled.value) return
   timerId = setInterval(() => {
     loadDiagnostics({ auto: true })
-    loadWorkerStatus()
     loadAuditLogCount()
   }, refreshMs)
 }
@@ -176,7 +165,6 @@ onMounted(() => {
     loadDiagnostics()
     loadAuditLogCount()
     if (autoRefreshEnabled.value) startAutoRefresh()
-    loadWorkerStatus()
   }
 })
 
@@ -333,10 +321,9 @@ onUnmounted(() => {
     </div>
 
     <div class="card">
-      <div class="card-header">
-        <h4>Worker-Status</h4>
-        <IconButton icon="refresh" size="sm" label="Aktualisieren" @click="loadWorkerStatus" :disabled="workerLoading" />
-      </div>
+<div class="card-header">
+  <h4>Worker-Status</h4>
+</div>
       <AdminDataTable
         :columns="workerColumns"
         :rows="workerStatus"

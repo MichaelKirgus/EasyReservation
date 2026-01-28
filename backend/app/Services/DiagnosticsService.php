@@ -75,6 +75,7 @@ class DiagnosticsService
         $error = null;
         $processingJobs = 0;
         $workerCount = 0;
+        $workers = [];
 
         try {
             $recent = JobLog::query()
@@ -97,8 +98,19 @@ class DiagnosticsService
                 ->all();
             $processingJobs = JobLog::where('status', 'processing')->count();
             if (config('queue.default') === 'redis') {
-                $workerKeys = \Illuminate\Support\Facades\Redis::keys('queues:workers*');
+                // Worker-Status-Keys finden und Daten auslesen
+                $workerKeys = \Illuminate\Support\Facades\Redis::keys('*worker_status:*');
                 $workerCount = is_array($workerKeys) ? count($workerKeys) : 0;
+                foreach ($workerKeys as $key) {
+                    $data = \Illuminate\Support\Facades\Redis::get($key);
+                    if ($data) {
+                        $decoded = json_decode($data, true);
+                        if (is_array($decoded)) {
+                            $decoded['redis_key'] = $key; // Optional: Key mitgeben
+                            $workers[] = $decoded;
+                        }
+                    }
+                }
             }
         } catch (\Throwable $e) {
             $error = $e->getMessage();
@@ -110,6 +122,7 @@ class DiagnosticsService
             'error' => $error,
             'processing_jobs' => $processingJobs,
             'worker_count' => $workerCount,
+            'workers' => $workers,
         ];
     }
 
