@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Request;
+use App\Services\PlaceholderService;
 
 class EmailValidationService
 {
@@ -23,6 +24,7 @@ class EmailValidationService
         private readonly EmailBroadcastService $mailer,
         private readonly ReservationValidationService $validator,
         private readonly IcsService $ics,
+        private readonly PlaceholderService $placeholders,
     ) {
     }
 
@@ -340,16 +342,17 @@ class EmailValidationService
         $template = $this->resolveTemplate();
         $link = $this->buildValidationLink($validation);
 
-        $replacements = $this->baseReplacements([
-            '{{name}}' => $validation->display_name,
-            '{{email}}' => $validation->email ?? '',
-            '{{validation_link}}' => $link,
-            '{{undo_link}}' => '',
-            '{{attach_event_ical}}' => '',
+        // Nutze PlaceholderService für alle Platzhalter inkl. custom
+        $replacements = $this->placeholders->replacements([
+            'name' => $validation->display_name,
+            'email' => $validation->email ?? '',
+            'validation_link' => $link,
+            'undo_link' => '',
+            'attach_event_ical' => '',
         ]);
 
-        $subject = $this->renderTemplate($template['subject'], $replacements);
-        $body = $this->renderTemplate($template['body'], $replacements);
+        $subject = strtr($template['subject'], $replacements);
+        $body = strtr($template['body'], $replacements);
 
         $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
         $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
