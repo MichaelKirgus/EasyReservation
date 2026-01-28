@@ -5,7 +5,10 @@ COPY . .
 RUN composer install --no-dev --prefer-dist --optimize-autoloader
 FROM php:8.3-fpm-alpine
 RUN apk add --no-cache nginx git unzip libpng-dev oniguruma-dev libxml2-dev curl \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd busybox-suid
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+
+RUN apk add --no-cache busybox && \
+    sed -i 's/\\#cron/cron/' /etc/inittab
 
 ARG APP_VERSION=unknown
 ENV APP_VERSION=$APP_VERSION
