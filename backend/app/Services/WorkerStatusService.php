@@ -7,11 +7,10 @@ use Illuminate\Support\Facades\Cache;
 class WorkerStatusService
 {
     protected $store;
-    protected $ttl = 30; // Sekunden
+    protected $ttl = 180;
 
     public function __construct()
     {
-        // Optional: expliziten Store wählen, z.B. 'redis', 'database', etc.
         $this->store = Cache::store(config('workerstatus.store', config('cache.default')));
     }
 
@@ -23,7 +22,6 @@ class WorkerStatusService
 
     public function getAllStatuses()
     {
-        // Bei Redis/Memcached: alle Keys mit Prefix holen, bei DB: alle Rows
         if (method_exists($this->store->getStore(), 'connection')) {
             $redis = $this->store->getStore()->connection();
             $keys = $redis->keys('worker_status:*');
@@ -32,7 +30,6 @@ class WorkerStatusService
                 $data = $this->store->get($key);
                 if ($data) {
                     $data['worker_id'] = str_replace('worker_status:', '', $key);
-                    // Hole Stats
                     $statsKey = 'worker_stats:' . $data['worker_id'];
                     $stats = $this->store->get($statsKey) ?: [
                         'total_jobs' => 0,
@@ -47,7 +44,6 @@ class WorkerStatusService
             }
             return $workers;
         } else {
-            // Fallback: nicht alle Stores unterstützen Key-Listing
             return [];
         }
     }
