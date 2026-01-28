@@ -24,13 +24,29 @@ class WorkerStatusService
     {
         if (method_exists($this->store->getStore(), 'connection')) {
             $redis = $this->store->getStore()->connection();
-            $keys = $redis->keys('worker_status:*');
+            // Prefix berücksichtigen (z.B. aus config/database.php)
+            $prefix = '';
+            if (method_exists($redis, 'getOptions')) {
+                $options = $redis->getOptions();
+                if ($options && isset($options['prefix'])) {
+                    $prefix = $options['prefix'];
+                }
+            } elseif (property_exists($redis, 'options') && isset($redis->options['prefix'])) {
+                $prefix = $redis->options['prefix'];
+            }
+            $keys = $redis->keys($prefix . 'worker_status:*');
             $workers = [];
             foreach ($keys as $key) {
                 $data = $this->store->get($key);
                 if ($data) {
-                    $data['worker_id'] = str_replace('worker_status:', '', $key);
-                    $statsKey = 'worker_stats:' . $data['worker_id'];
+                    // worker_id extrahieren (Prefix und worker_status: entfernen)
+                    $workerId = $key;
+                    if ($prefix && strpos($workerId, $prefix) === 0) {
+                        $workerId = substr($workerId, strlen($prefix));
+                    }
+                    $workerId = str_replace('worker_status:', '', $workerId);
+                    $data['worker_id'] = $workerId;
+                    $statsKey = 'worker_stats:' . $workerId;
                     $stats = $this->store->get($statsKey) ?: [
                         'total_jobs' => 0,
                         'last_job_time' => null,
