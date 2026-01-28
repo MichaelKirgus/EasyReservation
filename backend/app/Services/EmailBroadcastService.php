@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Jobs\SendMailJob;
+use App\Models\JobLog;
+use Illuminate\Support\Str;
 use App\Models\EmailTemplate;
 use App\Models\Reservation;
 use App\Models\WaitlistEntry;
@@ -60,7 +62,35 @@ class EmailBroadcastService
         $icsAttachment = $wantsIcs ? $this->ics->nextEventAttachment() : null;
 
         $queued = 0;
+        $skippedBlacklisted = 0;
         foreach ($recipients as $recipient) {
+            $email = $recipient['email'] ?? '';
+            $domainBlacklist = $this->settings->get('mail_debug_domain_blacklist', '');
+            $blacklisted = false;
+            if ($domainBlacklist && $email) {
+                $blacklist = array_filter(array_map('trim', explode(',', $domainBlacklist)));
+                $emailDomain = Str::lower(substr(strrchr($email, '@'), 1));
+                foreach ($blacklist as $blockedDomain) {
+                    if ($emailDomain === Str::lower($blockedDomain)) {
+                        $blacklisted = true;
+                        break;
+                    }
+                }
+            }
+            if ($blacklisted) {
+                // Log as warning in JobLog
+                JobLog::create([
+                    'job' => 'EmailBroadcastService',
+                    'queue' => 'mail',
+                    'status' => 'warning',
+                    'runtime_ms' => 0,
+                    'message' => 'Mail skipped: ' . $email . ' (Domain on debug blacklist).',
+                    'started_at' => now(),
+                    'finished_at' => now(),
+                ]);
+                $skippedBlacklisted++;
+                continue;
+            }
             $replacements = [
                 ...$baseReplacements,
                 ...$this->placeholders->recipientReplacements([
@@ -89,6 +119,7 @@ class EmailBroadcastService
         return [
             'queued' => $queued,
             'skipped_no_email' => $skippedNoEmail,
+            'skipped_blacklisted' => $skippedBlacklisted,
             'duplicates_removed' => $duplicatesRemoved,
             'candidates' => $beforeDedupCount,
             'template_id' => $templateId,
