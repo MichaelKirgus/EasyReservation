@@ -99,14 +99,25 @@ class DiagnosticsService
             $processingJobs = JobLog::where('status', 'processing')->count();
             if (config('queue.default') === 'redis') {
                 // Worker-Status-Keys finden und Daten auslesen
-                $workerKeys = \Illuminate\Support\Facades\Redis::keys('*worker_status:*');
+                // Redis Prefix berücksichtigen
+                $redis = app('redis')->connection();
+                $prefix = '';
+                if (method_exists($redis, 'getOptions')) {
+                    $options = $redis->getOptions();
+                    if ($options && isset($options['prefix'])) {
+                        $prefix = $options['prefix'];
+                    }
+                } elseif (property_exists($redis, 'options') && isset($redis->options['prefix'])) {
+                    $prefix = $redis->options['prefix'];
+                }
+                $workerKeys = $redis->keys($prefix . 'worker_status:*');
                 $workerCount = is_array($workerKeys) ? count($workerKeys) : 0;
                 foreach ($workerKeys as $key) {
-                    $data = \Illuminate\Support\Facades\Redis::get($key);
+                    $data = $redis->get($key);
                     if ($data) {
                         $decoded = json_decode($data, true);
                         if (is_array($decoded)) {
-                            $decoded['redis_key'] = $key; // Optional: Key mitgeben
+                            $decoded['redis_key'] = $key;
                             $workers[] = $decoded;
                         }
                     }
