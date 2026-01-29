@@ -87,6 +87,10 @@ class ConfigController extends Controller
             'waitlist_success_text',
             'waitlist_disabled_text',
             'reservation_page_title',
+            'email_validation_pending_text',
+            'reservation_success_text',
+            'reservation_undo_success_text',
+            'reservation_admin_validation_pending_text',
         ];
         foreach ($placeholderFields as $key) {
             if (array_key_exists($key, $settings)) {
