@@ -110,7 +110,12 @@ class DiagnosticsService
                 } elseif (property_exists($redis, 'options') && isset($redis->options['prefix'])) {
                     $prefix = $redis->options['prefix'];
                 }
-                $workerKeys = $redis->keys($prefix . 'worker_status:*');
+                // Try to get worker keys with proper prefix handling
+                $workerKeys = $redis->keys('worker_status:*');
+                if (empty($workerKeys) && !empty($prefix)) {
+                    // If no keys found with just 'worker_status:*', try with prefix
+                    $workerKeys = $redis->keys($prefix . 'worker_status:*');
+                }
                 $workerCount = is_array($workerKeys) ? count($workerKeys) : 0;
                 foreach ($workerKeys as $key) {
                     $data = $redis->get($key);

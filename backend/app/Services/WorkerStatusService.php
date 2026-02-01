@@ -11,7 +11,16 @@ class WorkerStatusService
 
     public function __construct()
     {
-        $this->store = Cache::store(config('workerstatus.store', config('cache.default')));
+        // Ensure we're using the correct cache store for worker status
+        $storeName = config('workerstatus.store', config('cache.default'));
+        
+        // If using Redis, make sure we use the right connection that matches where workers are storing data
+        if ($storeName === 'redis') {
+            // Try to get the redis connection used by workers (which is likely the cache connection)
+            $this->store = Cache::store('redis');
+        } else {
+            $this->store = Cache::store($storeName);
+        }
     }
 
     public function setStatus($workerId, array $data)
@@ -34,7 +43,22 @@ class WorkerStatusService
             } elseif (property_exists($redis, 'options') && isset($redis->options['prefix'])) {
                 $prefix = $redis->options['prefix'];
             }
-            $keys = $redis->keys($prefix . 'worker_status:*');
+            
+            // Try multiple patterns to find worker keys
+            $keys = [];
+            $patterns = [
+                'worker_status:*',
+                $prefix . 'worker_status:*'
+            ];
+            
+            foreach ($patterns as $pattern) {
+                $foundKeys = $redis->keys($pattern);
+                if (!empty($foundKeys)) {
+                    $keys = array_merge($keys, $foundKeys);
+                    break; // Found keys with one pattern, no need to try others
+                }
+            }
+            
             $workers = [];
             foreach ($keys as $key) {
                 $data = $this->store->get($key);
