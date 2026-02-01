@@ -27,6 +27,7 @@ class ReservationController extends Controller
         private readonly WaitlistService $waitlist,
         private readonly EmailValidationService $emailValidation,
         private readonly EventTriggerService $eventTriggers,
+        private readonly EmailService $emailService,
     ) {
     }
 

@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Request;
 use App\Services\PlaceholderService;
+use App\Services\EmailService;
 
 class EmailValidationService
 {
@@ -25,6 +26,7 @@ class EmailValidationService
         private readonly ReservationValidationService $validator,
         private readonly IcsService $ics,
         private readonly PlaceholderService $placeholders,
+        private readonly EmailService $emailService,
     ) {
     }
 
@@ -330,36 +332,12 @@ class EmailValidationService
 
     private function sendValidationEmail(EmailValidation $validation): void
     {
-        if (! $validation->email) {
-            throw new \RuntimeException('E-Mail wird fÃ¼r die Validierung benÃ¶tigt.');
-        }
-
         $mailerConfig = $this->buildMailerConfig();
         if (! $mailerConfig) {
             throw new \RuntimeException('Mail-Server ist nicht konfiguriert.');
         }
 
-        $template = $this->resolveTemplate();
-        $link = $this->buildValidationLink($validation);
-
-        // Nutze PlaceholderService für alle Platzhalter inkl. custom
-        $replacements = $this->placeholders->replacements([
-            'name' => $validation->display_name,
-            'email' => $validation->email ?? '',
-            'validation_link' => $link,
-            'undo_link' => '',
-            'attach_event_ical' => '',
-        ]);
-
-        $subject = strtr($template['subject'], $replacements);
-        $body = strtr($template['body'], $replacements);
-
-        $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
-        $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
-
-        $attachments = $this->attachmentsForTemplate($template);
-
-        SendMailJob::dispatch($mailerConfig, $validation->email, $validation->display_name, $subject, $body, $fromAddress, $fromName, $attachments);
+        $this->emailService->sendValidationEmail($mailerConfig, $validation);
     }
 
     private function buildValidationLink(EmailValidation $validation): string
@@ -413,11 +391,11 @@ class EmailValidationService
         $templateId = $this->settings->get('email_validation_template_id');
         $template = $templateId ? EmailTemplate::query()->find($templateId) : null;
 
-        $subject = 'Bitte E-Mail bestÃ¤tigen';
+        $subject = 'Bitte E-Mail bestätigen';
         $body = <<<HTML
 <p>Hallo {{name}},</p>
-<p>bitte bestÃ¤tige deine E-Mail-Adresse, um die Reservierung abzuschliessen.</p>
-<p><a href="{{validation_link}}">E-Mail bestÃ¤tigen</a></p>
+<p>bitte bestätige deine E-Mail-Adresse, um die Reservierung abzuschliessen.</p>
+<p><a href="{{validation_link}}">E-Mail bestätigen</a></p>
 <p>Falls der Link nicht klickbar ist, kopiere ihn in die Adresszeile: {{validation_link}}</p>
 HTML;
 
@@ -445,7 +423,7 @@ HTML;
         $port = (int) ($this->settings->get('mail_port') ?? 0);
         $username = $this->settings->get('mail_username');
         $password = $this->settings->get('mail_password');
-        $encryption = $this->settings->get('mail_encryption', null) ?: null;
+        $encryption = $this->settings->get('mail_encryption', null);
 
         if (! $host || ! $port) {
             return null;
@@ -484,25 +462,7 @@ HTML;
             return;
         }
 
-        $undoLink = $includeUndoLink ? $this->buildUndoLink($reservation) : '';
-        $replacements = $this->placeholders->replacements([
-            'name' => $reservation->display_name,
-            'email' => $reservation->email ?? '',
-            'undo_link' => $undoLink,
-            'validation_link' => '',
-            'attach_event_ical' => '',
-        ]);
-
-        $template = $this->resolveTemplateById($templateId, 'Info zu deiner Reservierung', '<p>Hallo {{name}},</p><p>deine Reservierung fÃ¼r {{reservation_name}} war erfolgreich.</p><p><a href="{{undo_link}}">Reservierung stornieren</a></p>');
-        $subject = $this->renderTemplate($template['subject'], $replacements);
-        $body = $this->renderTemplate($template['body'], $replacements);
-
-        $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
-        $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
-
-        $attachments = $this->attachmentsForTemplate($template);
-
-        SendMailJob::dispatch($mailerConfig, $reservation->email, $reservation->display_name, $subject, $body, $fromAddress, $fromName, $attachments);
+        $this->emailService->sendReservationNotification($mailerConfig, $reservation, $templateSettingKey, $includeUndoLink);
     }
 
     private function baseReplacements(array $overrides = []): array

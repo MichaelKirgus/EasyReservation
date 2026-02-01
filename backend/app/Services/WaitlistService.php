@@ -13,6 +13,7 @@ class WaitlistService
     public function __construct(
         private readonly SettingsService $settings,
         private readonly EmailBroadcastService $mailer,
+        private readonly EmailService $emailService,
     ) {
     }
 
@@ -180,7 +181,10 @@ class WaitlistService
         }
 
         try {
-            $this->mailer->queueBroadcast($templateId, 'selection', false, [], [$entry->id], [], true);
+            $mailerConfig = $this->buildMailerConfig();
+            if ($mailerConfig) {
+                $this->emailService->sendWaitlistValidationSuccessEmail($mailerConfig, $entry);
+            }
         } catch (\Throwable $e) {
             Log::warning('Waitlist validation success email failed', [
                 'error' => $e->getMessage(),
@@ -200,7 +204,10 @@ class WaitlistService
         }
 
         try {
-            $this->mailer->queueBroadcast($templateId, 'selection', false, [], [$entry->id], [], true);
+            $mailerConfig = $this->buildMailerConfig();
+            if ($mailerConfig) {
+                $this->emailService->sendWaitlistCancelledEmail($mailerConfig, $entry);
+            }
         } catch (\Throwable $e) {
             Log::warning('Waitlist cancel email failed', [
                 'error' => $e->getMessage(),
@@ -225,7 +232,10 @@ class WaitlistService
         }
 
         try {
-            $this->mailer->queueBroadcast($templateId, 'reservations', false, [$reservation->id], [], [], true);
+            $mailerConfig = $this->buildMailerConfig();
+            if ($mailerConfig) {
+                $this->emailService->sendWaitlistPromotedEmail($mailerConfig, $reservation);
+            }
         } catch (\Throwable $e) {
             Log::warning('Waitlist promotion email failed', [
                 'error' => $e->getMessage(),

@@ -21,6 +21,7 @@ class AdminReservationController extends Controller
         private readonly WaitlistService $waitlist,
         private readonly ReservationValidationService $validator,
         private readonly EmailValidationService $emailValidation,
+        private readonly EmailService $emailService,
     ) {
     }
 
