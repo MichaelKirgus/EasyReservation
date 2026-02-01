@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Reservation;
+use App\Services\EmailService;
 use App\Services\ReservationValidationService;
 use App\Services\SettingsService;
 use App\Services\WaitlistService;

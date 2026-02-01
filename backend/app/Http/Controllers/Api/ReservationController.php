@@ -8,6 +8,7 @@ use App\Http\Requests\ReservationUndoRequest;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Models\WaitlistEntry;
+use App\Services\EmailService;
 use App\Services\EmailValidationService;
 use App\Services\EventTriggerService;
 use App\Services\ReservationValidationService;
