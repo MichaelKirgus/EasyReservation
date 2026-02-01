@@ -485,12 +485,12 @@ HTML;
         }
 
         $undoLink = $includeUndoLink ? $this->buildUndoLink($reservation) : '';
-        $replacements = $this->baseReplacements([
-            '{{name}}' => $reservation->display_name,
-            '{{email}}' => $reservation->email ?? '',
-            '{{validation_link}}' => '',
-            '{{undo_link}}' => $undoLink,
-            '{{attach_event_ical}}' => '',
+        $replacements = $this->placeholders->replacements([
+            'name' => $reservation->display_name,
+            'email' => $reservation->email ?? '',
+            'undo_link' => $undoLink,
+            'validation_link' => '',
+            'attach_event_ical' => '',
         ]);
 
         $template = $this->resolveTemplateById($templateId, 'Info zu deiner Reservierung', '<p>Hallo {{name}},</p><p>deine Reservierung fÃ¼r {{reservation_name}} war erfolgreich.</p><p><a href="{{undo_link}}">Reservierung stornieren</a></p>');

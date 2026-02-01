@@ -3,14 +3,14 @@
     "",
     "\\backend",
     "\\backend\\app",
-    "\\backend\\app\\Listeners",
-    "\\backend\\app\\Providers",
-    "\\backend\\app\\Services",
-    "\\frontend",
-    "\\frontend\\src",
-    "\\frontend\\src\\components",
-    "\\frontend\\src\\composables"
+    "\\backend\\app\\Console",
+    "\\backend\\app\\Enums",
+    "\\backend\\app\\Jobs",
+    "\\backend\\config",
+    "\\backend\\config\\settings-whitelists",
+    "\\backend\\resources",
+    "\\backend\\resources\\settings-whitelists"
   ],
-  "SelectedNode": "\\backend\\app\\Services\\EmailValidationService.php",
+  "SelectedNode": "\\backend\\app\\Jobs\\WorkerHeartbeatJob.php",
   "PreviewInSolutionExplorer": false
 }
