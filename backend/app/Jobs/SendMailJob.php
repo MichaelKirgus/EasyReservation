@@ -41,6 +41,11 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
                 'job' => 'SendMailJob',
                 'message' => "Adress for domain ($emailDomain) not sent: {$this->toEmail}",
                 'status' => 'skipped',
+                'details' => json_encode([
+                    'to_email' => $this->toEmail,
+                    'domain' => $emailDomain,
+                    'reason' => 'debug_blacklist'
+                ])
             ]);
             Log::info('SendMailJob: Email skipped due to debug blacklist', [
                 'to_email' => $this->toEmail,
@@ -49,11 +54,23 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        // Log job start
-        Log::info('SendMailJob: Starting email send process', [
+        // Log job start with comprehensive details
+        $jobStartData = [
             'to_email' => $this->toEmail,
             'subject' => $this->subject,
-            'has_attachments' => count($this->attachments) > 0
+            'has_attachments' => count($this->attachments) > 0,
+            'attachment_count' => count($this->attachments),
+            'from_address' => $this->fromAddress,
+            'from_name' => $this->fromName
+        ];
+        
+        Log::info('SendMailJob: Starting email send process', $jobStartData);
+
+        JobLog::create([
+            'job' => 'SendMailJob',
+            'message' => "Email send started for {$this->toEmail}",
+            'status' => 'started',
+            'details' => json_encode($jobStartData)
         ]);
 
         $mailerName = 'dynamic_'.md5(json_encode($this->mailerConfig)).'_'.Str::random(6);
@@ -77,16 +94,21 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
             }
         });
 
-        // Log job completion
-        Log::info('SendMailJob: Email sent successfully', [
+        // Log job completion with comprehensive details
+        $jobCompleteData = [
             'to_email' => $this->toEmail,
             'subject' => $this->subject,
-        ]);
+            'status' => 'success',
+            'timestamp' => now()->toISOString()
+        ];
+
+        Log::info('SendMailJob: Email sent successfully', $jobCompleteData);
 
         JobLog::create([
             'job' => 'SendMailJob',
             'message' => "Email sent to {$this->toEmail}: {$this->subject}",
             'status' => 'success',
+            'details' => json_encode($jobCompleteData)
         ]);
     }
 }
