@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Str;
 use App\Models\JobLog;
+use Illuminate\Support\Facades\Log;
 
 class SendMailJob implements ShouldQueue, ShouldBeUnique
 {
@@ -41,8 +42,19 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
                 'message' => "Adress for domain ($emailDomain) not sent: {$this->toEmail}",
                 'status' => 'skipped',
             ]);
+            Log::info('SendMailJob: Email skipped due to debug blacklist', [
+                'to_email' => $this->toEmail,
+                'domain' => $emailDomain
+            ]);
             return;
         }
+
+        // Log job start
+        Log::info('SendMailJob: Starting email send process', [
+            'to_email' => $this->toEmail,
+            'subject' => $this->subject,
+            'has_attachments' => count($this->attachments) > 0
+        ]);
 
         $mailerName = 'dynamic_'.md5(json_encode($this->mailerConfig)).'_'.Str::random(6);
         Config::set('mail.mailers.'.$mailerName, $this->mailerConfig);
@@ -64,5 +76,17 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
                 $message->attachData($attachment['data'], $name, ['mime' => $mime]);
             }
         });
+
+        // Log job completion
+        Log::info('SendMailJob: Email sent successfully', [
+            'to_email' => $this->toEmail,
+            'subject' => $this->subject,
+        ]);
+
+        JobLog::create([
+            'job' => 'SendMailJob',
+            'message' => "Email sent to {$this->toEmail}: {$this->subject}",
+            'status' => 'success',
+        ]);
     }
 }
