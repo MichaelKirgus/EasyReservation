@@ -16,6 +16,7 @@ class EmailService
         private readonly SettingsService $settings,
         private readonly IcsService $ics,
         private readonly PlaceholderService $placeholders,
+        private readonly LinkBuildingService $linkBuilder,
     ) {
     }
 
@@ -56,14 +57,16 @@ class EmailService
         }
 
         $template = $this->resolveTemplate();
-        $link = $this->buildValidationLink($validation);
+        $link = $this->linkBuilder->buildValidationLink($validation);
 
         // Use PlaceholderService for all placeholders including custom
         $replacements = $this->placeholders->replacements([
             'name' => $validation->display_name,
             'email' => $validation->email ?? '',
             'validation_link' => $link,
+            'validation_link_html' => '<a href="'.$link.'">'.$link.'</a>',
             'undo_link' => '',
+            'undo_link_html' => '',
             'attach_event_ical' => '',
         ]);
 
@@ -97,12 +100,14 @@ class EmailService
             return;
         }
 
-        $undoLink = $includeUndoLink ? $this->buildUndoLink($reservation) : '';
+        $undoLink = $includeUndoLink ? $this->linkBuilder->buildUndoLink($reservation) : '';
         $replacements = $this->placeholders->replacements([
             'name' => $reservation->display_name,
             'email' => $reservation->email ?? '',
             'undo_link' => $undoLink,
+            'undo_link_html' => $includeUndoLink ? '<a href="'.$undoLink.'">'.$undoLink.'</a>' : '',
             'validation_link' => '',
+            'validation_link_html' => '',
             'attach_event_ical' => '',
         ]);
 
@@ -226,8 +231,10 @@ class EmailService
         $replacements = $this->placeholders->replacements([
             'name' => $recipient->display_name ?? '',
             'email' => $recipient->email ?? '',
-            'undo_link' => $recipient->undo_token ? $this->buildUndoLink($recipient) : '',
+            'undo_link' => $recipient->undo_token ? $this->linkBuilder->buildUndoLink($recipient) : '',
+            'undo_link_html' => $recipient->undo_token ? '<a href="'.$this->linkBuilder->buildUndoLink($recipient).'">'.$this->linkBuilder->buildUndoLink($recipient).'</a>' : '',
             'validation_link' => '',
+            'validation_link_html' => '',
         ]);
 
         $subject = $this->renderTemplate($template->subject, $replacements);
@@ -239,53 +246,6 @@ class EmailService
         $attachments = $this->attachmentsForTemplate($template);
 
         SendMailJob::dispatch($mailerConfig, $recipient->email, $recipient->display_name ?? $recipient->email, $subject, $body, $fromAddress, $fromName, $attachments);
-    }
-
-    /**
-     * Build validation link for email verification
-     */
-    private function buildValidationLink(EmailValidation $validation): string
-    {
-        $base = trim((string) ($this->settings->get('email_validation_base_url', config('app.url'))));
-        if ($base === '') {
-            $base = rtrim(config('app.url'), '/');
-        }
-
-        $params = ['v' => (string) $validation->token];
-
-        if (!empty($validation->site_token)) {
-            $params['t'] = $validation->site_token;
-        } else if (!empty($validation->reservation_id)) {
-            $reservation = Reservation::find($validation->reservation_id);
-            if ($reservation && !empty($reservation->site_token)) {
-                $params['t'] = $reservation->site_token;
-            }
-        }
-
-        return $this->appendQuery($base, $params);
-    }
-
-    /**
-     * Build undo link for reservations
-     */
-    private function buildUndoLink(Reservation $reservation): string
-    {
-        if (empty($reservation->undo_token)) {
-            $reservation->undo_token = (string) Str::uuid();
-            $reservation->save();
-        }
-
-        $base = trim((string) ($this->settings->get('email_validation_base_url', config('app.url'))));
-        if ($base === '') {
-            $base = rtrim(config('app.url'), '/');
-        }
-
-        $params = ['u' => (string) $reservation->undo_token];
-        if (!empty($reservation->site_token)) {
-            $params['t'] = $reservation->site_token;
-        }
-
-        return $this->appendQuery($base, $params);
     }
 
     /**
@@ -321,7 +281,7 @@ class EmailService
         $body = <<<HTML
 <p>Hallo {{name}},</p>
 <p>bitte bestätige deine E-Mail-Adresse, um die Reservierung abzuschliessen.</p>
-<p><a href="{{validation_link}}">E-Mail bestätigen</a></p>
+<p>{{validation_link_html}}</p>
 <p>Falls der Link nicht klickbar ist, kopiere ihn in die Adresszeile: {{validation_link}}</p>
 HTML;
 
@@ -359,14 +319,6 @@ HTML;
         ];
     }
 
-    /**
-     * Append query parameters to URL
-     */
-    private function appendQuery(string $base, array $params): string
-    {
-        $separator = str_contains($base, '?') ? '&' : '?';
-        return $base.$separator.http_build_query($params);
-    }
 
     /**
      * Get attachments for template

@@ -16,6 +16,7 @@ class EmailBroadcastService
         private readonly SettingsService $settings,
         private readonly IcsService $ics,
         private readonly PlaceholderService $placeholders,
+        private readonly LinkBuildingService $linkBuilder,
     ) {
     }
 
@@ -137,7 +138,7 @@ class EmailBroadcastService
                         'id' => $reservation->id,
                         'name' => $reservation->display_name,
                         'email' => $reservation->email,
-                        'undo_link' => $reservation->email ? $this->buildUndoLink($reservation) : '',
+                        'undo_link' => $reservation->email ? $this->linkBuilder->buildUndoLink($reservation) : '',
                     ]);
                 });
         }
@@ -159,7 +160,7 @@ class EmailBroadcastService
                         'id' => $entry->id,
                         'name' => $entry->display_name,
                         'email' => $entry->email,
-                        'undo_link' => $this->buildWaitlistUndoLink($entry),
+                        'undo_link' => $this->linkBuilder->buildWaitlistUndoLink($entry),
                     ]);
                 });
         }
@@ -209,22 +210,6 @@ class EmailBroadcastService
         ];
     }
 
-    private function buildUndoLink(Reservation $reservation): string
-    {
-        $base = trim((string) ($this->settings->get('email_validation_base_url', config('app.url'))));
-        if ($base === '') {
-            $base = rtrim(config('app.url'), '/');
-        }
-
-        $params = ['u' => (string) $reservation->undo_token];
-        if ($this->settings->isTokenRequired() && $this->settings->siteToken()) {
-            $params['t'] = $this->settings->siteToken();
-        }
-
-        $separator = str_contains($base, '?') ? '&' : '?';
-
-        return $base.$separator.http_build_query($params);
-    }
 
     private function buildWaitlistUndoLink(WaitlistEntry $entry): string
     {
