@@ -6,6 +6,7 @@
         "build": "vite build",
         "dev": "vite",
         "dev:all": "concurrently --kill-others --names \"PHP,FRONT,QUEUE\" \"php artisan serve\" \"npm --prefix ../frontend run dev -- --host --port 5173\" \"php artisan queue:work redis --queue=default,heartbeat,work --tries=1 --verbose\" \"php artisan schedule:work --seconds=2 --verbose\"",
+        "dev:frontendbackend": "concurrently --kill-others --names \"PHP,FRONT,QUEUE\" \"php artisan serve\" \"npm --prefix ../frontend run dev -- --host --port 5173\" \"php artisan queue:work redis --queue=default,heartbeat,work --tries=1 --verbose\"",
         "queue:work": "php artisan queue:work redis --queue=default,heartbeat,work --tries=1 --verbose"
     },
     "devDependencies": {
