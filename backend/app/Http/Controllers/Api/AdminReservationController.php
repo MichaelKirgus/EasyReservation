@@ -9,6 +9,7 @@ use App\Services\ReservationValidationService;
 use App\Services\SettingsService;
 use App\Services\WaitlistService;
 use App\Services\EmailValidationService;
+use App\Services\SiteTokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -23,6 +24,7 @@ class AdminReservationController extends Controller
         private readonly ReservationValidationService $validator,
         private readonly EmailValidationService $emailValidation,
         private readonly EmailService $emailService,
+        private readonly SiteTokenService $siteTokenService,
     ) {
     }
 
@@ -54,11 +56,13 @@ class AdminReservationController extends Controller
             'email' => ['nullable', 'email', 'max:255'],
             'payload' => ['nullable', 'array'],
             'notify' => ['nullable'],
+            'site_token' => ['nullable', 'string'], // Allow site token to be passed
         ]);
 
         $name = trim($data['name']);
         $email = trim((string) ($data['email'] ?? ''));
         $payload = $data['payload'] ?? null;
+        $siteToken = $data['site_token'] ?? null; // Get site token from request
 
         if (! $this->validator->nameIsValid($name)) {
             return response()->json(['message' => 'Invalid name.'], 422);
@@ -76,11 +80,22 @@ class AdminReservationController extends Controller
             return response()->json(['message' => 'Name already reserved.'], 409);
         }
 
+        // If no site token provided, get a valid one from guest users
+        if (empty($siteToken)) {
+            $siteToken = $this->getValidSiteToken();
+        }
+
+        // If no site token provided, get a valid one from guest users
+        if (empty($siteToken)) {
+            $siteToken = $this->siteTokenService->getValidSiteToken();
+        }
+
         $reservation = Reservation::create([
             'display_name' => $name,
             'email' => $email === '' ? null : $email,
             'payload' => $payload,
             'undo_token' => (string) Str::uuid(),
+            'site_token' => $siteToken,
         ]);
 
         if ($this->shouldNotify($request, $data['notify'] ?? null)) {

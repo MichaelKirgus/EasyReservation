@@ -29,6 +29,7 @@ class ReservationController extends Controller
         private readonly EmailValidationService $emailValidation,
         private readonly EventTriggerService $eventTriggers,
         private readonly EmailService $emailService,
+        private readonly SiteTokenService $siteTokenService,
     ) {
     }
 
@@ -147,6 +148,11 @@ class ReservationController extends Controller
                 'waitlist' => true,
                 'entry' => $entry,
             ], 201);
+        }
+
+        // If no site token provided, get a valid one from guest users
+        if (empty($siteToken)) {
+            $siteToken = $this->siteTokenService->getValidSiteToken();
         }
 
         $reservation = Reservation::create([

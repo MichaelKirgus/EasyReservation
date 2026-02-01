@@ -19,6 +19,7 @@ class WaitlistController extends Controller
         private readonly ReservationValidationService $validator,
         private readonly SettingsService $settings,
         private readonly EventTriggerService $eventTriggers,
+        private readonly SiteTokenService $siteTokenService,
     ) {
     }
 
@@ -55,6 +56,10 @@ class WaitlistController extends Controller
         }
 
         try {
+            // If no site token provided, get a valid one from guest users
+            if (empty($siteToken)) {
+                $siteToken = $this->siteTokenService->getValidSiteToken();
+            }
             $entry = $this->waitlist->addToWaitlist($name, $email, $payload, $siteToken);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
