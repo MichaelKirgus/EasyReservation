@@ -64,12 +64,7 @@ class WaitlistService
 
         // Automatisch einen gültigen Gast-Site-Token verwenden, falls keiner übergeben wurde
         if (empty($siteToken)) {
-            $siteToken = \App\Models\User::query()
-                ->where('role', 'guest')
-                ->where('active', true)
-                ->whereNotNull('api_token')
-                ->orderByDesc('id')
-                ->value('api_token');
+            $siteToken = app(SiteTokenService::class)->getValidSiteToken();
         }
 
         return WaitlistEntry::create([

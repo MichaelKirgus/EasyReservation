@@ -82,11 +82,6 @@ class AdminReservationController extends Controller
 
         // If no site token provided, get a valid one from guest users
         if (empty($siteToken)) {
-            $siteToken = $this->getValidSiteToken();
-        }
-
-        // If no site token provided, get a valid one from guest users
-        if (empty($siteToken)) {
             $siteToken = $this->siteTokenService->getValidSiteToken();
         }
 

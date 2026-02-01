@@ -150,9 +150,14 @@ class ReservationController extends Controller
             ], 201);
         }
 
-        // If no site token provided, get a valid one from guest users
+        // If no site token provided, get a valid one from guest users - but only for admin/moderator users
         if (empty($siteToken)) {
-            $siteToken = $this->siteTokenService->getValidSiteToken();
+            $user = auth()->user();
+            if ($user && in_array($user->role, ['admin', 'superadmin', 'moderator'])) {
+                $siteToken = $this->siteTokenService->getValidSiteToken();
+            } else {
+                return response()->json(['message' => 'Site token is required for reservations.'], 422);
+            }
         }
 
         $reservation = Reservation::create([
