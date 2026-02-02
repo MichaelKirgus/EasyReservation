@@ -20,6 +20,8 @@ use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\PlaceholderController;
 use App\Http\Controllers\Api\PrivacyPolicyController;
 use App\Http\Controllers\Api\TwoFactorApiController;
+use App\Http\Controllers\Api\LanguagesController;
+use App\Http\Controllers\Api\FlagController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuditLogController;
 
@@ -36,6 +38,9 @@ Route::middleware(['role:superadmin,admin,moderator,user'])->group(function () {
 });
 
 Route::get('/translations/{lang}', [TranslationController::class, 'show']);
+Route::get('/flags/{lang}.svg', [FlagController::class, 'show'])->where('lang', '[a-z]{2}');
+Route::get('/languages', [LanguagesController::class, 'index']);
+Route::get('/language-names', [LanguagesController::class, 'names']);
 Route::get('/email-validations/{token}', [EmailValidationController::class, 'verify']);
 Route::get('/reservations/undo-token/{token}', [ReservationController::class, 'undoByToken']);
 Route::get('/events/upcoming', [EventController::class, 'upcoming']);

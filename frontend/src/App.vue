@@ -4,8 +4,6 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import LoginDialog from './components/LoginDialog.vue'
 import languageIconSrc from './assets/icons/languageicon.svg'
-import flagDe from './assets/icons/flag-de.svg'
-import flagUs from './assets/icons/flag-us.svg'
 import IconButton from './components/IconButton.vue'
 import api from './api'
 
@@ -112,13 +110,29 @@ function closeDropdown(e) {
   }
 }
 
+function closeLangMenu(e) {
+  // Schließe Sprachmenü, wenn außerhalb geklickt wird
+  if (langMenuOpen.value) {
+    const langMenu = document.querySelector('.lang-menu');
+    const langTrigger = document.querySelector('.lang-trigger');
+    
+    // Nur schließen, wenn der Klick nicht auf dem Menü oder Trigger war
+    if (langMenu && !langMenu.contains(e.target) &&
+        langTrigger && !langTrigger.contains(e.target)) {
+      langMenuOpen.value = false;
+    }
+  }
+}
+
 import { onBeforeUnmount } from 'vue'
 onMounted(() => {
   document.addEventListener('click', closeDropdown)
+  document.addEventListener('click', closeLangMenu)
   window.addEventListener('resize', handleResize)
 })
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeDropdown)
+  document.removeEventListener('click', closeLangMenu)
   window.removeEventListener('resize', handleResize)
 })
 
@@ -136,6 +150,48 @@ try {
 } catch (_) {}
 const currentUser = reactive(storedUser ? JSON.parse(storedUser) : {})
 const rememberMe = ref(true)
+
+// Method to get flag URL for a specific language
+function getFlagUrl(lang) {
+  // Return the URL for the flag from the backend API
+  return `${apiBase}/flags/${lang}.svg`;
+}
+
+// Load available languages dynamically from backend
+async function loadAvailableLanguages() {
+  try {
+    const response = await api.get('/languages');
+    if (response.data && Array.isArray(response.data)) {
+      // Return the actual available languages from backend
+      return response.data;
+    }
+  } catch (error) {
+    console.warn('Could not load languages from backend:', error);
+    // Fallback to default languages if API fails
+    return ['de', 'en'];
+  }
+}
+
+// Load language names and translations dynamically from backend
+async function loadLanguageNames() {
+  try {
+    const response = await api.get('/language-names');
+    if (response.data && typeof response.data === 'object') {
+      return response.data;
+    }
+  } catch (error) {
+    console.warn('Could not load language names from backend:', error);
+    // Fallback to default language names if API fails
+    return {
+      de: 'Deutsch',
+      en: 'English'
+    };
+  }
+}
+
+// Initialize with default languages
+const availableLanguages = ref(['de', 'en']);
+const languageNames = ref({});
 
 function setAuthMessage(msg) {
   authMessage.value = msg;
@@ -224,6 +280,16 @@ function handleLoadingEnd() { globalLoading.value = false }
 
 onMounted(async () => {
   await fetchAppSettings();
+  // Load available languages and language names from backend
+  try {
+    const languages = await loadAvailableLanguages();
+    availableLanguages.value = languages;
+    
+    const names = await loadLanguageNames();
+    languageNames.value = names;
+  } catch (error) {
+    console.error('Failed to load dynamic languages:', error);
+  }
   window.addEventListener('loading-start', handleLoadingStart)
   window.addEventListener('loading-end', handleLoadingEnd)
   window.addEventListener('settings-updated', fetchPrivacyEnabled)
@@ -232,13 +298,14 @@ onMounted(async () => {
 
 
 function switchLang(lang) {
+  console.log('Switching language to:', lang); // Debug log
   selectedLang.value = lang
   langMenuOpen.value = false
+  console.log('Current selectedLang after switch:', selectedLang.value); // Debug log
 }
 
-function flagSrc(lang) {
-  return lang === 'de' ? flagDe : flagUs
-}
+// This function is now replaced with a dynamic approach that fetches from backend
+// The actual implementation will be handled in the template using async/await where needed
 
 async function fetchPrivacyEnabled() {
   try {
@@ -325,16 +392,17 @@ async function fetchPrivacyEnabled() {
           <div class="lang-switch">
             <button class="lang-trigger" @click="langMenuOpen = !langMenuOpen" title="Sprache wechseln" aria-label="Sprache wechseln">
               <img class="lang-icon" :src="languageIconSrc" alt="Language" />
-              <img class="flag-icon" :src="flagSrc(selectedLang)" :alt="selectedLang" />
+              <img class="flag-icon" :src="getFlagUrl(selectedLang)" :alt="selectedLang" />
             </button>
             <div v-if="langMenuOpen" class="lang-menu">
-              <button :class="{ active: selectedLang === 'de' }" @click="switchLang('de')">
-                <img :src="flagSrc('de')" alt="Deutsch" />
-                <span>Deutsch</span>
-              </button>
-              <button :class="{ active: selectedLang === 'en' }" @click="switchLang('en')">
-                <img :src="flagSrc('en')" alt="English" />
-                <span>English</span>
+              <button
+                v-for="lang in availableLanguages"
+                :key="lang"
+                :class="{ active: selectedLang === lang }"
+                @click="switchLang(lang)"
+              >
+                <img :src="getFlagUrl(lang)" :alt="languageNames[lang] || lang" />
+                <span>{{ languageNames[lang] || lang }}</span>
               </button>
             </div>
           </div>
