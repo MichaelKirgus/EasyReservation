@@ -7,15 +7,15 @@ RUN composer install --no-dev --prefer-dist --optimize-autoloader
 # Use a more minimal PHP-FPM image with only necessary extensions
 FROM php:8.3-fpm-alpine
 
-# Install only required system dependencies including cron for heartbeat jobs
+# Install only required system dependencies - using busybox to enable cron functionality
 RUN apk add --no-cache \
     nginx \
     curl \
-    cron \
+    busybox \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-# Ensure crontab directory exists
-RUN mkdir -p /var/spool/cron/crontabs
+# Enable cron in inittab
+RUN sed -i 's/\\#cron/cron/' /etc/inittab
 
 ARG APP_VERSION=unknown
 ENV APP_VERSION=$APP_VERSION
