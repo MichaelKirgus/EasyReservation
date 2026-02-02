@@ -43,7 +43,7 @@ class ReservationController extends Controller
         if ((int) ($settings['reservation_enabled'] ?? 0) !== 1) {
             // Trigger: reservation_disabled
             $this->eventTriggers->handle('reservation_disabled');
-            return response()->json(['message' => 'Reservations are currently disabled.'], 403);
+            return response()->json(['message' => __('feedback_reservation_disabled')], 403);
         }
 
         $user = $this->resolveUserFromToken($request);
@@ -86,7 +86,7 @@ class ReservationController extends Controller
             if ($waitlistEnabled) {
                 $target = 'waitlist';
             } else {
-                return response()->json(['message' => 'Reservation limit reached.'], 409);
+                return response()->json(['message' => __('feedback_reservation_limit')], 409);
             }
         }
 
@@ -96,7 +96,7 @@ class ReservationController extends Controller
                 ->exists();
 
             if ($duplicate) {
-                return response()->json(['message' => 'Name already reserved.'], 409);
+                return response()->json(['message' => __('feedback_reservation_failed_name_duplicate')], 409);
             }
         } else {
             $waitlistDuplicate = WaitlistEntry::query()
@@ -105,13 +105,13 @@ class ReservationController extends Controller
                 ->exists();
 
             if ($waitlistDuplicate) {
-                return response()->json(['message' => 'Already on waitlist.'], 409);
+                return response()->json(['message' => __('feedback_waitlist_success')], 409);
             }
 
             $waitlistLimit = (int) ($settings['waitlist_limit'] ?? 0);
             $waitlistPendingCount = WaitlistEntry::query()->where('status', 'pending')->count();
             if ($waitlistLimit > 0 && $waitlistPendingCount >= $waitlistLimit) {
-                return response()->json(['message' => 'Waitlist limit reached.'], 409);
+                return response()->json(['message' => __('feedback_waitlist_full')], 409);
             }
         }
 
@@ -127,8 +127,8 @@ class ReservationController extends Controller
 
             return response()->json([
                 'message' => $target === 'waitlist'
-                    ? 'BestÃ¤tigung erforderlich. PrÃ¼fe deine E-Mail, um die Wartelisten-Anfrage abzuschlieÃŸen.'
-                    : 'BestÃ¤tigung erforderlich. PrÃ¼fe deine E-Mail, um die Reservierung abzuschlieÃŸen.',
+                    ? __('feedback_waitlist_success')
+                    : __('feedback_reservation_success'),
                 'validation_pending' => true,
                 'target' => $target,
                 'pending_admin' => $this->emailValidation->adminApprovalEnabled() && ! $this->emailValidation->emailValidationEnabled(),
@@ -140,11 +140,11 @@ class ReservationController extends Controller
             try {
                 $entry = $this->waitlist->addToWaitlist($name, $email, $payload, $siteToken);
             } catch (\RuntimeException $e) {
-                return response()->json(['message' => $e->getMessage()], 409);
+                return response()->json(['message' => __($e->getMessage())], 409);
             }
 
             return response()->json([
-                'message' => 'Added to waitlist.',
+                'message' => __('feedback_waitlist_success'),
                 'waitlist' => true,
                 'entry' => $entry,
             ], 201);
@@ -170,11 +170,11 @@ class ReservationController extends Controller
 
         $this->emailValidation->sendReservationNotification($reservation, 'email_reservation_success_template_id', true);
 
-        // Trigger: reservation_enabled (z.B. bei erfolgreicher Reservierung)
+        // Trigger: reservation_enabled (e.g. on successful reservation)
         $this->eventTriggers->handle('reservation_enabled', ['reservation' => $reservation]);
 
         return response()->json([
-            'message' => 'Reservation created.',
+            'message' => __('feedback_reservation_success'),
             'reservation' => $reservation,
         ], 201);
     }

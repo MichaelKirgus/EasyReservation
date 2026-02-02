@@ -62,7 +62,7 @@ class SettingsController extends Controller
 
         $this->settings->refresh();
 
-        // Trigger-Logik für reservation_enabled/reservation_disabled
+        // Trigger-logic for reservation_enabled/reservation_disabled
         if (array_key_exists('reservation_enabled', $settings)) {
             $old = (int)($oldSettings['reservation_enabled'] ?? 0);
             $new = (int)$settings['reservation_enabled'];
@@ -75,7 +75,7 @@ class SettingsController extends Controller
             }
         }
 
-        return response()->json(['message' => 'Settings updated.', 'settings' => $this->settings->all()]);
+        return response()->json(['message' => __('admin_setting_change_success'), 'settings' => $this->settings->all()]);
     }
 
     // Gibt den Wert einer einzelnen Einstellung zurück

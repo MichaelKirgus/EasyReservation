@@ -27,7 +27,7 @@ class AuthController extends Controller
             ->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
-            return response()->json(['message' => 'Invalid credentials.'], 403);
+            return response()->json(['message' => __('auth_invalid_credentials')], 403);
         }
 
         $plainToken = Str::random(40);

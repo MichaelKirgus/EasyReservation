@@ -90,7 +90,7 @@ class WaitlistController extends Controller
             $entry->save();
         }
 
-        // Trigger: waitlist_disabled (bei Löschung)
+        // Trigger: waitlist_disabled (on deletion)
         $this->eventTriggers->handle('waitlist_disabled', ['waitlist_entry' => $entry]);
 
         if ($shouldNotify) {
@@ -99,7 +99,7 @@ class WaitlistController extends Controller
 
         $entry->delete();
 
-        return response()->json(['message' => 'Waitlist entry deleted.']);
+        return response()->json(['message' => __('feedback_waitlist_success')]);
     }
 
     public function promote(WaitlistEntry $entry): JsonResponse
@@ -107,11 +107,11 @@ class WaitlistController extends Controller
         try {
             $reservation = $this->waitlist->promoteEntry($entry);
         } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 409);
+            return response()->json(['message' => __($e->getMessage())], 409);
         }
 
         return response()->json([
-            'message' => 'Waitlist entry promoted.',
+            'message' => __('feedback_waitlist_success'),
             'reservation' => $reservation,
         ]);
     }

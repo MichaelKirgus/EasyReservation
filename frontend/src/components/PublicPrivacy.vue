@@ -133,7 +133,7 @@ function goBack() {
 
     <div v-if="loading">Datenschutzerklärung wird geladen...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
-    <div v-else-if="!enabled">{{ tr('privacy_disabled', 'Keine Datenschutzerklärung verfügbar.') }}</div>
+    <div v-else-if="!enabled">{{ tr('privacy_disabled', 'No privacy policy available.') }}</div>
     <div v-else class="privacy-content">
       <div v-html="render(privacy)"></div>
     </div>

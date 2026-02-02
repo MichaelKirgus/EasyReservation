@@ -121,7 +121,7 @@ function goBack() {
 
     <div v-if="loading">FAQ werden geladen...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
-    <div v-else-if="!hasFaqs" class="hint">{{ tr('faq_empty', 'Keine FAQ-Einträge vorhanden.') }}</div>
+    <div v-else-if="!hasFaqs" class="hint">{{ tr('faq_empty', 'No FAQ entries found.') }}</div>
     <div v-else class="faq-list">
       <details v-for="faq in faqs" :key="faq.id" class="faq-item" open>
         <summary>{{ faq.question }}</summary>

@@ -49,16 +49,16 @@ const slotsFull = computed(() => {
 })
 const submitLabel = computed(() => {
   if (slotsFull.value && waitlistEnabled.value) {
-    return config.settings.waitlist_join_button_text || tr('waitlist_join_button_text', 'Auf Warteliste setzen')
+    return config.settings.waitlist_join_button_text || tr('waitlist_join_button_text', 'Join waitlist')
   }
-  return tr('button_submit_reservation', 'Reservieren')
+  return tr('button_submit_reservation', 'Send reservation')
 })
 const waitlistFullText = computed(() => {
   if (slotsFull.value && waitlistEnabled.value) {
-    return config.settings.waitlist_full_text || tr('waitlist_full_text', 'Aktuell ausgebucht. Trage dich in die Warteliste ein.')
+    return config.settings.waitlist_full_text || tr('waitlist_full_text', 'Currently full. Join the waitlist.')
   }
   if (slotsFull.value && !waitlistEnabled.value) {
-    return config.settings.waitlist_disabled_text || tr('waitlist_disabled_text', 'Ausgebucht. Warteliste ist deaktiviert.')
+    return config.settings.waitlist_disabled_text || tr('waitlist_disabled_text', 'Full. Waitlist is disabled.')
   }
   return ''
 })
@@ -134,9 +134,9 @@ async function loadConfig() {
     updateFavicon(config.settings?.reservation_page_favicon)
     updateTitle(config.settings?.reservation_page_title || config.settings?.reservation_name || 'Reservierung')
     // applyBackgroundImage entfernt, da jetzt Composable genutzt wird
-    console.debug('Konfiguration geladen.')
+    console.debug('Configuration loaded.')
   } catch (e) {
-    setError(`Laden fehlgeschlagen: ${e.message}`)
+    setError(`Loading failed: ${e.message}`)
   } finally {
     loading.value = false
   }
@@ -199,7 +199,7 @@ function validateRequiredFields() {
 async function submitReservation() {
   const missingRequired = validateRequiredFields()
   if (missingRequired.length) {
-    setError(`Bitte bestätigen: ${missingRequired.join(', ')}`)
+    setError(tr('please_confirm', 'Please confirm: ') + missingRequired.join(', '))
     return
   }
 
@@ -223,21 +223,21 @@ async function submitReservation() {
 
     if (data?.validation_pending) {
       if (data?.pending_admin) {
-        setMessage(renderMarkdown(config.settings.reservation_admin_validation_pending_text) ||  tr('reservation_admin_validation_pending_text', 'Bestätigung wartet auf Admin-Freigabe.'))
+        setMessage(renderMarkdown(config.settings.reservation_admin_validation_pending_text) ||  tr('reservation_admin_validation_pending_text', 'Confirmation pending admin approval.'))
       } else {
-        setMessage(renderMarkdown(config.settings.email_validation_pending_text) || tr('email_validation_pending_text', 'Bitte bestätige deine E-Mail.'))
+        setMessage(renderMarkdown(config.settings.email_validation_pending_text) || tr('email_validation_pending_text', 'Please confirm your e-mail.'))
       }
     } else if (data?.waitlist) {
-      setMessage(renderMarkdown(config.settings.waitlist_success_text) || tr('waitlist_success_text', 'Du stehst jetzt auf der Warteliste.'))
+      setMessage(renderMarkdown(config.settings.waitlist_success_text) || tr('waitlist_success_text', 'You have been added to the waitlist.'))
     } else {
-      setMessage(renderMarkdown(config.settings.reservation_success_text) || tr('reservation_success_text', 'Reservierung erfolgreich.'))
+      setMessage(renderMarkdown(config.settings.reservation_success_text) || tr('reservation_success_text', 'Reservation created successfully.'))
     }
     form.name = ''
     form.email = ''
     form.payload = {}
     await loadConfig()
   } catch (e) {
-    setError(tr('reservation_failed_prefix', 'Reservierung fehlgeschlagen: ') + (e.message || e))
+    setError(tr('reservation_failed_prefix', 'Reservation failed: ') + (e.message || e))
   } finally {
     loading.value = false
   }
@@ -256,14 +256,14 @@ async function undoReservation() {
     })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
-    setMessage(tr('feedback_reservation_undo_success', 'Reservierung entfernt.'))
+    setMessage(tr('feedback_reservation_undo_success', 'Reservation removed.'))
     form.name = ''
     form.email = ''
 
     form.payload = {}
     await loadConfig()
   } catch (e) {
-    setError(tr('reservation_undo_failed_prefix', 'Stornieren fehlgeschlagen: ') + (e.message || e))
+    setError(tr('reservation_undo_failed_prefix', 'Undo failed: ') + (e.message || e))
   } finally {
     loading.value = false
   }
@@ -314,11 +314,11 @@ async function verifyTokenIfPresent() {
   try {
     const { data } = await api.get(`/email-validations/${encodeURIComponent(token)}`)
     if (data?.pending_admin) {
-      setMessage(renderMarkdown(config.settings.reservation_admin_validation_pending_text) ||  tr('reservation_admin_validation_pending_text', 'Bestätigung wartet auf Admin-Freigabe.'))
+      setMessage(renderMarkdown(config.settings.reservation_admin_validation_pending_text) ||  tr('reservation_admin_validation_pending_text', 'Confirmation pending admin approval.'))
     } else if (data?.waitlist) {
-      setMessage(renderMarkdown(config.settings.waitlist_success_text) || tr('waitlist_success_text', 'Du stehst jetzt auf der Warteliste.'))
+      setMessage(renderMarkdown(config.settings.waitlist_success_text) || tr('waitlist_success_text', 'You have been added to the waitlist.'))
     } else {
-      setMessage(renderMarkdown(config.settings.reservation_success_text) || tr('reservation_success_text', 'Reservierung erfolgreich.'))
+      setMessage(renderMarkdown(config.settings.reservation_success_text) || tr('reservation_success_text', 'Reservation created successfully.'))
     }
     await loadConfig()
   } catch (e) {
@@ -335,10 +335,10 @@ async function handleUndoTokenIfPresent() {
   if (!token) return
   try {
     await api.get(`/reservations/undo-token/${encodeURIComponent(token)}`)
-    setMessage(renderMarkdown(config.settings.reservation_undo_success_text) || tr('reservation_undo_success_text', 'Reservierung entfernt.'))
+    setMessage(renderMarkdown(config.settings.reservation_undo_success_text) || tr('reservation_undo_success_text', 'Reservation removed.'))
     await loadConfig()
   } catch (e) {
-    setError(tr('reservation_undo_failed_prefix', 'Stornieren fehlgeschlagen: ') + (e.message || e))
+    setError(tr('reservation_undo_failed_prefix', 'Undo failed: ') + (e.message || e))
   } finally {
     removeQueryParams(['u'])
   }
@@ -351,10 +351,10 @@ async function handleWaitlistUndoTokenIfPresent() {
   if (!token) return
   try {
     await api.get(`/waitlist/undo-token/${encodeURIComponent(token)}`)
-    setMessage(renderMarkdown(config.settings.waitlist_undo_success_text) || tr('waitlist_undo_success_text', 'Reservierung entfernt.'))
+    setMessage(renderMarkdown(config.settings.waitlist_undo_success_text) || tr('waitlist_undo_success_text', 'Reservation removed.'))
     await loadConfig()
   } catch (e) {
-    setError(tr('waitlist_undo_failed_prefix', 'Wartelisten-Stornierung fehlgeschlagen: ') + (e.message || e))
+    setError(tr('waitlist_undo_failed_prefix', 'Waitlist cancellation failed: ') + (e.message || e))
   } finally {
     removeQueryParams(['wu'])
   }
@@ -477,10 +477,10 @@ function goToGDPR() {
         <div class="title-row" :class="['align-' + (headerAlign || 'left')]"><h2 :style="{ textAlign: headerAlign }">{{ config.settings.reservation_name || tr('title_reservation_form', 'Reservierung') }}</h2></div>
         <p v-if="renderedAdditionalInfo" v-html="renderedAdditionalInfo" :style="{ textAlign: headerAlign }"></p>
         <p v-if="showNextEvent && nextEventText" class="next-event" :style="{ textAlign: headerAlign }">
-          <strong>{{ tr('next_event_label', 'Nächster Termin') }}:</strong> {{ nextEventText }}
+          <strong>{{ tr('next_event_label', 'Next event') }}:</strong> {{ nextEventText }}
         </p>
         <div v-if="showNextEvent && upcomingEvents.length" class="next-event-list" :style="{ textAlign: headerAlign }">
-          <strong>{{ tr('upcoming_events_label', 'Alle voraussichtlichen Termine') }}:</strong>
+          <strong>{{ tr('upcoming_events_label', 'Upcoming dates') }}:</strong>
           <ul>
             <li v-for="(evt, idx) in upcomingEvents" :key="idx">{{ evt }}</li>
           </ul>
@@ -541,9 +541,9 @@ function goToGDPR() {
             :disabled="loading"
             :style="{ color: config.settings.reservation_undo_button_color || 'white', backgroundColor: config.settings.reservation_undo_button_backgroundcolor || '#2563eb', borderColor: config.settings.reservation_undo_button_border_color || '#2563eb' }"
           >
-            {{ tr('button_remove_reservation', 'Reservierung löschen') }}
+            {{ tr('button_remove_reservation', 'Remove reservation') }}
           </button>
-          <p v-if="!reservationEnabled" class="hint">{{ tr('feedback_reservation_disabled', 'Reservierungen sind deaktiviert.') }}</p>
+          <p v-if="!reservationEnabled" class="hint">{{ tr('feedback_reservation_disabled', 'Reservations are disabled.') }}</p>
         </form>
       </section>
 
@@ -552,7 +552,7 @@ function goToGDPR() {
         <ul v-if="config.attendees.length" class="plain-list" :style="{ textAlign: attendeesAlign }">
           <li v-for="a in config.attendees" :key="a.display_name">{{ a.display_name }}</li>
         </ul>
-        <p v-else :style="{ textAlign: attendeesAlign }">{{ tr('no_reservation_found', 'Keine Reservierungen vorhanden.') }}</p>
+        <p v-else :style="{ textAlign: attendeesAlign }">{{ tr('no_reservation_found', 'No reservations found.') }}</p>
       </section>
 
       <section class="card" :style="cardStyle" v-if="waitlistPublicEnabled && waitlistEntries.length">
@@ -564,7 +564,7 @@ function goToGDPR() {
 
       <section class="card" :style="cardStyle" v-if="showLimit">
         <p :style="{ textAlign: attendeesAlign }">
-          {{ config.stats.count }} {{ tr('reservation_counter_part1', 'von') }} {{ config.stats.max }} {{ tr('reservation_counter_part2', 'Plätzen belegt') }}
+          {{ config.stats.count }} {{ tr('reservation_counter_part1', 'of') }} {{ config.stats.max }} {{ tr('reservation_counter_part2', 'places booked') }}
         </p>
       </section>
 

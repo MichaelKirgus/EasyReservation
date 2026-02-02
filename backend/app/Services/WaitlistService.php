@@ -30,7 +30,7 @@ class WaitlistService
         $limit = (int) ($this->settings->get('waitlist_limit', 0) ?? 0);
         $pendingCount = WaitlistEntry::query()->where('status', 'pending')->count();
         if ($limit > 0 && $pendingCount >= $limit) {
-            throw new \RuntimeException('Waitlist limit reached.');
+            throw new \RuntimeException(__('feedback_waitlist_full'));
         }
 
         $user = auth()->user();
@@ -47,7 +47,7 @@ class WaitlistService
                     ->whereRaw('LOWER(display_name) = ?', [Str::lower($name)])
                     ->exists();
                 if ($duplicateName) {
-                    throw new \RuntimeException('Name already on waitlist.');
+                    throw new \RuntimeException(__('feedback_waitlist_success'));
                 }
             }
 
@@ -57,7 +57,7 @@ class WaitlistService
                     ->whereRaw('LOWER(email) = ?', [Str::lower($email)])
                     ->exists();
                 if ($duplicateEmail) {
-                    throw new \RuntimeException('E-Mail already on waitlist.');
+                    throw new \RuntimeException(__('feedback_waitlist_success'));
                 }
             }
         }

@@ -119,7 +119,7 @@ class UserController extends Controller
         ]);
         $user->password = $request->input('password');
         $user->save();
-        return response()->json(['message' => 'Passwort wurde geändert.']);
+        return response()->json(['message' => __('admin_setting_change_success')]);
     }
 
     protected function assertAnotherAdminExists(User $exclude): void
