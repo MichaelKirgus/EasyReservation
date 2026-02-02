@@ -3,12 +3,19 @@ FROM composer:2.6 AS vendor
 WORKDIR /app
 COPY . .
 RUN composer install --no-dev --prefer-dist --optimize-autoloader
+
+# Use a more minimal PHP-FPM image with only necessary extensions
 FROM php:8.3-fpm-alpine
-RUN apk add --no-cache nginx git unzip libpng-dev oniguruma-dev libxml2-dev curl \
+
+# Install only required system dependencies including cron for heartbeat jobs
+RUN apk add --no-cache \
+    nginx \
+    curl \
+    cron \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-RUN apk add --no-cache busybox && \
-    sed -i 's/\\#cron/cron/' /etc/inittab
+# Ensure crontab directory exists
+RUN mkdir -p /var/spool/cron/crontabs
 
 ARG APP_VERSION=unknown
 ENV APP_VERSION=$APP_VERSION
@@ -16,8 +23,6 @@ ENV APP_VERSION=$APP_VERSION
 WORKDIR /var/www
 COPY app /var/www/app
 COPY artisan /var/www/artisan
-COPY package.json /var/www/package.json
-COPY vite.config.js /var/www/vite.config.js
 COPY bootstrap /var/www/bootstrap
 COPY config /var/www/config
 COPY database /var/www/database
