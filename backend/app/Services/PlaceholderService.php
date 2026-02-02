@@ -20,6 +20,7 @@ class PlaceholderService
         private readonly EventService $events,
         private readonly SettingsService $settings,
         private readonly CustomPlaceholderService $customPlaceholders,
+        private readonly WaitlistService $waitlist,
     ) {
     }
 
@@ -89,6 +90,7 @@ class PlaceholderService
             '{{email}}' => $recipient['email'] ?? '',
             '{{undo_link}}' => $recipient['undo_link'] ?? '',
             '{{validation_link}}' => $recipient['validation_link'] ?? '',
+            '{{waitlist_position}}' => (string) $this->waitlist->getWaitlistPosition($recipient['name'] ?? '', $recipient['email'] ?? ''),
         ];
         // Reihenfolge: custom < core < recipientTokens (Empfänger-spezifische überschreiben alles)
         return array_merge($custom, $core, $recipientTokens);

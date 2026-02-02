@@ -22,6 +22,29 @@ class WaitlistService
         return (int) ($this->settings->get('waitlist_enabled', 0) ?? 0) === 1;
     }
 
+    public function getWaitlistPosition(string $name, ?string $email): int
+    {
+        if (!$this->waitlistEnabled()) {
+            return 0;
+        }
+
+        // Get all pending waitlist entries ordered by date_added (oldest first)
+        $entries = WaitlistEntry::query()
+            ->where('status', 'pending')
+            ->orderBy('date_added')
+            ->get(['id', 'display_name', 'email', 'date_added']);
+
+        // Find the position of the user
+        foreach ($entries as $index => $entry) {
+            if (strtolower($entry->display_name) === strtolower($name) &&
+                ($email === null || $email === '' || strtolower($entry->email) === strtolower($email))) {
+                return $index + 1; // Position is 1-based
+            }
+        }
+
+        return 0; // Not found on waitlist
+    }
+
     public function addToWaitlist(string $name, ?string $email, ?array $payload = null, ?string $siteToken = null): WaitlistEntry
     {
         $name = trim($name);
