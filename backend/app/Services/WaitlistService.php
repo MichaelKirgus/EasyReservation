@@ -64,7 +64,7 @@ class WaitlistService
 
         // Automatisch einen gültigen Gast-Site-Token verwenden, falls keiner übergeben wurde
         if (empty($siteToken)) {
-            $siteToken = app(SiteTokenService::class)->getValidSiteToken();
+            $siteToken = app(\App\Services\SiteTokenService::class)->getValidSiteToken();
         }
 
         return WaitlistEntry::create([

@@ -3,14 +3,14 @@
     "",
     "\\backend",
     "\\backend\\app",
-    "\\backend\\app\\Console",
-    "\\backend\\app\\Enums",
-    "\\backend\\app\\Jobs",
+    "\\backend\\app\\Http",
+    "\\backend\\app\\Http\\Controllers",
+    "\\backend\\app\\Http\\Controllers\\Api",
     "\\backend\\config",
     "\\backend\\config\\settings-whitelists",
     "\\backend\\resources",
     "\\backend\\resources\\settings-whitelists"
   ],
-  "SelectedNode": "\\backend\\app\\Jobs\\WorkerHeartbeatJob.php",
+  "SelectedNode": "\\backend\\app\\Http\\Controllers\\Api\\ConfigController.php",
   "PreviewInSolutionExplorer": false
 }

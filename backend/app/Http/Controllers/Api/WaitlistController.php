@@ -8,6 +8,7 @@ use App\Services\ReservationValidationService;
 use App\Services\WaitlistService;
 use App\Services\SettingsService;
 use App\Services\EventTriggerService;
+use App\Services\SiteTokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
