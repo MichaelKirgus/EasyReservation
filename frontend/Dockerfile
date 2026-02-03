@@ -5,7 +5,7 @@ ENV APP_VERSION=$APP_VERSION
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 COPY . .
 COPY prod.env .env
 RUN npm run build
