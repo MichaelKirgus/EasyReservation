@@ -12,6 +12,10 @@ RUN apk add --no-cache \
     nginx \
     curl \
     busybox \
+    oniguruma-dev \
+    freetype-dev \
+    libjpeg-turbo-dev \
+    libpng-dev \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
 # Enable cron in inittab
