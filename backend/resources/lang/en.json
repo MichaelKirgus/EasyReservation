@@ -189,5 +189,13 @@
   "two_factor_auth": "Two-Factor Authentication",
   "2fa_enabled_description": "Two-Factor Authentication is enabled.",
   "disable_2fa": "Disable 2FA",
-  "show_recovery_codes": "Show Recovery Codes"
+  "show_recovery_codes": "Show Recovery Codes",
+  "login": "Login",
+  "username_or_email": "Username or Email",
+  "password": "Password",
+  "password_placeholder": "••••••",
+  "otp_code": "OTP Code",
+  "otp_placeholder": "123456",
+  "remember_me": "Remember me",
+  "cancel": "Cancel"
 }

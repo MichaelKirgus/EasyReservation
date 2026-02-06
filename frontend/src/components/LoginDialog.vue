@@ -1,6 +1,7 @@
 <script setup>
-import { ref, reactive, watch, computed } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import IconButton from './IconButton.vue'
+import { useTranslation } from '../composables/useTranslation'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -9,6 +10,9 @@ const props = defineProps({
   showOtp: { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:modelValue', 'login'])
+
+// Use the global translation system
+const { tr } = useTranslation()
 
 const loginForm = reactive({ identifier: '', password: '', otp: '' })
 const rememberMe = ref(true)
@@ -33,23 +37,23 @@ function handleLogin() {
 <template>
   <div v-if="modelValue" class="modal-backdrop" @click.self="close">
     <div class="modal">
-      <IconButton icon="cancel" label="Abbrechen" variant="danger" class="close-btn" size="sm" @click="close" />
-      <h3>Anmelden</h3>
-      <label class="form-field">Benutzername/E-Mail
+      <IconButton icon="cancel" :label="tr('cancel', 'Cancel')" variant="danger" class="close-btn" size="sm" @click="close" />
+      <h3>{{ tr('login', 'Login') }}</h3>
+      <label class="form-field">{{ tr('username_or_email', 'Username or Email') }}
         <input v-model="loginForm.identifier" class="input-lg" />
       </label>
-      <label class="form-field">Passwort
-        <input v-model="loginForm.password" type="password" placeholder="••••••" class="input-lg" />
+      <label class="form-field">{{ tr('password', 'Password') }}
+        <input v-model="loginForm.password" type="password" :placeholder="tr('password_placeholder', '••••••')" class="input-lg" />
       </label>
-      <label v-if="showOtp" class="form-field">OTP-Code
-        <input v-model="loginForm.otp" placeholder="123456" class="input-lg" />
+      <label v-if="showOtp" class="form-field">{{ tr('otp_code', 'OTP Code') }}
+        <input v-model="loginForm.otp" :placeholder="tr('otp_placeholder', '123456')" class="input-lg" />
       </label>
       <label class="checkbox">
         <input type="checkbox" v-model="rememberMe" />
-        <span>Angemeldet bleiben</span>
+        <span>{{ tr('remember_me', 'Remember me') }}</span>
       </label>
       <div class="modal-actions">
-        <IconButton icon="login" label="Anmelden" :disabled="loading" @click="handleLogin" class="btn-block" />
+        <IconButton icon="login" :label="tr('login', 'Login')" :disabled="loading" @click="handleLogin" class="btn-block" />
       </div>
       <div v-if="error" class="error">{{ error }}</div>
     </div>
