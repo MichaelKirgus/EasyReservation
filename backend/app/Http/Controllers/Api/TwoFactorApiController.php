@@ -10,8 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\DisableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\ConfirmTwoFactorAuthentication;
-use Laravel\Fortify\Actions\GenerateRecoveryCodes;
-use Laravel\Fortify\Actions\GetRecoveryCodes;
+use Laravel\Fortify\Actions\GenerateNewRecoveryCodes;
 use Laravel\Fortify\Actions\GetTwoFactorQrCodeSvg;
 use Illuminate\Http\JsonResponse;
 
@@ -21,6 +20,12 @@ class TwoFactorApiController extends Controller
     {
         $user = Auth::user();
         app(EnableTwoFactorAuthentication::class)($user);
+        
+        // Generate recovery codes when enabling 2FA
+        if (empty($user->two_factor_recovery_codes)) {
+            app(GenerateNewRecoveryCodes::class)($user);
+        }
+        
         return response()->json(['enabled' => true]);
     }
 
@@ -42,8 +47,16 @@ class TwoFactorApiController extends Controller
     public function recovery(Request $request)
     {
         $user = Auth::user();
-        $codes = app(GetRecoveryCodes::class)($user);
-        return response()->json($codes);
+        
+        // Check if user has recovery codes
+        if (empty($user->two_factor_recovery_codes)) {
+            // Generate new recovery codes if they don't exist
+            app(GenerateNewRecoveryCodes::class)($user);
+        }
+        
+        // Return the recovery codes by decrypting them from the database
+        $recoveryCodes = json_decode(decrypt($user->two_factor_recovery_codes), true);
+        return response()->json($recoveryCodes);
     }
 
     public function confirm(Request $request)
