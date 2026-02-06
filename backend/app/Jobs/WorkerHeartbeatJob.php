@@ -35,8 +35,11 @@ class WorkerHeartbeatJob implements ShouldQueue
             'last_job_time' => null,
             'last_job_duration' => null,
         ];
+        // Store the stats data first
         $store->put($statsKey, $stats, 1800); // 30 Minuten
-        app(WorkerStatusService::class)->setStatus($workerId, [
+        
+        // Create a unified status object that includes both stats and current status info
+        $statusData = [
             'ip' => $ip,
             'timestamp' => now()->timestamp,
             'memory' => $memory,
@@ -45,6 +48,13 @@ class WorkerHeartbeatJob implements ShouldQueue
             'total_jobs' => $stats['total_jobs'],
             'last_job_time' => $stats['last_job_time'],
             'last_job_duration' => $stats['last_job_duration'],
-        ]);
+        ];
+        
+        // Store the status data using the WorkerStatusService
+        try {
+            app(WorkerStatusService::class)->setStatus($workerId, $statusData);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to store worker status: ' . $e->getMessage());
+        }
     }
 }

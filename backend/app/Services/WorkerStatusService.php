@@ -16,7 +16,7 @@ class WorkerStatusService
         
         // If using Redis, make sure we use the right connection that matches where workers are storing data
         if ($storeName === 'redis') {
-            // Try to get the redis connection used by workers (which is likely the cache connection)
+            // Use the same approach as in WorkerHeartbeatJob - get the cache store directly
             $this->store = Cache::store('redis');
         } else {
             $this->store = Cache::store($storeName);
@@ -25,8 +25,15 @@ class WorkerStatusService
 
     public function setStatus($workerId, array $data)
     {
-        $key = "worker_status:$workerId";
-        $this->store->put($key, $data, $this->ttl);
+        try {
+            $key = "worker_status:$workerId";
+            \Illuminate\Support\Facades\Log::debug('Storing worker status for key: ' . $key);
+            $this->store->put($key, $data, $this->ttl);
+            \Illuminate\Support\Facades\Log::debug('Successfully stored worker status for key: ' . $key);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to store worker status for key ' . $workerId . ': ' . $e->getMessage());
+            throw $e; // Re-throw to let the calling code know there was an error
+        }
     }
 
     public function getAllStatuses()
