@@ -430,9 +430,9 @@ async function fetchPrivacyEnabled() {
             <div v-else class="user-pill">
               <span class="user-name">{{ currentUser.name }} ({{ currentUser.role }})</span>
               <router-link to="/user/2fa" class="user-menu-item">
-                <IconButton icon="shield" label="2FA-Einstellungen" class="ghost" size="sm" />
+                <IconButton icon="shield" :label="tr('two_factor_settings_tooltip', 'Two-Factor Authentication Settings')" class="ghost" size="sm" />
               </router-link>
-              <IconButton icon="logout" label="Abmelden" class="ghost" size="sm" @click="logout" />
+              <IconButton icon="logout" :label="tr('logout_tooltip', 'Logout')" class="ghost" size="sm" @click="logout" />
             </div>
           </div>
         </div>

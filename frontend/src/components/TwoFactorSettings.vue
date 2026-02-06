@@ -167,6 +167,20 @@ async function confirmTwoFactor() {
                 <p>{{ tr('2fa_enabled_description', 'Two-Factor Authentication is enabled.') }}</p>
                 <button @click="disableTwoFactor" class="btn-danger">{{ tr('disable_2fa', 'Disable 2FA') }}</button>
                 
+                <!-- QR Code Display -->
+                <div v-if="qrCode" class="qr-code-container">
+                    <h3>{{ tr('qr_code_title', 'Scan this QR code') }}</h3>
+                    <p>{{ tr('qr_code_description', 'Scan the QR code with your authenticator app to set up 2FA.') }}</p>
+                    <div class="qr-code" v-html="qrCode"></div>
+                    <div class="secret-container">
+                        <h3>{{ tr('totp_secret', 'TOTP Secret') }}</h3>
+                        <p>{{ tr('secret_description', 'If you cannot scan the QR code, you can enter this secret manually in your authenticator app:') }}</p>
+                        <div class="secret-display">
+                            <span class="secret">{{ secret }}</span>
+                        </div>
+                    </div>
+                </div>
+                
                 <div v-if="showRecoveryCodes">
                     <h3>{{ tr('recovery_codes', 'Recovery Codes') }}</h3>
                     <p>{{ tr('recovery_codes_description', 'Save these codes in a secure location. They can be used to access your account if you lose access to your 2FA app.') }}</p>
@@ -262,5 +276,38 @@ async function confirmTwoFactor() {
     padding: 0.5rem;
     border-radius: 4px;
     font-family: monospace;
+}
+
+.qr-code-container {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.qr-code {
+    text-align: center;
+    margin: 1rem 0;
+}
+
+.secret-container {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.secret-display {
+    text-align: center;
+    margin: 0.5rem 0;
+}
+
+.secret {
+    font-family: monospace;
+    font-size: 1.2rem;
+    padding: 0.5rem;
+    background: #e2e8f0;
+    border-radius: 4px;
+    word-break: break-all;
 }
 </style>

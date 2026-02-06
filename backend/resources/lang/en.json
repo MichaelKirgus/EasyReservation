@@ -25,6 +25,8 @@
   "admin_remove_item_text": "Remove",
   "admin_button_download_attendees_list": "Download attendees",
   "admin_button_logout": "Logout",
+  "logout_tooltip": "Logout",
+  "two_factor_settings_tooltip": "Two-Factor Authentication Settings",
   "admin_setting_change_success": "Settings saved.",
   "summary_text": "Details",
   "title_attendees_form": "Attendees",
@@ -179,5 +181,13 @@
   "reservation_success_text": "Reservation created successfully.",
   "reservation_failed_prefix": "Reservation failed: ",
   "feedback_reservation_undo_success": "Reservation removed.",
-  "reservation_undo_failed_prefix": "Undo failed: "
+  "reservation_undo_failed_prefix": "Undo failed: ",
+  "qr_code_title": "Scan this QR code",
+  "qr_code_description": "Scan the QR code with your authenticator app to set up 2FA.",
+  "totp_secret": "TOTP Secret",
+  "secret_description": "If you cannot scan the QR code, you can enter this secret manually in your authenticator app:",
+  "two_factor_auth": "Two-Factor Authentication",
+  "2fa_enabled_description": "Two-Factor Authentication is enabled.",
+  "disable_2fa": "Disable 2FA",
+  "show_recovery_codes": "Show Recovery Codes"
 }
