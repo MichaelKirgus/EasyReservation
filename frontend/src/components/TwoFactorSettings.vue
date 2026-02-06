@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api'
+import { useTranslation } from '../composables/useTranslation'
 
 const router = useRouter()
 const loading = ref(false)
@@ -14,12 +15,8 @@ const confirmCode = ref('')
 const confirmError = ref('')
 const showConfirmForm = ref(false)
 
-// Simple translation function with fallback
-function tr(key, fallback) {
-  // For now, we'll just return the fallback (English text) as a placeholder
-  // In a real implementation, this would fetch translations from backend
-  return fallback || key
-}
+// Use the global translation system
+const { tr, fetchTranslations, currentLang } = useTranslation()
 
 onMounted(async () => {
     // Check if user is authenticated
@@ -27,6 +24,13 @@ onMounted(async () => {
     if (!storedUser) {
         router.push('/'); // Redirect to home if not authenticated
         return;
+    }
+    
+    // Initialize translations for current language
+    try {
+        await fetchTranslations(currentLang.value);
+    } catch (err) {
+        console.error('Failed to initialize translations:', err);
     }
     
     await fetchTwoFactorStatus()

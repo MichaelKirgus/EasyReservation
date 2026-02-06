@@ -6,14 +6,10 @@ import LoginDialog from './components/LoginDialog.vue'
 import languageIconSrc from './assets/icons/languageicon.svg'
 import IconButton from './components/IconButton.vue'
 import api from './api'
+import { useTranslation } from './composables/useTranslation'
 
-// Simple translation function with fallback
-function tr(key, fallback) {
-  // In a real implementation, this would fetch translations from backend
-  // For now, we'll just return the fallback (English text) as a placeholder
-  // The actual translation system will be implemented in the future
-  return fallback || key
-}
+// Use the global translation system
+const { tr, fetchTranslations } = useTranslation()
 
 
 // Reaktives Objekt für App-Einstellungen
@@ -298,6 +294,16 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to load dynamic languages:', error);
   }
+  
+  // Initialize translations for the selected language
+  try {
+    if (selectedLang.value) {
+      await fetchTranslations(selectedLang.value);
+    }
+  } catch (err) {
+    console.error('Failed to initialize translations:', err);
+  }
+  
   window.addEventListener('loading-start', handleLoadingStart)
   window.addEventListener('loading-end', handleLoadingEnd)
   window.addEventListener('settings-updated', fetchPrivacyEnabled)
@@ -310,6 +316,11 @@ function switchLang(lang) {
   selectedLang.value = lang
   langMenuOpen.value = false
   console.log('Current selectedLang after switch:', selectedLang.value); // Debug log
+  
+  // Update translations when language changes
+  if (lang) {
+    fetchTranslations(lang);
+  }
 }
 
 // This function is now replaced with a dynamic approach that fetches from backend

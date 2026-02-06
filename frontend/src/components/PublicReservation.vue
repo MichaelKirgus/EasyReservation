@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import api from '../api'
+import { useTranslation } from '../composables/useTranslation'
 
 const props = defineProps({ langCode: { type: String, default: 'de' } })
 
@@ -24,12 +25,14 @@ window.addEventListener('storage', (e) => {
 })
 const publicApiKey = ref(localStorage.getItem('public_api_key') || '')
 const lang = ref(props.langCode || (navigator.language || 'en').split('-')[0])
-const t = ref({})
 const loading = ref(false)
 const message = ref('')
 const error = ref('')
 const config = reactive({ settings: {}, form_fields: [], attendees: [], waitlist: [], stats: { count: 0, max: 0 } })
 const currentUser = ref(null)
+
+// Use the global translation system
+const { tr, fetchTranslations } = useTranslation()
 
 const form = reactive({ name: '', email: '', payload: {} })
 
@@ -107,18 +110,25 @@ async function fetchJson(url, opts = {}) {
   }
 }
 
-
-async function fetchTranslations() {
+// Initialize translations when component mounts
+onMounted(async () => {
   try {
-    t.value = await fetchJson(`/translations/${lang.value}`)
-  } catch (_) {
-    t.value = {}
+    await fetchTranslations(lang.value);
+  } catch (err) {
+    console.error('Failed to initialize translations:', err);
   }
-}
+})
 
-function tr(key, fallback = '') {
-  return t.value[key] || fallback || key
-}
+// Watch for language changes from props
+watch(() => props.langCode, async (newLang) => {
+  if (newLang) {
+    try {
+      await fetchTranslations(newLang);
+    } catch (err) {
+      console.error('Failed to update translations:', err);
+    }
+  }
+}, { immediate: true })
 
 
 async function loadConfig() {
@@ -372,7 +382,7 @@ function removeQueryParams(keys) {
 onMounted(async () => {
   syncCurrentUser()
   window.addEventListener('api-key-updated', onApiKeyUpdated)
-  await fetchTranslations()
+  await fetchTranslations(lang.value)
   await loadConfig()
   applyCustomCss(config.settings.reservation_custom_css)
   await verifyTokenIfPresent()

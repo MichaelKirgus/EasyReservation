@@ -5,14 +5,18 @@ import { useBackgroundImage } from '../composables/useBackgroundImage'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import IconButton from './IconButton.vue'
+import api from '../api'
+import { useTranslation } from '../composables/useTranslation'
 
 const props = defineProps({ langCode: { type: String, default: 'de' } })
+
+// Use the global translation system
+const { tr, fetchTranslations } = useTranslation()
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const siteToken = ref(localStorage.getItem('site_token') || '')
 const publicApiKey = ref(localStorage.getItem('public_api_key') || '')
 const lang = ref(props.langCode || (navigator.language || 'en').split('-')[0])
-const t = ref({})
 const privacy = ref('')
 const enabled = ref(false)
 const loading = ref(false)
@@ -44,17 +48,25 @@ async function fetchJson(url, opts = {}) {
   return text ? JSON.parse(text) : null
 }
 
-async function fetchTranslations() {
+// Initialize translations when component mounts
+onMounted(async () => {
   try {
-    t.value = await fetchJson(`${apiBase}/translations/${lang.value}`, { headers: headers() })
-  } catch (_) {
-    t.value = {}
+    await fetchTranslations(lang.value);
+  } catch (err) {
+    console.error('Failed to initialize translations:', err);
   }
-}
+})
 
-function tr(key, fallback = '') {
-  return t.value[key] || fallback || key
-}
+// Watch for language changes from props
+watch(() => props.langCode, async (newLang) => {
+  if (newLang) {
+    try {
+      await fetchTranslations(newLang);
+    } catch (err) {
+      console.error('Failed to update translations:', err);
+    }
+  }
+}, { immediate: true })
 
 function render(text) {
   const html = marked.parse(String(text || ''))
@@ -79,7 +91,7 @@ async function loadPrivacy() {
 
 
 async function checkAndLoadPrivacy() {
-  await fetchTranslations();
+  await fetchTranslations(lang.value);
   loading.value = true;
   try {
     // Erst /public/config laden
