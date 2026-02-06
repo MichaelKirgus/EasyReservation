@@ -13,7 +13,6 @@ const loading = ref(false)
 const message = ref('')
 const error = ref('')
 const currentUser = ref(JSON.parse(localStorage.getItem('admin_user') || 'null'))
-const self2FA = ref({ enabled: false, qr: '', recovery: [], showQr: false, showRecovery: false, otp: '', message: '', error: '' })
 const selectedUsers = ref([])
 const lastAutoErrorAt = ref(0)
 const showToken = reactive({})
@@ -236,7 +235,6 @@ function handleKeyUpdate(e) {
   }
   if (apiKey.value) {
     fetchUsers()
-    fetchSelf2FAStatus()
   }
 }
 
@@ -390,35 +388,6 @@ onUnmounted(() => {
     <div v-if="message" class="message">{{ message }}</div>
     <div v-if="error" class="error">{{ error }}</div>
 
-    <section class="card" style="margin-bottom:1rem;">
-      <h3>2FA für das eigene Konto</h3>
-      <div v-if="self2FA.message" class="message">{{ self2FA.message }}</div>
-      <div v-if="self2FA.error" class="error">{{ self2FA.error }}</div>
-      <div v-if="!self2FA.enabled">
-        <button @click="enableSelf2FA" :disabled="loading">2FA aktivieren</button>
-      </div>
-      <div v-else>
-        <button @click="disableSelf2FA" :disabled="loading">2FA deaktivieren</button>
-        <button @click="fetchSelf2FARecovery" :disabled="loading">Recovery-Codes anzeigen</button>
-      </div>
-      <div v-if="self2FA.showQr && self2FA.qr">
-        <div v-html="self2FA.qr" style="margin:1rem 0;max-width:220px;"></div>
-        <div v-if="self2FA.secret" style="margin-bottom:0.5rem;">
-          <strong>Secret:</strong>
-          <span style="font-family:monospace;user-select:all;">{{ self2FA.secret }}</span>
-        </div>
-        <label>OTP-Code eingeben:
-          <input v-model="self2FA.otp" placeholder="123456" />
-        </label>
-        <button @click="confirmSelf2FA" :disabled="!self2FA.otp || loading">OTP bestätigen</button>
-      </div>
-      <div v-if="self2FA.showRecovery && self2FA.recovery.length">
-        <h4>Recovery-Codes</h4>
-        <ul>
-          <li v-for="code in self2FA.recovery" :key="code">{{ code }}</li>
-        </ul>
-      </div>
-    </section>
 
     <section class="card">
       <h3>Neuen Benutzer anlegen</h3>

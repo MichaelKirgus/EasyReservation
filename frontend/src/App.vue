@@ -7,6 +7,14 @@ import languageIconSrc from './assets/icons/languageicon.svg'
 import IconButton from './components/IconButton.vue'
 import api from './api'
 
+// Simple translation function with fallback
+function tr(key, fallback) {
+  // In a real implementation, this would fetch translations from backend
+  // For now, we'll just return the fallback (English text) as a placeholder
+  // The actual translation system will be implemented in the future
+  return fallback || key
+}
+
 
 // Reaktives Objekt für App-Einstellungen
 const appSettings = reactive({ clear_localstorage_on_logout: false })
@@ -410,6 +418,9 @@ async function fetchPrivacyEnabled() {
             <IconButton icon="login" label="Anmelden" class="ghost" size="sm" @click="showLogin = true" v-if="!currentUser.name" />
             <div v-else class="user-pill">
               <span class="user-name">{{ currentUser.name }} ({{ currentUser.role }})</span>
+              <router-link to="/user/2fa" class="user-menu-item">
+                <IconButton icon="shield" label="2FA-Einstellungen" class="ghost" size="sm" />
+              </router-link>
               <IconButton icon="logout" label="Abmelden" class="ghost" size="sm" @click="logout" />
             </div>
           </div>
@@ -850,6 +861,17 @@ button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
   border-radius: 999px;
 }
 .user-name { font-weight: 600; }
+.user-menu-item {
+  color: #1d4ed8;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.user-menu-item:hover {
+  background: #c7d2fe;
+}
 
 .loading-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; z-index: 15; border-radius: 10px; }
 .loader-spinner { width: 48px; height: 48px; border: 4px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; animation: spin 1s linear infinite; }

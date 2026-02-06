@@ -13,6 +13,7 @@ import FormFieldManager from '../components/FormFieldManager.vue'
 import AdminUsers from '../components/AdminUsers.vue'
 import AdminCustomPlaceholders from '../components/AdminCustomPlaceholders.vue'
 import AdminAuditLog from '../components/AdminAuditLog.vue'
+import TwoFactorSettings from '../components/TwoFactorSettings.vue'
 
 const routes = [
   { path: '/', name: 'reservation', component: PublicReservation },
@@ -31,6 +32,8 @@ const routes = [
   { path: '/admin/users', name: 'admin-users', component: AdminUsers },
   { path: '/admin/custom-placeholders', name: 'admin-custom-placeholders', component: AdminCustomPlaceholders },
   { path: '/admin/auditlog', name: 'superadmin-auditlog', component: AdminAuditLog },
+  // User settings
+  { path: '/user/2fa', name: 'user-2fa', component: TwoFactorSettings },
 ]
 
 const router = createRouter({
