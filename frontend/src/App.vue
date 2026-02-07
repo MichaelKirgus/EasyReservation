@@ -486,7 +486,6 @@ async function fetchPrivacyEnabled() {
             :aria-label="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
           >
             <span class="theme-icon" aria-hidden="true">{{ theme === 'dark' ? '🌙' : '☀️' }}</span>
-            <span class="theme-label">{{ theme === 'dark' ? 'Dark' : 'Light' }}</span>
           </button>
           <div class="lang-switch">
             <button class="lang-trigger" @click="langMenuOpen = !langMenuOpen" title="Sprache wechseln" aria-label="Sprache wechseln">
@@ -581,6 +580,7 @@ async function fetchPrivacyEnabled() {
   color: var(--text);
   padding: 0.35rem 0.6rem;
   border-radius: 8px;
+  min-height: 34px;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
