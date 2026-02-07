@@ -7,6 +7,7 @@ import { adminFetch } from '../utils/adminApi'
 const props = defineProps({ defaultSubTab: { type: String, default: 'send' } })
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
+const currentUser = ref(JSON.parse(localStorage.getItem('admin_user') || sessionStorage.getItem('admin_user') || 'null'))
 const templates = ref([])
 const reservations = ref([])
 const waitlist = ref([])
@@ -27,7 +28,10 @@ const form = reactive({
 })
 
 const templateForm = reactive({ name: '', subject: '', body: '', type: 'generic' })
-const canManageTemplates = computed(() => routePrefix.value === 'admin')
+const userRole = computed(() => currentUser.value?.role?.toLowerCase?.() || '')
+const canManageTemplates = computed(() =>
+  routePrefix.value === 'admin' || userRole.value === 'admin' || userRole.value === 'superadmin'
+)
 
 const templateColumns = [
   { key: 'id', label: 'ID', sortable: true },
@@ -195,6 +199,11 @@ function customList() {
 
 onMounted(() => {
   window.addEventListener('api-key-updated', handleKeyUpdate)
+  if ((userRole.value === 'admin' || userRole.value === 'superadmin') && routePrefix.value !== 'admin') {
+    // Ensure elevated users use the admin routes so template write actions are allowed
+    routePrefix.value = 'admin'
+    localStorage.setItem('admin_route_prefix', 'admin')
+  }
   if (apiKey.value) {
     loadAll()
   }
