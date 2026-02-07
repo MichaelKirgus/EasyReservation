@@ -134,6 +134,14 @@ onUnmounted(() => {
   if (themeObserver) themeObserver.disconnect()
 })
 
+const cachedLoadingImage = ref('')
+try { cachedLoadingImage.value = localStorage.getItem('reservation_loading_image') || '' } catch (_) { cachedLoadingImage.value = '' }
+
+const loadingImageUrl = computed(() => {
+  const url = config.settings?.reservation_loading_image || cachedLoadingImage.value
+  return url ? mediaUrl(url) : ''
+})
+
 
 async function loadConfig() {
   loading.value = true
@@ -144,6 +152,15 @@ async function loadConfig() {
     config.attendees = data.attendees || []
     config.waitlist = data.waitlist_entries || []
     config.stats = data.stats || { count: 0, max: 0 }
+    try {
+      const loadingImg = config.settings.reservation_loading_image || ''
+      cachedLoadingImage.value = loadingImg
+      if (loadingImg) {
+        localStorage.setItem('reservation_loading_image', loadingImg)
+      } else {
+        localStorage.removeItem('reservation_loading_image')
+      }
+    } catch (_) {}
     localStorage.setItem('site_token', siteToken.value || '')
     applySiteBranding(config.settings, { mediaBase, fallbackTitle: 'Reservierung' })
     // applyBackgroundImage entfernt, da jetzt Composable genutzt wird
@@ -194,11 +211,6 @@ const gdprButtonStyle = computed(() => ({
   '--btn-ghost-bg': themedValue('gdpr_button_backgroundcolor_light', 'gdpr_button_backgroundcolor_dark', 'gdpr_button_backgroundcolor', '#2563eb'),
   '--btn-ghost-border': themedValue('gdpr_button_border_color_light', 'gdpr_button_border_color_dark', 'gdpr_button_border_color', '#2563eb'),
 }))
-
-const loadingImageUrl = computed(() => {
-  const url = config.settings?.reservation_loading_image
-  return url ? mediaUrl(url) : ''
-})
 
 function mediaUrl(val) {
   if (!val) return ''
@@ -477,7 +489,7 @@ function goToGDPR() {
   <div class="page" :style="backgroundStyle">
     <div class="backdrop">
       <div v-if="loading" class="loading-overlay" aria-live="polite" aria-busy="true">
-        <img v-if="loadingImageUrl.value" :src="loadingImageUrl.value" alt="Loading" class="loader-image" />
+        <img v-if="loadingImageUrl" :src="loadingImageUrl" alt="Loading" class="loader-image" />
         <div v-else class="loader-spinner" aria-hidden="true"></div>
       </div>
       <div v-if="message" class="message" v-html="message"></div>
@@ -489,7 +501,6 @@ function goToGDPR() {
           <button @click="() => { message = ''; error = '' }">{{ tr('modal_close', 'OK') }}</button>
         </div>
       </div>
-    <div>{{ loadingImageUrl.value }}</div>
       <section class="card" :style="cardStyle">
         <div class="button-row">
             <div v-if="Number(config.settings.show_faq_button_landing_enabled) === 1">
@@ -626,20 +637,21 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .details div { padding-top: 0.5rem; text-align: left; }
 .top-image { text-align: center; margin-bottom: 0.75rem; }
 .top-image img { max-width: 100%; max-height: 240px; object-fit: contain; }
-.modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.5); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.65); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem; }
 .modal {
-  background: var(--surface);
+  background: var(--app-card-bg, var(--surface));
+  color: var(--text);
   border-radius: 10px;
   padding: 1rem;
   max-width: 420px;
   width: 100%;
   box-shadow: 0 20px 50px var(--shadow);
+  border: 1px solid var(--border-strong);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   max-height: 80vh;
   overflow: auto;
-  color: var(--text);
 }
 .modal-text { margin: 0; font-size: 1rem; }
 .top-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }

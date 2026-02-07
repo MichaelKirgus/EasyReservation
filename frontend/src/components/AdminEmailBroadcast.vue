@@ -389,21 +389,21 @@ watch(() => props.defaultSubTab, (val) => {
 .stack { display: flex; flex-direction: column; gap: 0.75rem; }
 .top-bar { display: flex; justify-content: space-between; align-items: center; }
 .left-actions { display: flex; gap: 0.5rem; }
-.card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.75rem; background: #fff; display: flex; flex-direction: column; gap: 0.75rem; }
+.card { border: 1px solid var(--border-strong); border-radius: 8px; padding: 0.75rem; background: var(--app-card-bg, var(--surface)); color: var(--text); box-shadow: 0 6px 18px var(--shadow); display: flex; flex-direction: column; gap: 0.75rem; }
 .card-header { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.5rem; align-items: center; }
-label { display: flex; flex-direction: column; gap: 0.25rem; font-weight: 600; }
+label { display: flex; flex-direction: column; gap: 0.25rem; font-weight: 600; color: var(--text); }
 label.inline { flex-direction: row; align-items: center; font-weight: 500; }
-select, input, button { font: inherit; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; }
-button { background: #2563eb; color: #fff; cursor: pointer; }
-button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
+select, input, button { font: inherit; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
+button { background: var(--primary); color: var(--primary-contrast); cursor: pointer; }
+button.ghost { background: var(--surface-strong); color: var(--primary); border-color: var(--border-strong); }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
-.message { color: #065f46; background: #ecfdf3; border: 1px solid #a7f3d0; padding: 0.5rem; border-radius: 6px; }
-.error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; padding: 0.5rem; border-radius: 6px; }
+.message { color: var(--success-text); background: var(--success-bg); border: 1px solid var(--success-border); padding: 0.5rem; border-radius: 6px; }
+.error { color: var(--error-text); background: var(--error-bg); border: 1px solid var(--error-border); padding: 0.5rem; border-radius: 6px; }
 .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.35rem; }
-.mode-option { flex-direction: row; align-items: center; gap: 0.35rem; font-weight: 500; border: 1px solid #e5e7eb; padding: 0.5rem; border-radius: 6px; background: #f8fafc; }
+.mode-option { flex-direction: row; align-items: center; gap: 0.35rem; font-weight: 500; border: 1px solid var(--border-strong); padding: 0.5rem; border-radius: 6px; background: var(--surface-muted); color: var(--text); }
 .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; }
-.list { display: flex; flex-direction: column; gap: 0.35rem; max-height: 300px; overflow: auto; padding: 0.25rem; border: 1px solid #e5e7eb; border-radius: 6px; }
+.list { display: flex; flex-direction: column; gap: 0.35rem; max-height: 300px; overflow: auto; padding: 0.25rem; border: 1px solid var(--border-strong); border-radius: 6px; }
 .row { display: flex; flex-direction: row; align-items: center; gap: 0.4rem; font-weight: 400; }
 .inline-fields { display: flex; flex-direction: column; gap: 0.35rem; }
 .inline-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.35rem; }
@@ -412,17 +412,17 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .template-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.25rem; }
 .hint { color: #6b7280; font-size: 0.9rem; }
 .subtabs { display: flex; gap: 0.35rem; margin: 0.25rem 0; }
-.subtab { padding: 0.45rem 0.7rem; border: 1px solid #d1d5db; background: #f8fafc; border-radius: 6px; cursor: pointer; color: #0f172a; }
-.subtab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+.subtab { padding: 0.45rem 0.7rem; border: 1px solid var(--border); background: var(--surface-muted); border-radius: 6px; cursor: pointer; color: var(--text); }
+.subtab.active { background: var(--primary); color: var(--primary-contrast); border-color: var(--primary); }
 .body-input { width: 100%; min-height: 120px; resize: vertical; }
-.placeholder-info { font-size: 0.9rem; color: #475569; }
-.placeholder-info summary { cursor: pointer; color: #2563eb; font-weight: 600; }
+.placeholder-info { font-size: 0.9rem; color: var(--text-muted); }
+.placeholder-info summary { cursor: pointer; color: var(--primary); font-weight: 600; }
 .placeholder-list { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.35rem; }
-.placeholder-list code { background: #f3f4f6; padding: 0.2rem 0.35rem; border-radius: 4px; }
+.placeholder-list code { background: var(--surface-muted); color: var(--text); padding: 0.2rem 0.35rem; border-radius: 4px; border: 1px solid var(--border); }
 .with-placeholder-icon { position: relative; display: flex; align-items: center; gap: 0.35rem; width: 100%; }
 .input-wrap { position: relative; display: flex; align-items: center; gap: 0.35rem; width: 100%; }
 .input-wrap input, .input-wrap textarea { flex: 1; width: 100%; }
-.placeholder-indicator { color: #2563eb; font-size: 0.9rem; cursor: help; }
+.placeholder-indicator { color: var(--primary); font-size: 0.9rem; cursor: help; }
 :deep(.table td input), :deep(.table td textarea) { width: 100%; max-width: 100%; box-sizing: border-box; }
 :deep(.table td textarea) { min-height: 120px; }
 </style>

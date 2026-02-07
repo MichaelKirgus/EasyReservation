@@ -16,6 +16,12 @@ const { tr, fetchTranslations } = useTranslation()
 // Reaktives Objekt für App-Einstellungen
 const appSettings = reactive({ clear_localstorage_on_logout: false })
 
+function mediaUrl(val) {
+  if (!val) return ''
+  if (val.startsWith('http://') || val.startsWith('https://')) return val
+  return `${mediaBase}${val.startsWith('/') ? '' : '/'}${val}`
+}
+
 // Lädt App-Einstellungen von der API und speichert sie in appSettings
 async function fetchAppSettings() {
   try {
@@ -23,13 +29,23 @@ async function fetchAppSettings() {
     Object.keys(data).forEach(key => {
       appSettings[key] = data[key]
     })
-    applySiteBranding(data.settings || data, { mediaBase: getMediaBaseFallback(), fallbackTitle: 'EasyReservation' })
+    applySiteBranding(data.settings || data, { mediaBase, fallbackTitle: 'EasyReservation' })
+    try {
+      const loadingImg = (data.settings || data)?.reservation_loading_image || ''
+      cachedLoadingImage.value = loadingImg
+      if (loadingImg) {
+        localStorage.setItem('reservation_loading_image', loadingImg)
+      } else {
+        localStorage.removeItem('reservation_loading_image')
+      }
+    } catch (_) {}
   } catch (e) {
     // Fehler ignorieren, Standardwerte bleiben erhalten
   }
 }
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
+const mediaBase = getMediaBaseFallback()
 const router = useRouter()
 const selectedLang = ref('de')
 const langMenuOpen = ref(false)
@@ -37,7 +53,15 @@ const showMobileMenu = ref(false)
 const globalLoading = ref(false)
 const privacyEnabled = ref(false)
 const faqEnabled = ref(false)
-const privacyLoaded = ref(false)
+// Default to true so the top bar renders even before config fetch completes
+const privacyLoaded = ref(true)
+const cachedLoadingImage = ref('')
+try { cachedLoadingImage.value = localStorage.getItem('reservation_loading_image') || '' } catch (_) { cachedLoadingImage.value = '' }
+
+const loadingImageUrl = computed(() => {
+  const url = (appSettings.settings || appSettings)?.reservation_loading_image || cachedLoadingImage.value
+  return url ? mediaUrl(url) : ''
+})
 
 // Theme handling
 const storedTheme = (() => {
@@ -499,7 +523,8 @@ async function fetchPrivacyEnabled() {
 
     <section class="panel">
       <div v-if="globalLoading || loadingAuth" class="loading-overlay" aria-busy="true" aria-live="polite">
-        <div class="loader-spinner" aria-hidden="true"></div>
+        <img v-if="loadingImageUrl" :src="loadingImageUrl" alt="Loading" class="loader-image" />
+        <div v-else class="loader-spinner" aria-hidden="true"></div>
       </div>
       <router-view :lang-code="selectedLang" />
     </section>
@@ -848,7 +873,7 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.35);
+  background: rgba(15, 23, 42, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -857,11 +882,13 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
 }
 
 .modal {
-  background: var(--surface);
+  background: var(--app-card-bg, var(--surface));
+  color: var(--text);
   border-radius: 12px;
   padding: 1rem;
   width: min(420px, 100%);
   box-shadow: 0 20px 50px var(--shadow);
+  border: 1px solid var(--border-strong);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -961,6 +988,7 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
   background: var(--surface-muted);
 }
 .loading-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; z-index: 15; border-radius: 10px; }
+.loader-image { width: 64px; height: 64px; animation: spin 1s linear infinite; object-fit: contain; }
 .loader-spinner { width: 48px; height: 48px; border: 4px solid var(--border-strong); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 

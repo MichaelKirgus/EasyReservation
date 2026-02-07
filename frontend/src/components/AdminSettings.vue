@@ -517,8 +517,8 @@ hint { font-size: 0.9rem; color: #6b7280; font-weight: 400; }
 .image-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .image-input img { max-width: 100%; max-height: 120px; object-fit: contain; border: 1px solid #e5e7eb; border-radius: 6px; background: #f8fafc; }
 .image-input .filename { font-size: 0.9rem; color: #4b5563; }
-.modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.35); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 40; }
-.modal { background: #fff; border-radius: 12px; padding: 1rem; width: min(720px, 100%); box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2); display: flex; flex-direction: column; gap: 0.75rem; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.6); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 40; }
+.modal { background: var(--app-card-bg, var(--surface)); color: var(--text); border-radius: 12px; padding: 1rem; width: min(720px, 100%); box-shadow: 0 20px 50px var(--shadow); border: 1px solid var(--border-strong); display: flex; flex-direction: column; gap: 0.75rem; }
 .thumb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; }
 .thumb { border: 1px solid #e5e7eb; background: #fff; border-radius: 8px; padding: 0.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.35rem; cursor: pointer; }
 .thumb img { width: 100%; height: 100px; object-fit: contain; background: #f8fafc; border-radius: 6px; }
