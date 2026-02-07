@@ -7,6 +7,7 @@ import languageIconSrc from './assets/icons/languageicon.svg'
 import IconButton from './components/IconButton.vue'
 import api from './api'
 import { useTranslation } from './composables/useTranslation'
+import { applySiteBranding, getMediaBaseFallback } from './utils/siteBranding'
 
 // Use the global translation system
 const { tr, fetchTranslations } = useTranslation()
@@ -19,10 +20,10 @@ const appSettings = reactive({ clear_localstorage_on_logout: false })
 async function fetchAppSettings() {
   try {
     const { data } = await api.get('/public/config')
-    // Übertrage alle Properties in appSettings
     Object.keys(data).forEach(key => {
       appSettings[key] = data[key]
     })
+    applySiteBranding(data.settings || data, { mediaBase: getMediaBaseFallback(), fallbackTitle: 'EasyReservation' })
   } catch (e) {
     // Fehler ignorieren, Standardwerte bleiben erhalten
   }
