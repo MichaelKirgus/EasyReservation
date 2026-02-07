@@ -71,9 +71,9 @@ const classes = computed(() => ['icon-btn', `variant-${props.variant}`, `size-${
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #d1d5db;
-  background: #2563eb;
-  color: #fff;
+  border: 1px solid var(--border-strong);
+  background: var(--primary);
+  color: var(--primary-contrast);
   cursor: pointer;
   border-radius: 10px;
   padding: 0.45rem;
@@ -88,14 +88,14 @@ const classes = computed(() => ['icon-btn', `variant-${props.variant}`, `size-${
   cursor: not-allowed;
 }
 .icon-btn.variant-ghost {
-  background: transparent;
-  color: #2563eb;
-  border: 1px solid #d1d5db;
+  background: var(--surface-strong);
+  color: var(--primary);
+  border: 1px solid var(--border-strong);
 }
 .icon-btn.variant-primary {
-  background: #2563eb;
-  color: #fff;
-  border: 1px solid #2563eb;
+  background: var(--primary);
+  color: var(--primary-contrast);
+  border: 1px solid var(--primary);
 }
 .icon-btn.size-sm {
   min-width: 28px;
@@ -116,13 +116,13 @@ const classes = computed(() => ['icon-btn', `variant-${props.variant}`, `size-${
   font-size: 1.25rem;
 }
 .icon-btn:focus {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--focus, var(--primary));
   outline-offset: 2px;
 }
 .icon-btn:active {
   filter: brightness(0.95);
 }
-.icon-btn.variant-ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
+.icon-btn.variant-ghost { background: var(--surface-strong); color: var(--primary); border-color: var(--border-strong); }
 .icon-btn.variant-danger { background: #dc2626; color: #fff; border-color: #b91c1c; }
 .icon-btn.variant-success {background: #22c55e; color: #fff; border-color: #16a34a; }
 .icon-btn:disabled { opacity: 0.6; cursor: not-allowed; }

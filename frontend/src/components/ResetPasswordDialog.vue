@@ -56,8 +56,8 @@ watch(() => props.loading, l => {
 </script>
 
 <style scoped>
-.modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.35); display: flex; align-items: center; justify-content: center; z-index: 100; }
-.modal { background: #fff; border-radius: 12px; padding: 1.5rem; min-width: 320px; max-width: 95vw; box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2); }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+.modal { background: var(--app-card-bg, var(--surface)); color: var(--text); border-radius: 12px; padding: 1.5rem; min-width: 320px; max-width: 95vw; border: 1px solid var(--border-strong); box-shadow: 0 20px 50px var(--shadow); }
 .actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
-.error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; padding: 0.5rem; border-radius: 6px; margin-top: 0.5rem; }
+.error { color: var(--error-text); background: var(--error-bg); border: 1px solid var(--error-border); padding: 0.5rem; border-radius: 6px; margin-top: 0.5rem; }
 </style>

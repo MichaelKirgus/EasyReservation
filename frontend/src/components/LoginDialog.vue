@@ -64,7 +64,7 @@ function handleLogin() {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.35);
+  background: rgba(15, 23, 42, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -72,11 +72,13 @@ function handleLogin() {
   z-index: 20;
 }
 .modal {
-  background: #fff;
+  background: var(--app-card-bg, var(--surface));
+  color: var(--text);
   border-radius: 12px;
   padding: 1rem;
   width: min(420px, 100%);
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 20px 50px var(--shadow);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -97,7 +99,7 @@ function handleLogin() {
   font-size: 1.08rem;
   padding: 0.65rem 0.75rem;
   border-radius: 8px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border);
   box-sizing: border-box;
 }
 .modal .checkbox {
@@ -124,9 +126,9 @@ function handleLogin() {
   z-index: 2;
 }
 .error {
-  color: #991b1b;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  color: var(--error-text);
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
   padding: 0.5rem;
   border-radius: 6px;
 }

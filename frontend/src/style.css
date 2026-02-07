@@ -1,13 +1,130 @@
+:root {
+  color-scheme: light;
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f9;
+  --surface-strong: #e0e7ff;
+  --card-light: rgba(255, 255, 255, 0.9);
+  --text-light: #0f172a;
+  --card: var(--card-light);
+  --text: var(--text-light);
+  --text-muted: #475569;
+  --border: #d1d5db;
+  --border-strong: #e5e7eb;
+  --primary: #2563eb;
+  --primary-contrast: #ffffff;
+  --focus: #93c5fd;
+  --shadow: rgba(15, 23, 42, 0.06);
+  --app-bg-light: var(--bg);
+  --app-bg-dark: var(--bg);
+  --app-bg-current: var(--app-bg-light);
+  --app-card-bg-light: var(--card-light);
+  --app-card-bg: var(--app-card-bg-light, var(--card-light));
+  --success-bg: #d1fae5;
+  --success-border: #34d399;
+  --success-text: #0f5132;
+  --error-bg: #fee2e2;
+  --error-border: #fecaca;
+  --error-text: #b91c1c;
+  --icon-filter: none;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f172a;
+  --surface: #111827;
+  --surface-muted: #1f2937;
+  --surface-strong: #1e293b;
+  --card-dark: rgba(30, 41, 59, 0.9);
+  --text-dark: #e2e8f0;
+  --card: var(--card-dark);
+  --text: var(--text-dark);
+  --text-muted: #94a3b8;
+  --border: #1f2937;
+  --border-strong: #273548;
+  --primary: #60a5fa;
+  --primary-contrast: #0b1220;
+  --focus: #3b82f6;
+  --shadow: rgba(0, 0, 0, 0.4);
+  --app-bg-current: var(--app-bg-dark, var(--bg));
+  --app-card-bg-dark: var(--card-dark);
+  --app-card-bg: var(--app-card-bg-dark, var(--card-dark));
+  --success-bg: #0f5132;
+  --success-border: #34d399;
+  --success-text: #d1fae5;
+  --error-bg: #7f1d1d;
+  --error-border: #fca5a5;
+  --error-text: #fee2e2;
+  --icon-filter: invert(1);
+}
+
 body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
-  background: var(--app-bg, #f5f7fb);
+  background: var(--app-bg-current, var(--bg));
   background-size: var(--app-bg-size, cover);
   background-position: var(--app-bg-position, center);
   background-repeat: var(--app-bg-repeat, no-repeat);
   background-attachment: var(--app-bg-attachment, fixed);
-  --app-card-bg: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+}
+
+/* Global theme overrides for common UI elements (keeps scoped components consistent) */
+.card {
+  background: var(--app-card-bg, var(--card)) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border-strong) !important;
+  box-shadow: 0 4px 14px var(--shadow) !important;
+}
+
+.message {
+  color: var(--success-text) !important;
+  background: var(--success-bg) !important;
+  border: 1px solid var(--success-border) !important;
+}
+
+.error {
+  color: var(--error-text) !important;
+  background: var(--error-bg) !important;
+  border: 1px solid var(--error-border) !important;
+}
+
+.hint, .muted, .placeholder-info, .label {
+  color: var(--text-muted) !important;
+}
+
+button {
+  background: var(--btn-bg, var(--primary)) !important;
+  color: var(--btn-color, var(--primary-contrast)) !important;
+  border: 1px solid var(--btn-border, var(--border)) !important;
+}
+
+button.ghost,
+.variant-ghost,
+.icon-btn.variant-ghost {
+  background: var(--btn-ghost-bg, var(--surface-strong)) !important;
+  color: var(--btn-ghost-color, var(--primary)) !important;
+  border-color: var(--btn-ghost-border, var(--border-strong)) !important;
+}
+
+button.danger,
+.icon-btn.variant-danger {
+  background: #dc2626 !important;
+  color: #fff !important;
+  border-color: #b91c1c !important;
+}
+
+input,
+select,
+textarea {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+}
+
+details summary {
+  color: var(--text) !important;
 }
 
 #app {

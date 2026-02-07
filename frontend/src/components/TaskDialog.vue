@@ -367,10 +367,13 @@ function submit() {
 
 <style scoped>
 .task-dialog {
-  background: #fff;
-  border: 1px solid #ccc;
-  padding: 1em;
+  background: var(--app-card-bg, var(--surface));
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  padding: 1.25em;
   max-width: 400px;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px var(--shadow);
 }
 .task-dialog label {
   display: block;
@@ -379,30 +382,8 @@ function submit() {
 .task-dialog input, .task-dialog textarea {
   width: 100%;
 }
-button.primary {
-  background: #2563eb;
-  color: #fff;
-  border: 1px solid #2563eb;
-  border-radius: 6px;
-  padding: 0.5em 1.1em;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-button.primary:hover {
-  background: #1d4ed8;
-}
-button.ghost {
-  background: #eef2ff;
-  color: #1d4ed8;
-  border: 1px solid #c7d2fe;
-  border-radius: 6px;
-  padding: 0.5em 1.1em;
-  font-weight: 600;
-  cursor: pointer;
-}
 span.help-inline {
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 0.95em;
   margin-left: 0.5em;
 }

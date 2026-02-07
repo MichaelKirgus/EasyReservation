@@ -100,16 +100,16 @@ function goBack() {
 </template>
 
 <style scoped>
-.faq-page { display: flex; flex-direction: column; gap: 0.5rem; }
+.faq-page { display: flex; flex-direction: column; gap: 0.5rem; color: var(--text); }
 .top-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
-h2 { margin: 0; }
-.hint { color: #6b7280; }
-.error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; padding: 0.5rem; border-radius: 6px; }
+h2 { margin: 0; color: var(--text); }
+.hint { color: var(--text-muted); }
+.error { color: var(--error-text); background: var(--error-bg); border: 1px solid var(--error-border); padding: 0.5rem; border-radius: 6px; }
 .faq-list { display: flex; flex-direction: column; gap: 0.5rem; }
-.faq-item { border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.65rem 0.75rem; background: #fff; }
-summary { font-weight: 700; cursor: pointer; }
+.faq-item { border: 1px solid var(--border-strong); border-radius: 8px; padding: 0.65rem 0.75rem; background: var(--app-card-bg, var(--card)); color: var(--text); }
+summary { font-weight: 700; cursor: pointer; color: var(--text); }
 summary::-webkit-details-marker { display: none; }
 details[open] summary { margin-bottom: 0.35rem; }
-div[v-html] { color: #0f172a; }
-button.ghost { background: #eef2ff; color: #1d4ed8; border: 1px solid #c7d2fe; padding: 0.35rem 0.6rem; border-radius: 6px; cursor: pointer; }
+div[v-html] { color: var(--text); }
+button.ghost { background: var(--surface-strong); color: var(--primary); border: 1px solid var(--border-strong); padding: 0.35rem 0.6rem; border-radius: 6px; cursor: pointer; }
 </style>

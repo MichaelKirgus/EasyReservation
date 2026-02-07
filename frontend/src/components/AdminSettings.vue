@@ -123,24 +123,46 @@ const tabFieldMap = {
     'reservation_top_image_max_height',
     'reservation_page_background_image',
     'reservation_background_opacity',
+    'reservation_background_opacity_light',
+    'reservation_background_opacity_dark',
+    'reservation_background_brightness_light',
+    'reservation_background_brightness_dark',
     'reservation_card_opacity',
+    'reservation_card_opacity_light',
+    'reservation_card_opacity_dark',
+    'reservation_card_color_light',
+    'reservation_card_color_dark',
+    'reservation_text_color_light',
+    'reservation_text_color_dark',
     'reservation_page_favicon',
     'reservation_loading_image',
-    'reservation_button_color',
-    'reservation_button_backgroundcolor',
-    'reservation_button_border_color',
-    'reservation_undo_button_color',
-    'reservation_undo_button_backgroundcolor',
-    'reservation_undo_button_border_color',
+    'reservation_button_color_light',
+    'reservation_button_color_dark',
+    'reservation_button_backgroundcolor_light',
+    'reservation_button_backgroundcolor_dark',
+    'reservation_button_border_color_light',
+    'reservation_button_border_color_dark',
+    'reservation_undo_button_color_light',
+    'reservation_undo_button_color_dark',
+    'reservation_undo_button_backgroundcolor_light',
+    'reservation_undo_button_backgroundcolor_dark',
+    'reservation_undo_button_border_color_light',
+    'reservation_undo_button_border_color_dark',
     'show_faq_button_landing_enabled',
     'show_gdpr_button_landing_enabled',
     'show_project_footer',
-    'faq_button_color',
-    'faq_button_backgroundcolor',
-    'faq_button_border_color',
-    'gdpr_button_color',
-    'gdpr_button_backgroundcolor',
-    'gdpr_button_border_color',
+    'faq_button_color_light',
+    'faq_button_color_dark',
+    'faq_button_backgroundcolor_light',
+    'faq_button_backgroundcolor_dark',
+    'faq_button_border_color_light',
+    'faq_button_border_color_dark',
+    'gdpr_button_color_light',
+    'gdpr_button_color_dark',
+    'gdpr_button_backgroundcolor_light',
+    'gdpr_button_backgroundcolor_dark',
+    'gdpr_button_border_color_light',
+    'gdpr_button_border_color_dark',
     'reservation_custom_css',
     'reservation_header_align',
     'waitlist_public_align',
@@ -473,8 +495,8 @@ watch(() => props.langCode, () => fetchTranslations())
 .tab { padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; background: #f8fafc; border-radius: 8px; cursor: pointer; color: #0f172a; }
 .tab.active { background: #2563eb; color: #fff; border-color: #1d4ed8; }
 .groups { display: flex; flex-direction: column; gap: 1rem; }
-.group { border: 1px solid #e5e7eb; border-radius: 10px; padding: 1rem; background: #fff; box-shadow: 0 4px 14px rgba(15,23,42,0.05); display: flex; flex-direction: column; gap: 0.5rem; }
-.group h3 { margin: 0 0 0.25rem; font-size: 1.05rem; color: #0f172a; }
+.group { border: 1px solid var(--border-strong); border-radius: 10px; padding: 1rem; background: var(--app-card-bg, var(--surface)); box-shadow: 0 4px 14px var(--shadow); display: flex; flex-direction: column; gap: 0.5rem; color: var(--text); }
+.group h3 { margin: 0 0 0.25rem; font-size: 1.05rem; color: var(--text); }
 label.field { display: flex; flex-direction: column; gap: 0.25rem; font-weight: 600; }
 .field-header { display: flex; align-items: center; gap: 0.35rem; }
 .placeholder-indicator { color: #2563eb; font-size: 0.9rem; cursor: help; }
@@ -505,5 +527,5 @@ hint { font-size: 0.9rem; color: #6b7280; font-weight: 400; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
 .placeholder-info { cursor: pointer; }
 .placeholder-list { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.35rem; }
-.placeholder-list code { background: #f3f4f6; padding: 0.2rem 0.35rem; border-radius: 4px; }
+.placeholder-list code { background: var(--surface-muted); color: var(--text); padding: 0.2rem 0.35rem; border-radius: 4px; border: 1px solid var(--border); }
 </style>

@@ -131,11 +131,13 @@ function onSave() {
 
 <style scoped>
 .trigger-form {
-  background: #fff;
-  border-radius: 10px;
+  background: var(--app-card-bg, var(--surface));
+  color: var(--text);
+  border-radius: 12px;
   padding: 2em;
   margin: 1.5em 0;
-  box-shadow: 0 2px 8px #0001;
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 12px 30px var(--shadow);
   max-width: 600px;
 }
 label { display:block; margin:0.7em 0 0.2em; }

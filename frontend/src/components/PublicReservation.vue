@@ -29,6 +29,8 @@ const message = ref('')
 const error = ref('')
 const config = reactive({ settings: {}, form_fields: [], attendees: [], waitlist: [], stats: { count: 0, max: 0 } })
 const currentUser = ref(null)
+const theme = ref(document.documentElement?.dataset?.theme || 'light')
+let themeObserver = null
 
 // Use the global translation system
 const { tr, fetchTranslations } = useTranslation()
@@ -108,6 +110,12 @@ onMounted(async () => {
   } catch (err) {
     console.error('Failed to initialize translations:', err);
   }
+  // Keep local theme in sync with root data attribute
+  theme.value = document.documentElement?.dataset?.theme || theme.value
+  themeObserver = new MutationObserver(() => {
+    theme.value = document.documentElement?.dataset?.theme || 'light'
+  })
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
 })
 
 // Watch for language changes from props
@@ -121,6 +129,10 @@ watch(() => props.langCode, async (newLang) => {
     }
   }
 }, { immediate: true })
+
+onUnmounted(() => {
+  if (themeObserver) themeObserver.disconnect()
+})
 
 
 async function loadConfig() {
@@ -147,13 +159,41 @@ const backgroundStyle = computed(() => {
   return { minHeight: '100vh' }
 })
 
-const cardStyle = computed(() => {
-  const opacity = Math.min(100, Math.max(0, Number(config.settings?.reservation_card_opacity ?? 90)))
-  const alpha = opacity / 100
-  return {
-    backgroundColor: `rgba(255,255,255,${alpha})`
-  }
-})
+const cardStyle = computed(() => ({
+  backgroundColor: 'var(--app-card-bg, var(--card))',
+  color: 'var(--text)'
+}))
+
+function themedValue(lightKey, darkKey, fallbackKey, defaultVal) {
+  const s = config.settings || {}
+  const isDark = (theme.value || 'light') === 'dark'
+  if (isDark) return s[darkKey] ?? s[fallbackKey] ?? defaultVal
+  return s[lightKey] ?? s[fallbackKey] ?? defaultVal
+}
+
+const reservationButtonStyle = computed(() => ({
+  '--btn-color': themedValue('reservation_button_color_light', 'reservation_button_color_dark', 'reservation_button_color', 'white'),
+  '--btn-bg': themedValue('reservation_button_backgroundcolor_light', 'reservation_button_backgroundcolor_dark', 'reservation_button_backgroundcolor', '#2563eb'),
+  '--btn-border': themedValue('reservation_button_border_color_light', 'reservation_button_border_color_dark', 'reservation_button_border_color', '#2563eb'),
+}))
+
+const reservationUndoButtonStyle = computed(() => ({
+  '--btn-ghost-color': themedValue('reservation_undo_button_color_light', 'reservation_undo_button_color_dark', 'reservation_undo_button_color', 'white'),
+  '--btn-ghost-bg': themedValue('reservation_undo_button_backgroundcolor_light', 'reservation_undo_button_backgroundcolor_dark', 'reservation_undo_button_backgroundcolor', '#2563eb'),
+  '--btn-ghost-border': themedValue('reservation_undo_button_border_color_light', 'reservation_undo_button_border_color_dark', 'reservation_undo_button_border_color', '#2563eb'),
+}))
+
+const faqButtonStyle = computed(() => ({
+  '--btn-ghost-color': themedValue('faq_button_color_light', 'faq_button_color_dark', 'faq_button_color', 'white'),
+  '--btn-ghost-bg': themedValue('faq_button_backgroundcolor_light', 'faq_button_backgroundcolor_dark', 'faq_button_backgroundcolor', '#2563eb'),
+  '--btn-ghost-border': themedValue('faq_button_border_color_light', 'faq_button_border_color_dark', 'faq_button_border_color', '#2563eb'),
+}))
+
+const gdprButtonStyle = computed(() => ({
+  '--btn-ghost-color': themedValue('gdpr_button_color_light', 'gdpr_button_color_dark', 'gdpr_button_color', 'white'),
+  '--btn-ghost-bg': themedValue('gdpr_button_backgroundcolor_light', 'gdpr_button_backgroundcolor_dark', 'gdpr_button_backgroundcolor', '#2563eb'),
+  '--btn-ghost-border': themedValue('gdpr_button_border_color_light', 'gdpr_button_border_color_dark', 'gdpr_button_border_color', '#2563eb'),
+}))
 
 const loadingImageUrl = computed(() => {
   const url = config.settings?.reservation_loading_image
@@ -453,10 +493,10 @@ function goToGDPR() {
       <section class="card" :style="cardStyle">
         <div class="button-row">
             <div v-if="Number(config.settings.show_faq_button_landing_enabled) === 1">
-               <button type="button" class="ghost" @click="goToFaq" :style="{ color: config.settings.faq_button_color || 'white', backgroundColor: config.settings.faq_button_backgroundcolor || '#2563eb', borderColor: config.settings.faq_button_border_color || '#2563eb' }">{{ tr('faq_button_text_label', 'FAQ') }}</button>
+              <button type="button" class="ghost" @click="goToFaq" :style="faqButtonStyle">{{ tr('faq_button_text_label', 'FAQ') }}</button>
             </div>
             <div v-if="Number(config.settings.show_gdpr_button_landing_enabled) === 1">
-               <button type="button" class="ghost" @click="goToGDPR" :style="{ color: config.settings.gdpr_button_color || 'white', backgroundColor: config.settings.gdpr_button_backgroundcolor || '#2563eb', borderColor: config.settings.gdpr_button_border_color || '#2563eb' }">{{ tr('gdpr_button_text_label', 'Privacy') }}</button>
+              <button type="button" class="ghost" @click="goToGDPR" :style="gdprButtonStyle">{{ tr('gdpr_button_text_label', 'Privacy') }}</button>
             </div>
         </div>
         <div v-if="config.settings.reservation_top_image" class="top-image">
@@ -521,7 +561,7 @@ function goToGDPR() {
           <button
             type="submit"
             :disabled="loading || !reservationEnabled"
-            :style="{ color: config.settings.reservation_button_color || 'white', backgroundColor: config.settings.reservation_button_backgroundcolor || '#2563eb', borderColor: config.settings.reservation_button_border_color || '#2563eb' }"
+            :style="reservationButtonStyle"
           >
             {{ submitLabel }}
           </button>
@@ -531,7 +571,7 @@ function goToGDPR() {
             class="ghost"
             @click="undoReservation"
             :disabled="loading"
-            :style="{ color: config.settings.reservation_undo_button_color || 'white', backgroundColor: config.settings.reservation_undo_button_backgroundcolor || '#2563eb', borderColor: config.settings.reservation_undo_button_border_color || '#2563eb' }"
+            :style="reservationUndoButtonStyle"
           >
             {{ tr('button_remove_reservation', 'Remove reservation') }}
           </button>
@@ -568,19 +608,19 @@ function goToGDPR() {
 </template>
 
 <style scoped>
-.page { min-height: 100vh; width: 100%; box-sizing: border-box; }
+.page { min-height: 100vh; width: 100%; box-sizing: border-box; color: var(--text); }
 .backdrop { display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 1rem 1rem; max-width: 1080px; margin: 0 auto; }
 .stack { display: flex; flex-direction: column; gap: 1rem; }
-.card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 1rem; box-shadow: 0 4px 14px rgba(15,23,42,0.05); }
+.card { border: 1px solid var(--border-strong); border-radius: 10px; padding: 1rem; box-shadow: 0 4px 14px var(--shadow); background: var(--app-card-bg, var(--card)); color: var(--text); }
 .form { display: flex; flex-direction: column; gap: 0.75rem; }
-label { display: flex; flex-direction: column; gap: 0.25rem; font-weight: 600; color: #0f172a; }
-input, select, textarea, button { font: inherit; padding: 0.6rem; border: 1px solid #d1d5db; border-radius: 6px; width: 100%; box-sizing: border-box; }
-button { background: #2563eb; color: #fff; cursor: pointer; width: auto; }
+label { display: flex; flex-direction: column; gap: 0.25rem; font-weight: 600; color: var(--text); }
+input, select, textarea, button { font: inherit; padding: 0.6rem; border: 1px solid var(--border); border-radius: 6px; width: 100%; box-sizing: border-box; background: var(--surface); color: var(--text); }
+button { background: var(--primary); color: var(--primary-contrast); cursor: pointer; width: auto; }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
-.message { color: #065f46; background: #ecfdf3; border: 1px solid #a7f3d0; padding: 0.5rem; border-radius: 6px; }
-.error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; padding: 0.5rem; border-radius: 6px; }
-.hint { color: #6b7280; }
-.field { border-top: 1px solid #e5e7eb; padding-top: 0.5rem; }
+.message { color: var(--success-text); background: var(--success-bg); border: 1px solid var(--success-border); padding: 0.5rem; border-radius: 6px; }
+.error { color: var(--error-text); background: var(--error-bg); border: 1px solid var(--error-border); padding: 0.5rem; border-radius: 6px; }
+.hint { color: var(--text-muted); }
+.field { border-top: 1px solid var(--border-strong); padding-top: 0.5rem; }
 .details { margin: 0.5rem 0 1rem; }
 .details summary { cursor: pointer; font-weight: 600; }
 .details div { padding-top: 0.5rem; text-align: left; }
@@ -588,21 +628,22 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .top-image img { max-width: 100%; max-height: 240px; object-fit: contain; }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.5); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem; }
 .modal {
-  background: #fff;
+  background: var(--surface);
   border-radius: 10px;
   padding: 1rem;
   max-width: 420px;
   width: 100%;
-  box-shadow: 0 20px 50px rgba(15,23,42,0.2);
+  box-shadow: 0 20px 50px var(--shadow);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   max-height: 80vh;
   overflow: auto;
+  color: var(--text);
 }
 .modal-text { margin: 0; font-size: 1rem; }
 .top-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
-button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
+button.ghost { background: var(--surface-strong); color: var(--primary); border-color: var(--border-strong); }
 .button-row { display: flex; justify-content: flex-end; gap: 5px; }
 .title-row { display: flex; }
 
@@ -611,19 +652,19 @@ button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
   margin-top: 2rem;
   padding: 1rem 0;
   text-align: center;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 0.95rem;
   background: none;
 }
 .title-row.align-left { justify-content: flex-start; }
 .title-row.align-center { justify-content: center; text-align: center; }
 .title-row.align-right { justify-content: flex-end; text-align: right; }
-.next-event { margin: 0.25rem 0; font-weight: 600; color: #0f172a; }
+.next-event { margin: 0.25rem 0; font-weight: 600; color: var(--text); }
 .next-event-list { margin: 0.25rem 0 0.75rem; }
 .next-event-list ul { margin: 0.25rem 0 0; padding-left: 1.25rem; }
 .plain-list { list-style: none; padding-left: 0; margin: 0; }
-.loading-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.75); display: flex; align-items: center; justify-content: center; z-index: 60; }
+.loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; z-index: 60; }
 .loader-image { width: 64px; height: 64px; animation: spin 1s linear infinite; object-fit: contain; }
-.loader-spinner { width: 48px; height: 48px; border: 4px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; animation: spin 1s linear infinite; }
+.loader-spinner { width: 48px; height: 48px; border: 4px solid var(--border-strong); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>

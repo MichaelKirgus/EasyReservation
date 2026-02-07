@@ -1,6 +1,6 @@
 <script setup>
 
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import LoginDialog from './components/LoginDialog.vue'
 import languageIconSrc from './assets/icons/languageicon.svg'
@@ -38,6 +38,33 @@ const globalLoading = ref(false)
 const privacyEnabled = ref(false)
 const faqEnabled = ref(false)
 const privacyLoaded = ref(false)
+
+// Theme handling
+const storedTheme = (() => {
+  try { return localStorage.getItem('theme') || '' } catch (_) { return '' }
+})()
+const theme = ref(storedTheme || '')
+const hasExplicitTheme = ref(!!storedTheme)
+let prefersDarkQuery = null
+let handlePrefersChange = null
+
+function deriveSystemTheme() {
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+function applyTheme(val, persist = false) {
+  if (!val) return
+  const root = document.documentElement
+  root.dataset.theme = val
+  if (persist) {
+    try { localStorage.setItem('theme', val) } catch (_) {}
+  }
+}
+
+function toggleTheme() {
+  hasExplicitTheme.value = true
+  theme.value = theme.value === 'dark' ? 'light' : 'dark'
+}
 
 // Navigation-Konfiguration für Router-Links (defensiv, damit keine undefined-Gruppen entstehen)
 const navGroups = computed(() => {
@@ -139,6 +166,9 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', closeDropdown)
   document.removeEventListener('click', closeLangMenu)
   window.removeEventListener('resize', handleResize)
+  if (prefersDarkQuery && handlePrefersChange) {
+    prefersDarkQuery.removeEventListener('change', handlePrefersChange)
+  }
 })
 
 
@@ -284,6 +314,18 @@ function handleLoadingEnd() { globalLoading.value = false }
 
 
 onMounted(async () => {
+  prefersDarkQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  const initialTheme = theme.value || deriveSystemTheme()
+  theme.value = initialTheme
+  applyTheme(initialTheme, hasExplicitTheme.value)
+  handlePrefersChange = (event) => {
+    if (!hasExplicitTheme.value) {
+      theme.value = event.matches ? 'dark' : 'light'
+      applyTheme(theme.value, false)
+    }
+  }
+  prefersDarkQuery.addEventListener('change', handlePrefersChange)
+
   await fetchAppSettings();
   // Load available languages and language names from backend
   try {
@@ -309,6 +351,11 @@ onMounted(async () => {
   window.addEventListener('loading-end', handleLoadingEnd)
   window.addEventListener('settings-updated', fetchPrivacyEnabled)
   fetchPrivacyEnabled()
+})
+
+watch(theme, (val) => {
+  if (!val) return
+  applyTheme(val, hasExplicitTheme.value)
 })
 
 
@@ -409,6 +456,14 @@ async function fetchPrivacyEnabled() {
           </nav>
         </div>
         <div class="right-actions">
+          <button
+            class="theme-toggle"
+            @click="toggleTheme"
+            :aria-label="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+          >
+            <span class="theme-icon" aria-hidden="true">{{ theme === 'dark' ? '🌙' : '☀️' }}</span>
+            <span class="theme-label">{{ theme === 'dark' ? 'Dark' : 'Light' }}</span>
+          </button>
           <div class="lang-switch">
             <button class="lang-trigger" @click="langMenuOpen = !langMenuOpen" title="Sprache wechseln" aria-label="Sprache wechseln">
               <img class="lang-icon" :src="languageIconSrc" alt="Language" />
@@ -463,7 +518,7 @@ async function fetchPrivacyEnabled() {
 .page {
   min-height: 100vh;
   background: transparent;
-  color: #0f172a;
+  color: var(--text);
   font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   padding: 0;
 }
@@ -474,9 +529,9 @@ async function fetchPrivacyEnabled() {
   gap: 0.5rem;
   margin-bottom: 0.75rem;
   padding: 0.75rem 1rem;
-  background: var(--app-card-bg, rgba(255,255,255,0.9));
+  background: var(--app-card-bg, var(--card));
   backdrop-filter: blur(4px);
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-strong);
   position: relative;
   z-index: 30;
 }
@@ -492,11 +547,31 @@ async function fetchPrivacyEnabled() {
 .left-actions { flex: 1; display: flex; align-items: center; gap: 0.5rem; }
 .right-actions { display: flex; align-items: center; gap: 0.5rem; }
 
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-strong);
+  color: var(--text);
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  border-color: var(--primary);
+  color: var(--primary);
+  outline: none;
+}
+.theme-icon { font-size: 1rem; line-height: 1; }
+
 .menu-toggle {
   display: none;
-  border: 1px solid #d1d5db;
-  background: #fff !important;
-  color: #0f172a !important;
+  border: 1px solid var(--border);
+  background: var(--surface) !important;
+  color: var(--text) !important;
   padding: 0.45rem 0.55rem;
   border-radius: 6px;
   cursor: pointer;
@@ -507,7 +582,7 @@ async function fetchPrivacyEnabled() {
   display: block;
   width: 18px;
   height: 2px;
-  background: #0f172a;
+  background: var(--text);
   border-radius: 2px;
 }
 
@@ -532,8 +607,8 @@ async function fetchPrivacyEnabled() {
 
 .tab-group-label {
   font-weight: 700;
-  color: #1e293b;
-  background: #f1f5f9;
+  color: var(--text);
+  background: var(--surface-muted);
   border-radius: 6px 6px 0 0;
   padding: 0.25rem 0.7rem 0.15rem 0.7rem;
   font-size: 1rem;
@@ -561,15 +636,15 @@ async function fetchPrivacyEnabled() {
     user-select: none;
     position: relative;
     z-index: 21;
-    color: #1d4ed8;
-    background: #e0e7ff;
+    color: var(--primary);
+    background: var(--surface-strong);
     transition: background 0.15s, color 0.15s;
     box-shadow: 0 1px 4px rgba(37,99,235,0.04);
   }
   .tab-group-label.dropdown-trigger:hover,
   .tab-group-label.dropdown-trigger:focus {
-    background: #2563eb;
-    color: #fff;
+    background: var(--primary);
+    color: var(--primary-contrast);
     outline: none;
   }
   .tab-group-tabs.dropdown {
@@ -580,7 +655,7 @@ async function fetchPrivacyEnabled() {
     min-width: 220px;
     width: auto;
     background: transparent;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border-strong);
     border-radius: 10px;
     box-shadow: 0 8px 24px rgba(15,23,42,0.12);
     flex-direction: column;
@@ -590,13 +665,13 @@ async function fetchPrivacyEnabled() {
     overflow: visible;
   }
   .tab-group-tabs.dropdown .tab {
-    background: #fff;
+    background: var(--surface);
     border-radius: 0;
     position: relative;
     z-index: 1;
   }
   .tab-group-tabs.dropdown .tab {
-    background: #fff;
+    background: var(--surface);
     border-radius: 0;
   }
   .tab-group-tabs.dropdown .tab {
@@ -612,9 +687,9 @@ async function fetchPrivacyEnabled() {
     border-left: none;
     border-right: none;
     border-top: none;
-    border-bottom: 1px solid #e5e7eb;
-    background: #fff;
-    color: #0f172a;
+    border-bottom: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
     text-align: left;
     font-size: 1rem;
     padding: 0.5rem 1.2rem;
@@ -639,8 +714,8 @@ async function fetchPrivacyEnabled() {
   .tab-group-tabs.dropdown .tab:hover,
   .tab-group-tabs.dropdown .tab:focus,
   .tab-group-tabs.dropdown .tab.active {
-    background: #2563eb;
-    color: #fff;
+    background: var(--primary);
+    color: var(--primary-contrast);
     outline: none;
     z-index: 2;
   }
@@ -659,13 +734,13 @@ async function fetchPrivacyEnabled() {
 }
 
 .tab {
-  border: 1px solid #d1d5db;
-  background: #fff;
+  border: 1px solid var(--border);
+  background: var(--surface);
   padding: 0.35rem 0.7rem;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
-  color: #0f172a;
+  color: var(--text);
   text-align: left;
   font-size: 1rem;
   display: block;
@@ -674,9 +749,9 @@ async function fetchPrivacyEnabled() {
 }
 
 .tab.active {
-  background: #2563eb;
-  color: #fff;
-  border-color: #2563eb;
+  background: var(--primary);
+  color: var(--primary-contrast);
+  border-color: var(--primary);
   box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
 }
 .right-actions {
@@ -711,7 +786,7 @@ async function fetchPrivacyEnabled() {
     left: 0;
     right: 0;
     top: 100%;
-    background: #fff;
+    background: var(--surface);
     box-shadow: 0 8px 24px rgba(15,23,42,0.12);
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
@@ -728,7 +803,7 @@ async function fetchPrivacyEnabled() {
   .tab-group-label {
     width: 100%;
     border-radius: 6px 6px 0 0;
-    background: #f1f5f9;
+    background: var(--surface-muted);
     margin-bottom: 0.1rem;
     padding: 0.22rem 0.7rem 0.12rem 0.7rem;
   }
@@ -747,11 +822,11 @@ async function fetchPrivacyEnabled() {
 }
 
 .panel {
-  background: var(--app-card-bg, rgba(255,255,255,0.9));
-  border: 1px solid #e5e7eb;
+  background: var(--app-card-bg, var(--card));
+  border: 1px solid var(--border-strong);
   border-radius: 10px;
   padding: 1.25rem;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 10px 30px var(--shadow);
   margin: 0 1rem 1rem;
   position: relative;
 }
@@ -759,16 +834,16 @@ async function fetchPrivacyEnabled() {
 input, button {
   font: inherit;
   padding: 0.5rem 0.65rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border);
   border-radius: 6px;
 }
 
-button { background: #2563eb; color: #fff; cursor: pointer; }
+button { background: var(--primary); color: var(--primary-contrast); cursor: pointer; }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
-button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
+button.ghost { background: var(--surface-strong); color: var(--primary); border-color: var(--border-strong); }
 
-.message { color: #065f46; background: #ecfdf3; border: 1px solid #a7f3d0; padding: 0.5rem; border-radius: 6px; }
-.error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; padding: 0.5rem; border-radius: 6px; }
+.message { color: var(--success-text); background: var(--success-bg); border: 1px solid var(--success-border); padding: 0.5rem; border-radius: 6px; }
+.error { color: var(--error-text); background: var(--error-bg); border: 1px solid var(--error-border); padding: 0.5rem; border-radius: 6px; }
 
 .modal-backdrop {
   position: fixed;
@@ -782,11 +857,11 @@ button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
 }
 
 .modal {
-  background: #fff;
+  background: var(--surface);
   border-radius: 12px;
   padding: 1rem;
   width: min(420px, 100%);
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+  box-shadow: 0 20px 50px var(--shadow);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -824,21 +899,22 @@ button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  border: 1px solid #cbd5e1;
-  background: #fff;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-strong);
   padding: 0.35rem 0.55rem;
   border-radius: 8px;
   cursor: pointer;
   min-height: 34px;
 }
 .lang-icon { width: 20px; height: 20px; }
-.flag-icon { width: 24px; height: 18px; border-radius: 3px; border: 1px solid #e2e8f0; }
+.lang-icon { filter: var(--icon-filter); }
+.flag-icon { width: 24px; height: 18px; border-radius: 3px; border: 1px solid var(--border-strong); }
 .lang-menu {
   position: absolute;
   right: 0;
   top: calc(100% + 6px);
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   box-shadow: 0 10px 20px rgba(15,23,42,0.12);
   padding: 0.35rem;
@@ -856,25 +932,25 @@ button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
   padding: 0.35rem 0.5rem;
   border-radius: 6px;
   cursor: pointer;
-  color: #0f172a;
+  color: var(--text);
 }
 .lang-menu button.active span { font-weight: 700; }
-.lang-menu button:hover { background: #f1f5f9; }
-.lang-menu img { width: 24px; height: 18px; border-radius: 3px; border: 1px solid #e2e8f0; }
+.lang-menu button:hover { background: var(--surface-muted); }
+.lang-menu img { width: 24px; height: 18px; border-radius: 3px; border: 1px solid var(--border-strong); }
 
 .auth-block { display: flex; align-items: center; gap: 0.5rem; }
 .user-pill {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #e0e7ff;
-  border: 1px solid #c7d2fe;
+  background: var(--surface-strong);
+  border: 1px solid var(--border-strong);
   padding: 0.35rem 0.65rem;
   border-radius: 999px;
 }
-.user-name { font-weight: 600; }
+.user-name { font-weight: 600; color: var(--text); }
 .user-menu-item {
-  color: #1d4ed8;
+  color: var(--primary);
   text-decoration: none;
   font-weight: 600;
   padding: 0.25rem 0.5rem;
@@ -882,11 +958,10 @@ button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
   transition: background 0.15s;
 }
 .user-menu-item:hover {
-  background: #c7d2fe;
+  background: var(--surface-muted);
 }
-
-.loading-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; z-index: 15; border-radius: 10px; }
-.loader-spinner { width: 48px; height: 48px; border: 4px solid #e5e7eb; border-top-color: #2563eb; border-radius: 50%; animation: spin 1s linear infinite; }
+.loading-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; z-index: 15; border-radius: 10px; }
+.loader-spinner { width: 48px; height: 48px; border: 4px solid var(--border-strong); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 @media (max-width: 768px) {
@@ -897,7 +972,7 @@ button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
   .tabs { display: none; flex-direction: column; align-items: stretch; }
   .tabs.open { display: flex; }
   .tab-group-block { gap: 0.1rem; }
-  .tab-group-label { width: 100%; border-radius: 6px 6px 0 0; background: #f1f5f9; margin-bottom: 0.1rem; padding: 0.22rem 0.7rem 0.12rem 0.7rem; }
+  .tab-group-label { width: 100%; border-radius: 6px 6px 0 0; background: var(--surface-muted); margin-bottom: 0.1rem; padding: 0.22rem 0.7rem 0.12rem 0.7rem; }
   .tab-group-tabs { flex-direction: column; gap: 0.1rem; width: 100%; }
   .tab { width: 100%; border-radius: 0 0 6px 6px; padding: 0.32rem 0.7rem; font-size: 1rem; }
 }
@@ -905,7 +980,7 @@ button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
 :global(.panel) .card {
   background: var(--app-card-bg, rgba(255,255,255,0.9));
   backdrop-filter: blur(6px);
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  border: 1px solid var(--border-strong);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
 }
 
