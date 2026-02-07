@@ -1,19 +1,15 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useBackgroundImage } from '../composables/useBackgroundImage'
 import IconButton from './IconButton.vue'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
-import api from '../api'
 import { useTranslation } from '../composables/useTranslation'
+import { renderMarkdown } from '../utils/markdown'
+import { apiBase, fetchJsonWithAuth } from '../utils/publicApi'
 
 const props = defineProps({ langCode: { type: String, default: 'de' } })
 
 // Use the global translation system
 const { tr, fetchTranslations } = useTranslation()
-
-const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const siteToken = ref(localStorage.getItem('site_token') || '')
 const publicApiKey = ref(localStorage.getItem('public_api_key') || '')
 const lang = ref(props.langCode || (navigator.language || 'en').split('-')[0])
@@ -21,44 +17,10 @@ const faqs = ref([])
 const loading = ref(false)
 const error = ref('')
 
-marked.setOptions({ gfm: true, breaks: true })
-
-function headers() {
-  const h = { Accept: 'application/json' }
-  if (siteToken.value) h['X-Site-Token'] = siteToken.value
-  const adminKey = localStorage.getItem('admin_api_key') || ''
-  const apiKey = adminKey || publicApiKey.value
-  if (apiKey) h['X-Api-Key'] = apiKey
-  return h
-}
-
-async function fetchJson(url, opts = {}) {
-  const res = await fetch(url, { ...opts })
-  const text = await res.text()
-  if (!res.ok) {
-    const snippet = text ? ` ${text.slice(0, 120)}` : ''
-    throw new Error(`HTTP ${res.status} ${res.statusText}${snippet}`)
-  }
-  const contentType = res.headers.get('content-type') || ''
-  if (!contentType.includes('application/json')) {
-    const snippet = text ? ` (${contentType}): ${text.slice(0, 120)}` : ` (${contentType})`
-    throw new Error(`Unerwartetes Format${snippet}`)
-  }
-  return text ? JSON.parse(text) : null
-}
-
-// Initialize translations when component mounts
-onMounted(async () => {
-  try {
-    await fetchTranslations(lang.value);
-  } catch (err) {
-    console.error('Failed to initialize translations:', err);
-  }
-})
-
 // Watch for language changes from props
 watch(() => props.langCode, async (newLang) => {
   if (newLang) {
+    lang.value = newLang
     try {
       await fetchTranslations(newLang);
     } catch (err) {
@@ -67,15 +29,16 @@ watch(() => props.langCode, async (newLang) => {
   }
 }, { immediate: true })
 
-function render(answer) {
-  const html = marked.parse(String(answer || ''))
-  return DOMPurify.sanitize(html)
-}
+const render = (answer) => renderMarkdown(answer)
 
 async function loadFaqs() {
   loading.value = true
   try {
-    const data = await fetchJson(`${apiBase}/faqs`, { headers: headers() })
+    const data = await fetchJsonWithAuth(
+      `${apiBase}/faqs`,
+      {},
+      { siteToken: siteToken.value, publicApiKey: publicApiKey.value },
+    )
     faqs.value = Array.isArray(data) ? data : []
     error.value = ''
   } catch (e) {
@@ -107,13 +70,6 @@ onMounted(async () => {
   syncTokensFromUrl()
   await fetchTranslations(lang.value)
   await loadFaqs()
-})
-
-watch(() => props.langCode, async (val) => {
-  if (val && val !== lang.value) {
-    lang.value = val
-    await fetchTranslations(val)
-  }
 })
 
 const hasFaqs = computed(() => (faqs.value?.length || 0) > 0)

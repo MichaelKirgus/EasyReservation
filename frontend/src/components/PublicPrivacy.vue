@@ -1,19 +1,16 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useBackgroundImage } from '../composables/useBackgroundImage'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
 import IconButton from './IconButton.vue'
-import api from '../api'
 import { useTranslation } from '../composables/useTranslation'
+import { renderMarkdown } from '../utils/markdown'
+import { apiBase, fetchJsonWithAuth } from '../utils/publicApi'
 
 const props = defineProps({ langCode: { type: String, default: 'de' } })
 
 // Use the global translation system
 const { tr, fetchTranslations } = useTranslation()
 
-const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const siteToken = ref(localStorage.getItem('site_token') || '')
 const publicApiKey = ref(localStorage.getItem('public_api_key') || '')
 const lang = ref(props.langCode || (navigator.language || 'en').split('-')[0])
@@ -22,31 +19,7 @@ const enabled = ref(false)
 const loading = ref(false)
 const error = ref('')
 
-marked.setOptions({ gfm: true, breaks: true })
-
-function headers() {
-  const h = { Accept: 'application/json' }
-  if (siteToken.value) h['X-Site-Token'] = siteToken.value
-  const adminKey = localStorage.getItem('admin_api_key') || ''
-  const apiKey = adminKey || publicApiKey.value
-  if (apiKey) h['X-Api-Key'] = apiKey
-  return h
-}
-
-async function fetchJson(url, opts = {}) {
-  const res = await fetch(url, { ...opts })
-  const text = await res.text()
-  if (!res.ok) {
-    const snippet = text ? ` ${text.slice(0, 120)}` : ''
-    throw new Error(`HTTP ${res.status} ${res.statusText}${snippet}`)
-  }
-  const contentType = res.headers.get('content-type') || ''
-  if (!contentType.includes('application/json')) {
-    const snippet = text ? ` (${contentType}): ${text.slice(0, 120)}` : ` (${contentType})`
-    throw new Error(`Unerwartetes Format${snippet}`)
-  }
-  return text ? JSON.parse(text) : null
-}
+const render = (text) => renderMarkdown(text)
 
 // Initialize translations when component mounts
 onMounted(async () => {
@@ -60,6 +33,7 @@ onMounted(async () => {
 // Watch for language changes from props
 watch(() => props.langCode, async (newLang) => {
   if (newLang) {
+    lang.value = newLang
     try {
       await fetchTranslations(newLang);
     } catch (err) {
@@ -68,15 +42,14 @@ watch(() => props.langCode, async (newLang) => {
   }
 }, { immediate: true })
 
-function render(text) {
-  const html = marked.parse(String(text || ''))
-  return DOMPurify.sanitize(html)
-}
-
 async function loadPrivacy() {
   loading.value = true
   try {
-    const data = await fetchJson(`${apiBase}/privacy-policy`, { headers: headers() })
+    const data = await fetchJsonWithAuth(
+      `${apiBase}/privacy-policy`,
+      {},
+      { siteToken: siteToken.value, publicApiKey: publicApiKey.value },
+    )
     privacy.value = data.text || ''
     enabled.value = true
     error.value = ''
@@ -96,11 +69,11 @@ async function checkAndLoadPrivacy() {
   try {
     // Erst /public/config laden
     const siteToken = localStorage.getItem('site_token') || '';
-    const headersConfig = { 'Accept': 'application/json' };
-    if (siteToken) headersConfig['X-Site-Token'] = siteToken;
-    const res = await fetch(`${apiBase}/public/config`, { headers: headersConfig });
-    if (!res.ok) throw new Error('Config konnte nicht geladen werden');
-    const data = await res.json();
+    const data = await fetchJsonWithAuth(
+      `${apiBase}/public/config`,
+      {},
+      { siteToken, publicApiKey: publicApiKey.value },
+    );
     if (!data.privacy_policy_enabled) {
       enabled.value = false;
       privacy.value = '';
@@ -120,13 +93,6 @@ async function checkAndLoadPrivacy() {
 
 onMounted(async () => {
   await checkAndLoadPrivacy();
-})
-
-watch(() => props.langCode, async (val) => {
-  if (val && val !== lang.value) {
-    lang.value = val
-    await fetchTranslations()
-  }
 })
 
 const router = useRouter()

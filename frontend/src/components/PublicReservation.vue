@@ -1,16 +1,15 @@
 <script setup>
 
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useBackgroundImage } from '../composables/useBackgroundImage'
 import { useRouter } from 'vue-router'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
+import { useBackgroundImage } from '../composables/useBackgroundImage'
 import api from '../api'
 import { useTranslation } from '../composables/useTranslation'
+import { renderMarkdown } from '../utils/markdown'
+import { apiBase, fetchJsonWithAuth } from '../utils/publicApi'
 
 const props = defineProps({ langCode: { type: String, default: 'de' } })
 
-const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const mediaBase = import.meta.env.VITE_MEDIA_BASE || (() => {
   if (apiBase.startsWith('http')) return new URL(apiBase).origin
   return window.location.origin
@@ -72,14 +71,6 @@ const publicFields = computed(() => {
   return mapped
 })
 
-marked.setOptions({ gfm: true, breaks: true })
-
-function renderMarkdown(raw) {
-  if (!raw) return ''
-  const html = marked.parse(String(raw))
-  return DOMPurify.sanitize(html)
-}
-
 const renderedAdditionalInfo = computed(() => renderMarkdown(config.settings?.reservation_additional_info || ''))
 const renderedDetails = computed(() => renderMarkdown(config.settings?.reservation_details || ''))
 const detailsSummaryLabel = computed(() => config.settings?.reservation_details_summary_label || tr('summary_text', 'Details'))
@@ -99,9 +90,9 @@ function setError(msg) { error.value = msg; message.value = '' }
 
 async function fetchJson(url, opts = {}) {
   try {
-    const response = await api({ url, ...opts })
-    return response.data
+    return await fetchJsonWithAuth(url, opts, { siteToken: siteToken.value, publicApiKey: publicApiKey.value })
   } catch (error) {
+    // preserve existing message handling for axios-style errors
     if (error.response) {
       const msg = error.response.data?.message || error.response.statusText || error.message
       throw new Error(msg)
@@ -122,10 +113,11 @@ onMounted(async () => {
 // Watch for language changes from props
 watch(() => props.langCode, async (newLang) => {
   if (newLang) {
+    lang.value = newLang
     try {
-      await fetchTranslations(newLang);
+      await fetchTranslations(newLang)
     } catch (err) {
-      console.error('Failed to update translations:', err);
+      console.error('Failed to update translations:', err)
     }
   }
 }, { immediate: true })
@@ -134,7 +126,7 @@ watch(() => props.langCode, async (newLang) => {
 async function loadConfig() {
   loading.value = true
   try {
-    const data = await fetchJson(`/public/config`)
+    const data = await fetchJson(`${apiBase}/public/config`)
     Object.assign(config.settings, data.settings || {})
     config.form_fields = data.form_fields || []
     config.attendees = data.attendees || []
@@ -256,16 +248,18 @@ async function submitReservation() {
 async function undoReservation() {
   loading.value = true
   try {
-    const res = await fetch(`${apiBase}/reservations/undo`, {
-      method: 'POST',
-      headers: headers(true),
-      body: JSON.stringify({
-        name: form.name,
-        email: form.email,
-      }),
-    })
-    const text = await res.text()
-    if (!res.ok) throw new Error(text)
+    await fetchJsonWithAuth(
+      `${apiBase}/reservations/undo`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+        }),
+      },
+      { siteToken: siteToken.value, publicApiKey: publicApiKey.value },
+    )
     setMessage(tr('feedback_reservation_undo_success', 'Reservation removed.'))
     form.name = ''
     form.email = ''
@@ -322,7 +316,11 @@ async function verifyTokenIfPresent() {
   const token = url.searchParams.get('v')
   if (!token) return
   try {
-    const { data } = await api.get(`/email-validations/${encodeURIComponent(token)}`)
+    const data = await fetchJsonWithAuth(
+      `${apiBase}/email-validations/${encodeURIComponent(token)}`,
+      {},
+      { siteToken: siteToken.value, publicApiKey: publicApiKey.value },
+    )
     if (data?.pending_admin) {
       setMessage(renderMarkdown(config.settings.reservation_admin_validation_pending_text) ||  tr('reservation_admin_validation_pending_text', 'Confirmation pending admin approval.'))
     } else if (data?.waitlist) {
@@ -344,7 +342,11 @@ async function handleUndoTokenIfPresent() {
   const token = url.searchParams.get('u')
   if (!token) return
   try {
-    await api.get(`/reservations/undo-token/${encodeURIComponent(token)}`)
+    await fetchJsonWithAuth(
+      `${apiBase}/reservations/undo-token/${encodeURIComponent(token)}`,
+      {},
+      { siteToken: siteToken.value, publicApiKey: publicApiKey.value },
+    )
     setMessage(renderMarkdown(config.settings.reservation_undo_success_text) || tr('reservation_undo_success_text', 'Reservation removed.'))
     await loadConfig()
   } catch (e) {
@@ -360,7 +362,11 @@ async function handleWaitlistUndoTokenIfPresent() {
   const token = url.searchParams.get('wu')
   if (!token) return
   try {
-    await api.get(`/waitlist/undo-token/${encodeURIComponent(token)}`)
+    await fetchJsonWithAuth(
+      `${apiBase}/waitlist/undo-token/${encodeURIComponent(token)}`,
+      {},
+      { siteToken: siteToken.value, publicApiKey: publicApiKey.value },
+    )
     setMessage(renderMarkdown(config.settings.waitlist_undo_success_text) || tr('waitlist_undo_success_text', 'Reservation removed.'))
     await loadConfig()
   } catch (e) {
@@ -417,13 +423,6 @@ function syncCurrentUser() {
     form.email = currentUser.value.email || ''
   }
 }
-
-watch(() => props.langCode, async (newVal) => {
-  if (newVal && newVal !== lang.value) {
-    lang.value = newVal
-    await fetchTranslations()
-  }
-})
 
 const customStyleEl = ref(null)
 
