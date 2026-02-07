@@ -281,7 +281,7 @@ async function confirmTwoFactor() {
 .qr-code-container {
     margin-top: 1rem;
     padding: 1rem;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border-strong);
     border-radius: 8px;
 }
 
@@ -293,8 +293,10 @@ async function confirmTwoFactor() {
 .secret-container {
     margin-top: 1rem;
     padding: 1rem;
-    background: #f8fafc;
+    background: var(--surface-muted);
+    border: 1px solid var(--border-strong);
     border-radius: 8px;
+    color: var(--text);
 }
 
 .secret-display {
@@ -306,8 +308,9 @@ async function confirmTwoFactor() {
     font-family: monospace;
     font-size: 1.2rem;
     padding: 0.5rem;
-    background: #e2e8f0;
+    background: var(--surface);
     border-radius: 4px;
     word-break: break-all;
+    color: var(--text);
 }
 </style>
