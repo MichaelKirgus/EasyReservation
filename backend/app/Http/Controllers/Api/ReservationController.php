@@ -13,6 +13,7 @@ use App\Services\EmailValidationService;
 use App\Services\EventTriggerService;
 use App\Services\ReservationValidationService;
 use App\Services\SettingsService;
+use App\Services\SiteTokenService;
 use App\Services\WaitlistService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

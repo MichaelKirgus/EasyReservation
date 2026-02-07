@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Jobs\SendMailJob;
 use App\Models\EmailTemplate;
+use App\Models\EmailValidation;
 use App\Models\JobLog;
 use App\Models\Reservation;
 use App\Models\WaitlistEntry;
