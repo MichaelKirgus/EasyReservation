@@ -3,6 +3,7 @@ import { ref, reactive, onMounted, onUnmounted, watch, computed } from 'vue'
 import IconButton from './IconButton.vue'
 import SecretField from './SecretField.vue'
 import { settingsFields } from './settingsFields.js'
+import { buildAdminHeaders } from '../utils/adminApi'
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const mediaBase = import.meta.env.VITE_MEDIA_BASE || (() => {
@@ -203,9 +204,7 @@ function ensureDefaults(obj) {
 function setMessage(msg) { message.value = msg; error.value = '' }
 function setError(msg) { error.value = msg; message.value = '' }
 
-function authHeaders() {
-  return { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Api-Key': apiKey.value }
-}
+const authHeaders = () => buildAdminHeaders({ apiKeyRef: apiKey, includeJson: true })
 
 async function fetchTranslations() {
   try {

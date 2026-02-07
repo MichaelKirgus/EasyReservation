@@ -123,10 +123,10 @@ import { ref, watch, computed, onMounted } from 'vue'
 import IconButton from './IconButton.vue'
 import axios from 'axios'
 import { settingsFields } from './settingsFields.js'
+import { buildAdminHeaders } from '../utils/adminApi'
 
 function apiConfig() {
-  const apiKey = localStorage.getItem('admin_api_key') || sessionStorage.getItem('admin_api_key') || '';
-  return { headers: { 'X-Api-Key': apiKey } };
+  return { headers: buildAdminHeaders() };
 }
 const props = defineProps({ task: Object })
 const emit = defineEmits(['save', 'close'])

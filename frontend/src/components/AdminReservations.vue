@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
+import { adminFetch } from '../utils/adminApi'
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
@@ -79,23 +80,7 @@ function setError(msg, opts = {}) {
   message.value = ''
 }
 
-function authHeaders() {
-  return { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Api-Key': apiKey.value }
-}
-
-function buildUrl(relative) {
-  return `${apiBase}/${routePrefix.value}/${relative}`
-}
-
-async function apiFetch(relative, opts = {}, triedFallback = false) {
-  const res = await fetch(buildUrl(relative), { ...opts, headers: authHeaders() })
-  if (res.status === 403 && !triedFallback && routePrefix.value === 'admin') {
-    routePrefix.value = 'moderator'
-    localStorage.setItem('admin_route_prefix', 'moderator')
-    return apiFetch(relative, opts, true)
-  }
-  return res
-}
+const fetchWithAuth = (relative, opts = {}) => adminFetch(relative, opts, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
 
 function notifyQuery() {
   return `notify=${notifyOnChange.value ? 1 : 0}`
@@ -104,7 +89,7 @@ function notifyQuery() {
 async function loadNotifyDefaults() {
   if (!apiKey.value) return
   try {
-    const res = await apiFetch('notification-defaults')
+    const res = await fetchWithAuth('notification-defaults')
     if (!res.ok) throw new Error(await res.text())
     const json = await res.json()
     notifyOnChange.value = !!json.notify_default
@@ -128,7 +113,7 @@ async function load(opts = {}) {
   if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.', opts); return }
   loading.value = true
   try {
-    const res = await apiFetch('reservations')
+    const res = await fetchWithAuth('reservations')
     if (!res.ok) throw new Error(await res.text())
     data.value = await res.json()
     localStorage.setItem('admin_api_key', apiKey.value)
@@ -143,7 +128,7 @@ async function loadWaitlist(opts = {}) {
   if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.', opts); return }
   waitlistLoading.value = true
   try {
-    const res = await apiFetch('waitlist')
+    const res = await fetchWithAuth('waitlist')
     if (!res.ok) throw new Error(await res.text())
     waitlist.value = await res.json()
   } catch (e) {
@@ -157,7 +142,7 @@ async function loadValidations(opts = {}) {
   if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.', opts); return }
   validationLoading.value = true
   try {
-    const res = await apiFetch('email-validations?status=pending')
+    const res = await fetchWithAuth('email-validations?status=pending')
     if (!res.ok) throw new Error(await res.text())
     validations.value = await res.json()
   } catch (e) {
@@ -180,7 +165,7 @@ async function removeItem(id) {
   }
   loading.value = true;
   try {
-    const res = await apiFetch(`reservations/${id}?${notifyQuery()}`, { method: 'DELETE' });
+    const res = await fetchWithAuth(`reservations/${id}?${notifyQuery()}`, { method: 'DELETE' });
     const text = await res.text();
     if (!res.ok) throw new Error(text);
     data.value = data.value.filter(r => r.id !== id);
@@ -200,7 +185,7 @@ async function bulkDeleteReservations() {
   loading.value = true
   try {
     for (const id of selectedReservations.value) {
-      const res = await apiFetch(`reservations/${id}?${notifyQuery()}`, { method: 'DELETE' })
+      const res = await fetchWithAuth(`reservations/${id}?${notifyQuery()}`, { method: 'DELETE' })
       const text = await res.text()
       if (!res.ok) throw new Error(text)
     }
@@ -218,7 +203,7 @@ async function clearReservations() {
   loading.value = true
   try {
     for (const r of data.value) {
-      await apiFetch(`reservations/${r.id}?${notifyQuery()}`, { method: 'DELETE' })
+      await fetchWithAuth(`reservations/${r.id}?${notifyQuery()}`, { method: 'DELETE' })
     }
     selectedReservations.value = []
     setMessage('Teilnehmerliste geleert.')
@@ -248,7 +233,7 @@ async function saveReservation(r) {
   if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
   loading.value = true
   try {
-    const res = await apiFetch(`reservations/${r.id}?${notifyQuery()}`, {
+    const res = await fetchWithAuth(`reservations/${r.id}?${notifyQuery()}`, {
       method: 'PATCH',
       body: JSON.stringify({ name: r.display_name, email: r.email || '' }),
     })
@@ -273,7 +258,7 @@ async function removeWaitlistEntry(id) {
   }
   waitlistLoading.value = true;
   try {
-    const res = await apiFetch(`waitlist/${id}`, { method: 'DELETE' });
+    const res = await fetchWithAuth(`waitlist/${id}`, { method: 'DELETE' });
     const text = await res.text();
     if (!res.ok) throw new Error(text);
     waitlist.value = waitlist.value.filter(w => w.id !== id);
@@ -292,7 +277,7 @@ async function bulkDeleteWaitlist() {
   waitlistLoading.value = true
   try {
     for (const id of selectedWaitlist.value) {
-      const res = await apiFetch(`waitlist/${id}`, { method: 'DELETE' })
+      const res = await fetchWithAuth(`waitlist/${id}`, { method: 'DELETE' })
       const text = await res.text()
       if (!res.ok) throw new Error(text)
     }
@@ -310,7 +295,7 @@ async function clearWaitlist() {
   waitlistLoading.value = true
   try {
     for (const w of waitlist.value) {
-      await apiFetch(`waitlist/${w.id}`, { method: 'DELETE' })
+      await fetchWithAuth(`waitlist/${w.id}`, { method: 'DELETE' })
     }
     selectedWaitlist.value = []
     setMessage('Warteliste geleert.')
@@ -324,7 +309,7 @@ async function approveValidation(id) {
   if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
   validationLoading.value = true
   try {
-    const res = await apiFetch(`email-validations/${id}/approve`, { method: 'POST' })
+    const res = await fetchWithAuth(`email-validations/${id}/approve`, { method: 'POST' })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     setMessage('Validierung freigegeben.')
@@ -342,7 +327,7 @@ async function bulkApproveValidations() {
   validationLoading.value = true
   try {
     for (const id of selectedValidations.value) {
-      const res = await apiFetch(`email-validations/${id}/approve`, { method: 'POST' })
+      const res = await fetchWithAuth(`email-validations/${id}/approve`, { method: 'POST' })
       const text = await res.text()
       if (!res.ok) throw new Error(text)
     }
@@ -360,7 +345,7 @@ async function discardValidation(id) {
   if (!confirm('Validierung verwerfen?')) return
   validationLoading.value = true
   try {
-    const res = await apiFetch(`email-validations/${id}`, { method: 'DELETE' })
+    const res = await fetchWithAuth(`email-validations/${id}`, { method: 'DELETE' })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     setMessage('Validierung verworfen.')
@@ -378,7 +363,7 @@ async function bulkDiscardValidations() {
   validationLoading.value = true
   try {
     for (const id of selectedValidations.value) {
-      const res = await apiFetch(`email-validations/${id}`, { method: 'DELETE' })
+      const res = await fetchWithAuth(`email-validations/${id}`, { method: 'DELETE' })
       const text = await res.text()
       if (!res.ok) throw new Error(text)
     }
@@ -398,7 +383,7 @@ async function clearValidations() {
   validationLoading.value = true
   try {
     for (const v of validations.value) {
-      await apiFetch(`email-validations/${v.id}`, { method: 'DELETE' })
+      await fetchWithAuth(`email-validations/${v.id}`, { method: 'DELETE' })
     }
     selectedValidations.value = []
     setMessage('Validierungen geleert.')
@@ -426,7 +411,7 @@ async function resendValidation(id) {
   if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
   validationLoading.value = true
   try {
-    const res = await apiFetch(`email-validations/${id}/resend`, { method: 'POST' })
+    const res = await fetchWithAuth(`email-validations/${id}/resend`, { method: 'POST' })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     setMessage('Validierungs-E-Mail erneut gesendet.')
@@ -473,7 +458,7 @@ async function createReservation() {
     const site_token = localStorage.getItem('site_token') || ''
     const body = { name: newReservation.value.name, email: newReservation.value.email, site_token }
     if (payload !== undefined) body.payload = payload
-    const res = await apiFetch(`reservations?${notifyQuery()}`, { method: 'POST', body: JSON.stringify(body) })
+    const res = await fetchWithAuth(`reservations?${notifyQuery()}`, { method: 'POST', body: JSON.stringify(body) })
     const text = await res.text()
     if (!res.ok) {
       if (res.status === 409) throw new Error('Reservierung existiert bereits oder Konflikt mit site_token.')
@@ -504,7 +489,7 @@ async function createWaitlistEntry() {
     const site_token = localStorage.getItem('site_token') || ''
     const body = { name: newWaitlist.value.name, email: newWaitlist.value.email, site_token }
     if (payload !== undefined) body.payload = payload
-    const res = await apiFetch('waitlist', { method: 'POST', body: JSON.stringify(body) })
+    const res = await fetchWithAuth('waitlist', { method: 'POST', body: JSON.stringify(body) })
     const text = await res.text()
     if (!res.ok) {
       if (res.status === 409) throw new Error('Wartelisteneintrag existiert bereits oder Konflikt mit site_token.')
@@ -525,7 +510,7 @@ async function updateWaitlistEntry(entry) {
   if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
   waitlistLoading.value = true
   try {
-    const res = await apiFetch(`waitlist/${entry.id}`, { method: 'PATCH', body: JSON.stringify({ name: entry.display_name, email: entry.email || '' }) })
+    const res = await fetchWithAuth(`waitlist/${entry.id}`, { method: 'PATCH', body: JSON.stringify({ name: entry.display_name, email: entry.email || '' }) })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     setMessage('Wartelisten-Eintrag aktualisiert.')
@@ -542,7 +527,7 @@ async function promoteWaitlistEntry(id) {
   if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); window.__promoteInProgress = false; return }
   waitlistLoading.value = true
   try {
-    const res = await apiFetch(`waitlist/${id}/promote`, { method: 'POST' })
+    const res = await fetchWithAuth(`waitlist/${id}/promote`, { method: 'POST' })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     setMessage('Wartelisten-Eintrag befördert.')
@@ -559,7 +544,7 @@ async function loadRateLimits() {
   if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
   rateLimitLoading.value = true
   try {
-    const res = await apiFetch('email-validation-rate-limits')
+    const res = await fetchWithAuth('email-validation-rate-limits')
     if (!res.ok) throw new Error(await res.text())
     rateLimits.value = await res.json()
   } catch (e) {
@@ -573,7 +558,7 @@ async function resetRateLimit(ip) {
   if (!confirm(`Rate-Limit für IP ${ip} zurücksetzen?`)) return
   rateLimitLoading.value = true
   try {
-    const res = await apiFetch(`email-validation-rate-limits/${encodeURIComponent(ip)}`, { method: 'DELETE' })
+    const res = await fetchWithAuth(`email-validation-rate-limits/${encodeURIComponent(ip)}`, { method: 'DELETE' })
     if (!res.ok) throw new Error(await res.text())
     setMessage('Rate-Limit zurückgesetzt.')
     await loadRateLimits()
@@ -588,7 +573,7 @@ async function clearAllRateLimits() {
   if (!confirm('Alle Rate-Limit-Daten löschen?')) return
   rateLimitLoading.value = true
   try {
-    const res = await apiFetch('email-validation-rate-limits', { method: 'DELETE' })
+    const res = await fetchWithAuth('email-validation-rate-limits', { method: 'DELETE' })
     if (!res.ok) throw new Error(await res.text())
     setMessage('Alle Rate-Limits gelöscht.')
     await loadRateLimits()
@@ -604,7 +589,7 @@ async function purgeAllData() {
   if (!confirm('Wirklich ALLE Teilnehmer, Wartelisten-Einträge und Rate-Limits unwiderruflich löschen? Es werden keine E-Mail-Benachrichtigungen versendet!')) return
   loading.value = true
   try {
-    const res = await apiFetch('purge-all', { method: 'POST' })
+    const res = await fetchWithAuth('purge-all', { method: 'POST' })
     if (!res.ok) throw new Error(await res.text())
     setMessage('Alle Daten wurden gelöscht.')
     await reloadAll()

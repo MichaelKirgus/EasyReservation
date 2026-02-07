@@ -1,8 +1,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import IconButton from './IconButton.vue'
-
-const apiBase = import.meta.env.VITE_API_BASE || '/api'
+import { adminFetch } from '../utils/adminApi'
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const faqs = ref([])
@@ -14,24 +13,6 @@ const newFaq = reactive({ question: '', answer: '', is_published: true, position
 function setMessage(msg) { message.value = msg; error.value = '' }
 function setError(msg) { error.value = msg; message.value = '' }
 
-function authHeaders() {
-  return { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Api-Key': apiKey.value }
-}
-
-function buildUrl(relative) {
-  return `${apiBase}/${routePrefix.value}/${relative}`
-}
-
-async function apiFetch(relative, opts = {}, triedFallback = false) {
-  const res = await fetch(buildUrl(relative), { ...opts, headers: authHeaders() })
-  if (res.status === 403 && !triedFallback && routePrefix.value === 'admin') {
-    routePrefix.value = 'moderator'
-    localStorage.setItem('admin_route_prefix', 'moderator')
-    return apiFetch(relative, opts, true)
-  }
-  return res
-}
-
 function sortFaqs(list) {
   return [...list].sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || a.id - b.id)
 }
@@ -40,7 +21,7 @@ async function loadFaqs() {
   if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
   loading.value = true
   try {
-    const res = await apiFetch('faqs')
+    const res = await adminFetch('faqs', {}, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     const data = text ? JSON.parse(text) : []
@@ -62,7 +43,7 @@ async function createFaq() {
   }
   loading.value = true
   try {
-    const res = await apiFetch('faqs', { method: 'POST', body: JSON.stringify(newFaq) })
+    const res = await adminFetch('faqs', { method: 'POST', body: JSON.stringify(newFaq) }, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     const created = text ? JSON.parse(text) : null
@@ -86,7 +67,7 @@ async function updateFaq(faq) {
   if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
   loading.value = true
   try {
-    const res = await apiFetch(`faqs/${faq.id}`, {
+    const res = await adminFetch(`faqs/${faq.id}`, {
       method: 'PATCH',
       body: JSON.stringify({
         question: faq.question,
@@ -94,7 +75,7 @@ async function updateFaq(faq) {
         is_published: faq.is_published,
         position: faq.position,
       }),
-    })
+    }, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     const updated = text ? JSON.parse(text) : faq
@@ -114,7 +95,7 @@ async function deleteFaq(id) {
   if (!confirm('Eintrag wirklich löschen?')) { window.__faqDeleteInProgress = false; return }
   loading.value = true
   try {
-    const res = await apiFetch(`faqs/${id}`, { method: 'DELETE' })
+    const res = await adminFetch(`faqs/${id}`, { method: 'DELETE' }, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     faqs.value = faqs.value.filter(f => f.id !== id)

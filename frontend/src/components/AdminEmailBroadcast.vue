@@ -2,10 +2,9 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
+import { adminFetch } from '../utils/adminApi'
 
 const props = defineProps({ defaultSubTab: { type: String, default: 'send' } })
-
-const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const templates = ref([])
@@ -44,34 +43,18 @@ const placeholderText = computed(() => placeholders.value.length ? `Platzhalter:
 function setMessage(msg) { message.value = msg; error.value = '' }
 function setError(msg) { error.value = msg; message.value = '' }
 
-function authHeaders() {
-  return { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Api-Key': apiKey.value }
-}
-
-function buildUrl(relative) {
-  return `${apiBase}/${routePrefix.value}/${relative}`
-}
-
-async function apiFetch(relative, opts = {}, triedFallback = false) {
-  const res = await fetch(buildUrl(relative), { ...opts, headers: authHeaders() })
-  if (res.status === 403 && !triedFallback && routePrefix.value === 'admin') {
-    routePrefix.value = 'moderator'
-    localStorage.setItem('admin_route_prefix', 'moderator')
-    return apiFetch(relative, opts, true)
-  }
-  return res
-}
+const fetchWithAuth = (relative, opts = {}) => adminFetch(relative, opts, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
 
 async function loadTemplates() {
-  const res = await apiFetch('email-templates')
+  const res = await fetchWithAuth('email-templates')
   if (!res.ok) throw new Error(await res.text())
   templates.value = await res.json()
 }
 
 async function loadRecipients() {
   const [resReservations, resWaitlist] = await Promise.all([
-    apiFetch('reservations'),
-    apiFetch('waitlist'),
+    fetchWithAuth('reservations'),
+    fetchWithAuth('waitlist'),
   ])
 
   if (!resReservations.ok) throw new Error(await resReservations.text())
@@ -82,7 +65,7 @@ async function loadRecipients() {
 }
 
 async function loadPlaceholders() {
-  const res = await apiFetch('placeholders')
+  const res = await fetchWithAuth('placeholders')
   if (!res.ok) throw new Error(await res.text())
   placeholders.value = await res.json()
 }
@@ -143,7 +126,7 @@ async function sendBroadcast() {
 
   loading.value = true
   try {
-    const res = await apiFetch('email-broadcast', { method: 'POST', body: JSON.stringify(payload) })
+    const res = await fetchWithAuth('email-broadcast', { method: 'POST', body: JSON.stringify(payload) })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     const data = JSON.parse(text)
@@ -158,7 +141,7 @@ async function sendBroadcast() {
 async function saveTemplate(tpl) {
   if (!canManageTemplates.value) { setError('Vorlagen können nur als Admin bearbeitet werden.'); return }
   try {
-    const res = await apiFetch(`email-templates/${tpl.id}`, {
+    const res = await fetchWithAuth(`email-templates/${tpl.id}`, {
       method: 'PATCH',
       body: JSON.stringify({ name: tpl.name, subject: tpl.subject, body: tpl.body, type: tpl.type || 'generic' }),
     })
@@ -174,7 +157,7 @@ async function deleteTemplate(id) {
   if (!canManageTemplates.value) { setError('Vorlagen können nur als Admin gelöscht werden.'); return }
   if (!confirm('Vorlage löschen?')) return
   try {
-    const res = await apiFetch(`email-templates/${id}`, { method: 'DELETE' })
+    const res = await fetchWithAuth(`email-templates/${id}`, { method: 'DELETE' })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     templates.value = templates.value.filter(t => t.id !== id)
@@ -187,7 +170,7 @@ async function deleteTemplate(id) {
 async function createTemplate() {
   if (!canManageTemplates.value) { setError('Vorlagen können nur als Admin erstellt werden.'); return }
   try {
-    const res = await apiFetch('email-templates', {
+    const res = await fetchWithAuth('email-templates', {
       method: 'POST',
       body: JSON.stringify({ ...templateForm }),
     })

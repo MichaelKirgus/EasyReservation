@@ -45,6 +45,7 @@
 <script setup>
 import { reactive, watch, ref, onMounted } from 'vue'
 import IconButton from './IconButton.vue'
+import { buildAdminHeaders } from '../utils/adminApi'
 const props = defineProps({
   template: { type: Object, default: null }
 })
@@ -64,8 +65,7 @@ const loadingPlaceholders = ref(false)
 async function loadPlaceholders() {
   loadingPlaceholders.value = true
   try {
-    const apiKey = localStorage.getItem('admin_api_key') || sessionStorage.getItem('admin_api_key') || ''
-    const res = await fetch('/api/admin/placeholders', { headers: { 'X-Api-Key': apiKey } })
+    const res = await fetch('/api/admin/placeholders', { headers: buildAdminHeaders() })
     if (res.ok) {
       placeholders.value = await res.json()
     }

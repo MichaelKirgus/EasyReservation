@@ -2,11 +2,11 @@
 
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useBackgroundImage } from '../composables/useBackgroundImage'
 import api from '../api'
 import { useTranslation } from '../composables/useTranslation'
 import { renderMarkdown } from '../utils/markdown'
 import { apiBase, fetchJsonWithAuth } from '../utils/publicApi'
+import { applySiteBranding } from '../utils/siteBranding'
 
 const props = defineProps({ langCode: { type: String, default: 'de' } })
 
@@ -133,8 +133,7 @@ async function loadConfig() {
     config.waitlist = data.waitlist_entries || []
     config.stats = data.stats || { count: 0, max: 0 }
     localStorage.setItem('site_token', siteToken.value || '')
-    updateFavicon(config.settings?.reservation_page_favicon)
-    updateTitle(config.settings?.reservation_page_title || config.settings?.reservation_name || 'Reservierung')
+    applySiteBranding(config.settings, { mediaBase, fallbackTitle: 'Reservierung' })
     // applyBackgroundImage entfernt, da jetzt Composable genutzt wird
     console.debug('Configuration loaded.')
   } catch (e) {
@@ -144,25 +143,9 @@ async function loadConfig() {
   }
 }
 
-function updateFavicon(val) {
-  if (typeof document === 'undefined') return
-  const link = document.querySelector("link[rel*='icon']") || document.createElement('link')
-  link.rel = 'icon'
-  link.href = mediaUrl(val || '/favicon.ico')
-  if (!link.parentNode) document.head.appendChild(link)
-}
-
-function updateTitle(val) {
-  if (typeof document === 'undefined') return
-  document.title = val || 'Reservierung'
-}
-
 const backgroundStyle = computed(() => {
   return { minHeight: '100vh' }
 })
-
-// Hintergrundbild-Logik auslagern
-useBackgroundImage(config.settings, mediaBase)
 
 const cardStyle = computed(() => {
   const opacity = Math.min(100, Math.max(0, Number(config.settings?.reservation_card_opacity ?? 90)))

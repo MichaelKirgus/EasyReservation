@@ -46,6 +46,7 @@ import { ref, onMounted } from 'vue';
 import AdminDataTable from './AdminDataTable.vue';
 import IconButton from './IconButton.vue';
 import axios from 'axios';
+import { buildAdminHeaders } from '../utils/adminApi'
 
 const columns = [
   { key: 'key', label: 'Platzhalter', required: true },
@@ -56,13 +57,7 @@ const columns = [
 const rows = ref([]);
 const loading = ref(false);
 
-function apiKeyHeader() {
-  return {
-    headers: {
-      'X-Api-Key': localStorage.getItem('admin_api_key') || sessionStorage.getItem('admin_api_key') || ''
-    }
-  };
-}
+const apiKeyHeader = () => ({ headers: buildAdminHeaders() });
 
 async function fetchRows() {
   loading.value = true;

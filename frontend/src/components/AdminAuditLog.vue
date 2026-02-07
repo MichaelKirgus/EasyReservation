@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import AdminDataTable from './AdminDataTable.vue'
 import IconButton from './IconButton.vue'
+import { buildAdminHeaders } from '../utils/adminApi'
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
@@ -22,13 +23,7 @@ const columns = [
   { key: 'created_at', label: 'Zeitpunkt', sortable: true },
 ]
 
-function authHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    'X-Api-Key': apiKey.value,
-  }
-}
+const authHeaders = () => buildAdminHeaders({ apiKeyRef: apiKey, includeJson: true })
 
 async function fetchLogs() {
   if (!isSuperAdmin.value) return

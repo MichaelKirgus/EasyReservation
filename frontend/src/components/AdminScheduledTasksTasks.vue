@@ -49,10 +49,10 @@ import AdminDataTable from './AdminDataTable.vue'
 import TaskDialog from './TaskDialog.vue'
 import IconButton from './IconButton.vue'
 import axios from 'axios'
+import { buildAdminHeaders } from '../utils/adminApi'
 
 function apiConfig() {
-  const apiKey = localStorage.getItem('admin_api_key') || sessionStorage.getItem('admin_api_key') || '';
-  return { headers: { 'X-Api-Key': apiKey } };
+  return { headers: buildAdminHeaders() };
 }
 
 function formatDateTime(val) {

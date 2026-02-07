@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { adminFetch } from '../utils/adminApi'
 
 // Client-Zeit und Zeitzone
 const clientTime = ref(new Date().toISOString())
@@ -29,7 +30,6 @@ const workerColumns = [
 
 
 
-const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
 const routePrefix = ref('admin')
 const loading = ref(false)
@@ -66,19 +66,13 @@ function setError(msg, opts = {}) {
   error.value = msg; message.value = ''
 }
 
-function authHeaders() {
-  return { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-Api-Key': apiKey.value }
-}
-
-function buildUrl(relative) {
-  return `${apiBase}/${routePrefix.value}/${relative}`
-}
+const fetchWithAuth = (relative, opts = {}) => adminFetch(relative, opts, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
 
 async function loadDiagnostics(opts = {}) {
   if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.', opts); return }
   loading.value = true
   try {
-    const res = await fetch(buildUrl('diagnostics'), { headers: authHeaders() })
+    const res = await fetchWithAuth('diagnostics')
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     diagnostics.value = JSON.parse(text)
@@ -95,9 +89,7 @@ async function loadAuditLogCount() {
   auditLogLoading.value = true
   auditLogError.value = ''
   try {
-    const res = await fetch(apiBase + '/audit-log/count', {
-      headers: { ...authHeaders() }
-    })
+    const res = await fetchWithAuth('audit-log/count')
     if (!res.ok) throw new Error('Fehler beim Laden der Audit-Log-Anzahl')
     const data = await res.json()
     auditLogCount.value = data.count

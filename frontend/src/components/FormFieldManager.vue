@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
+import { buildAdminHeaders } from '../utils/adminApi'
 
 const props = defineProps({ langCode: { type: String, default: 'de' } })
 
@@ -61,9 +62,7 @@ function setError(msg, opts = {}) {
   error.value = msg; message.value = ''
 }
 
-function authHeaders() {
-  return { 'Content-Type': 'application/json', 'X-Api-Key': apiKey.value }
-}
+const authHeaders = () => buildAdminHeaders({ apiKeyRef: apiKey, includeJson: true })
 
 async function load(opts = {}) {
   if (!apiKey.value) { setError('Bitte API-Key eintragen.', opts); return }

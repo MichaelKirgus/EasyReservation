@@ -54,6 +54,7 @@ import AdminDataTable from './AdminDataTable.vue'
 import IconButton from './IconButton.vue'
 import TriggerDialog from './TriggerDialog.vue'
 import axios from 'axios'
+import { buildAdminHeaders } from '../utils/adminApi'
 
 const triggers = ref([])
 const loading = ref(false)
@@ -94,8 +95,7 @@ function eventTypeLabel(val) {
 }
 
 function apiConfig() {
-  const apiKey = localStorage.getItem('admin_api_key') || sessionStorage.getItem('admin_api_key') || '';
-  return { headers: { 'X-Api-Key': apiKey } };
+  return { headers: buildAdminHeaders() };
 }
 
 function fetchTriggers() {

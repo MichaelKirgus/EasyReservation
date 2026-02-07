@@ -3,6 +3,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 import SecretField from './SecretField.vue'
+import { buildAdminHeaders } from '../utils/adminApi'
 
 import ResetPasswordDialog from './ResetPasswordDialog.vue'
 
@@ -65,13 +66,7 @@ function setError(msg, opts = {}) {
   message.value = ''
 }
 
-function authHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-    'X-Api-Key': apiKey.value,
-  }
-}
+const authHeaders = () => buildAdminHeaders({ apiKeyRef: apiKey, includeJson: true })
 
 async function resetPassword(user, password) {
   resetLoading.value = true

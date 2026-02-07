@@ -2,8 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
-
-const apiBase = import.meta.env.VITE_API_BASE || '/api'
+import { adminFetch } from '../utils/adminApi'
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const loading = ref(false)
@@ -68,40 +67,11 @@ function setError(msg, opts = {}) {
 }
 function setMessage(msg) { message.value = msg; error.value = '' }
 
-function authHeaders(json = false) {
-  const h = { Accept: 'application/json', 'X-Api-Key': apiKey.value }
-  if (json) h['Content-Type'] = 'application/json'
-  return h
-}
-
-function buildUrl(relative) {
-  return `${apiBase}/${routePrefix.value}/${relative}`
-}
-
-async function apiFetch(relative, opts = {}, triedFallback = false) {
-  const usesJson = opts.headers?.['Content-Type'] === 'application/json' || (!!opts.body && !opts.headers)
-  const headers = { ...authHeaders(usesJson), ...(opts.headers || {}) }
-  const res = await fetch(buildUrl(relative), { ...opts, headers })
-  if (res.status === 403 && !triedFallback && routePrefix.value === 'admin') {
-    routePrefix.value = 'moderator'
-    localStorage.setItem('admin_route_prefix', 'moderator')
-    return apiFetch(relative, opts, true)
-  }
-  return res
-}
-
-async function fetchJson(url, opts = {}) {
-  const res = await fetch(url, opts)
-  const text = await res.text()
-  if (!res.ok) throw new Error(text || res.statusText)
-  return text ? JSON.parse(text) : null
-}
-
 async function load(opts = {}) {
   if (!apiKey.value) { setError('API-Key fehlt.', opts); return }
   loading.value = true
   try {
-    const res = await apiFetch('events')
+    const res = await adminFetch('events', {}, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
     const data = await res.text()
     if (!res.ok) throw new Error(data)
     events.value = data ? JSON.parse(data) : []
@@ -166,11 +136,11 @@ async function save() {
       auto_email_sent_at: null,
     }
     if (form.id) {
-      const res = await apiFetch(`events/${form.id}`, { method: 'PATCH', body: JSON.stringify(payload), headers: authHeaders(true) })
+      const res = await adminFetch(`events/${form.id}`, { method: 'PATCH', body: JSON.stringify(payload) }, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
       const text = await res.text(); if (!res.ok) throw new Error(text)
       setMessage('Termin aktualisiert.')
     } else {
-      const res = await apiFetch('events', { method: 'POST', body: JSON.stringify(payload), headers: authHeaders(true) })
+      const res = await adminFetch('events', { method: 'POST', body: JSON.stringify(payload) }, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
       const text = await res.text(); if (!res.ok) throw new Error(text)
       setMessage('Termin angelegt.')
     }
@@ -184,7 +154,7 @@ async function remove(id) {
   if (!confirm('Termin wirklich löschen?')) return
   loading.value = true
   try {
-    const res = await apiFetch(`events/${id}`, { method: 'DELETE' })
+    const res = await adminFetch(`events/${id}`, { method: 'DELETE' }, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
     const text = await res.text(); if (!res.ok) throw new Error(text)
     setMessage('Gelöscht.')
     await load()
@@ -197,7 +167,7 @@ async function bulkRemove() {
   loading.value = true
   try {
     for (const id of selectedEvents.value) {
-      const res = await apiFetch(`events/${id}`, { method: 'DELETE' })
+      const res = await adminFetch(`events/${id}`, { method: 'DELETE' }, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
       const text = await res.text(); if (!res.ok) throw new Error(text)
     }
     selectedEvents.value = []
