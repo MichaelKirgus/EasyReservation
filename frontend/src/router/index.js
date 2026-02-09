@@ -12,6 +12,7 @@ import AdminScheduledTasks from '../components/AdminScheduledTasks.vue'
 import FormFieldManager from '../components/FormFieldManager.vue'
 import AdminUsers from '../components/AdminUsers.vue'
 import AdminCustomPlaceholders from '../components/AdminCustomPlaceholders.vue'
+import AdminPlaceholderValues from '../components/AdminPlaceholderValues.vue'
 import AdminAuditLog from '../components/AdminAuditLog.vue'
 import TwoFactorSettings from '../components/TwoFactorSettings.vue'
 
@@ -24,6 +25,7 @@ const routes = [
   { path: '/moderation/email', name: 'moderation-email', component: AdminEmailBroadcast },
   { path: '/moderation/faq', name: 'moderation-faq', component: AdminFaq },
   { path: '/moderation/events', name: 'moderation-events', component: AdminEvents },
+  { path: '/moderation/placeholders', name: 'moderation-placeholders', component: AdminPlaceholderValues },
   // Administration
   { path: '/admin/diagnostics', name: 'admin-diagnostics', component: AdminDiagnostics },
   { path: '/admin/settings', name: 'admin-settings', component: AdminSettings },

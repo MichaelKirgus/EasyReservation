@@ -113,6 +113,7 @@ const navGroups = computed(() => {
         { to: '/moderation/email', label: 'E-Mail', show: !!(currentUser && currentUser.role) },
         { to: '/moderation/faq', label: 'FAQ', show: !!(currentUser && currentUser.role) },
         { to: '/moderation/events', label: 'Termine', show: !!(currentUser && currentUser.role) },
+        { to: '/moderation/placeholders', label: 'Platzhalter', show: !!(currentUser && currentUser.role) },
       ],
     },
     {

@@ -103,6 +103,7 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::delete('/admin/email-templates/{emailTemplate}', [EmailTemplateController::class, 'destroy']);
     Route::post('/admin/email-broadcast', [EmailBroadcastController::class, 'send']);
     Route::get('/admin/placeholders', [PlaceholderController::class, 'index']);
+    Route::get('/admin/placeholders/values', [PlaceholderController::class, 'values']);
 
     Route::get('/admin/event-triggers', [\App\Http\Controllers\Api\EventTriggerController::class, 'index']);
     Route::post('/admin/event-triggers', [\App\Http\Controllers\Api\EventTriggerController::class, 'store']);
@@ -156,6 +157,7 @@ Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
     Route::get('/moderator/email-templates', [EmailTemplateController::class, 'index']);
     Route::post('/moderator/email-broadcast', [EmailBroadcastController::class, 'send']);
     Route::get('/moderator/placeholders', [PlaceholderController::class, 'index']);
+    Route::get('/moderator/placeholders/values', [PlaceholderController::class, 'values']);
     Route::apiResource('/moderator/faqs', FaqController::class)->except(['create', 'edit', 'show']);
     Route::apiResource('/moderator/events', EventController::class)->except(['create', 'edit', 'show']);
 });

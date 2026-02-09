@@ -16,4 +16,9 @@ class PlaceholderController extends Controller
     {
         return response()->json($this->placeholders->tokens());
     }
+
+    public function values(): JsonResponse
+    {
+        return response()->json($this->placeholders->replacements());
+    }
 }
