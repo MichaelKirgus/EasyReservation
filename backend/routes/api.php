@@ -101,6 +101,7 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/email-templates', [EmailTemplateController::class, 'store']);
     Route::patch('/admin/email-templates/{emailTemplate}', [EmailTemplateController::class, 'update']);
     Route::delete('/admin/email-templates/{emailTemplate}', [EmailTemplateController::class, 'destroy']);
+    Route::get('/admin/email-templates/{emailTemplate}/preview', [EmailTemplateController::class, 'preview']);
     Route::post('/admin/email-broadcast', [EmailBroadcastController::class, 'send']);
     Route::get('/admin/placeholders', [PlaceholderController::class, 'index']);
     Route::get('/admin/placeholders/values', [PlaceholderController::class, 'values']);
@@ -155,6 +156,7 @@ Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
     Route::get('/moderator/email-validation-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'index']);
 
     Route::get('/moderator/email-templates', [EmailTemplateController::class, 'index']);
+    Route::get('/moderator/email-templates/{emailTemplate}/preview', [EmailTemplateController::class, 'preview']);
     Route::post('/moderator/email-broadcast', [EmailBroadcastController::class, 'send']);
     Route::get('/moderator/placeholders', [PlaceholderController::class, 'index']);
     Route::get('/moderator/placeholders/values', [PlaceholderController::class, 'values']);

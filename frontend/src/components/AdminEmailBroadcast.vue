@@ -2,6 +2,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
+import EmailTemplatePreview from './EmailTemplatePreview.vue'
 import { adminFetch } from '../utils/adminApi'
 
 const props = defineProps({ defaultSubTab: { type: String, default: 'send' } })
@@ -43,6 +44,20 @@ const templateColumns = [
 const reservationsWithEmail = computed(() => reservations.value.filter(r => !!r.email))
 const waitlistWithEmail = computed(() => waitlist.value.filter(w => !!w.email))
 const placeholderText = computed(() => placeholders.value.length ? `Platzhalter: ${placeholders.value.join(', ')}` : '')
+
+// Preview state
+const previewTemplate = ref(null)
+const showPreviewDialog = ref(false)
+
+function openPreview(template) {
+  previewTemplate.value = template
+  showPreviewDialog.value = true
+}
+
+function closePreview() {
+  showPreviewDialog.value = false
+  previewTemplate.value = null
+}
 
 function setMessage(msg) { message.value = msg; error.value = '' }
 function setError(msg) { error.value = msg; message.value = '' }
@@ -365,6 +380,7 @@ watch(() => props.defaultSubTab, (val) => {
             </div>
           </template>
           <template #row-actions="{ row }">
+            <IconButton variant="primary" icon="eye" v-if="canManageTemplates" label="Vorschau" @click="openPreview(row)" />
             <IconButton variant="danger" icon="trash" v-if="canManageTemplates" label="Löschen" @click="deleteTemplate(row.id)" />
           </template>
         </AdminDataTable>
@@ -391,6 +407,8 @@ watch(() => props.defaultSubTab, (val) => {
         <p v-else class="hint">Vorlagen können nur von Admins bearbeitet oder angelegt werden.</p>
       </div>
     </template>
+    
+    <EmailTemplatePreview v-model="showPreviewDialog" :template="previewTemplate" @close="closePreview" />
   </div>
 </template>
 
