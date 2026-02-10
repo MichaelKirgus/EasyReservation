@@ -4,8 +4,10 @@ import IconButton from './IconButton.vue'
 import SecretField from './SecretField.vue'
 import { settingsFields } from './settingsFields.js'
 import { buildAdminHeaders } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
+const { tr } = useTranslation()
 const mediaBase = import.meta.env.VITE_MEDIA_BASE || (() => {
   if (apiBase.startsWith('http')) return new URL(apiBase).origin
   return window.location.origin
@@ -302,7 +304,7 @@ async function loadPlaceholders() {
 }
 
 async function load() {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (!apiKey.value) { setError(tr('please_login_api_key_missing')); return }
   loading.value = true
   try {
     const [resSettings, resTemplates] = await Promise.all([
@@ -349,7 +351,7 @@ async function load() {
 }
 
 async function save() {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (!apiKey.value) { setError(tr('api_key_missing')); return }
   loading.value = true
   try {
     const payload = {}

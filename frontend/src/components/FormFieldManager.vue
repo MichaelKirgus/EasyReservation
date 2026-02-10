@@ -3,8 +3,10 @@ import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 import { buildAdminHeaders } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
 
 const props = defineProps({ langCode: { type: String, default: 'de' } })
+const { tr } = useTranslation()
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
@@ -65,19 +67,19 @@ function setError(msg, opts = {}) {
 const authHeaders = () => buildAdminHeaders({ apiKeyRef: apiKey, includeJson: true })
 
 async function load(opts = {}) {
-  if (!apiKey.value) { setError('Bitte API-Key eintragen.', opts); return }
+  if (!apiKey.value) { setError(tr('api_key_required'), opts); return }
   loading.value = true
   try {
     const res = await fetch(`${apiBase}/admin/form-fields`, { headers: authHeaders() })
     if (!res.ok) throw new Error(await res.text())
     fields.value = await res.json()
     localStorage.setItem('admin_api_key', apiKey.value)
-    if (!opts.auto) setMessage('Felder geladen.')
-  } catch (e) { setError(`Fehler beim Laden: ${e}`, opts) } finally { loading.value = false }
+    if (!opts.auto) setMessage(tr('fields_loaded'))
+  } catch (e) { setError(tr('error_loading_preview') + ': ' + e, opts) } finally { loading.value = false }
 }
 
 async function save() {
-  if (!apiKey.value) { setError('Bitte API-Key eintragen.'); return }
+  if (!apiKey.value) { setError(tr('api_key_required')); return }
   loading.value = true
   try {
     if (protectedKeys.includes(form.key)) throw new Error('Schlüssel ist reserviert.')
@@ -86,7 +88,7 @@ async function save() {
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     Object.assign(form, { key: '', label: '', type: 'text', required: false, options: [], placeholder: '', help_text: '', text_align: 'left', min_length: null, max_length: null, pattern: '', order: 0, active: true, visible_public: true, visible_admin: true, is_email: false })
-    setMessage('Feld gespeichert.')
+    setMessage(tr('field_saved'))
     await load()
   } catch (e) { setError(`Speichern fehlgeschlagen: ${e}`) } finally { loading.value = false }
 }
@@ -98,14 +100,14 @@ async function updateField(field) {
     const res = await fetch(`${apiBase}/admin/form-fields/${field.id}`, { method: 'PATCH', headers: authHeaders(), body: JSON.stringify(payload) })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
-    setMessage('Feld aktualisiert.')
+    setMessage(tr('field_updated'))
   } catch (e) { setError(`Speichern fehlgeschlagen: ${e}`) } finally { loading.value = false }
 }
 
 async function removeField(id) {
   const target = fields.value.find(f => f.id === id)
-  if (target && protectedKeys.includes(target.key)) { setError('Standardfelder können nicht gelöscht werden.'); return }
-  if (!confirm('Feld löschen?')) return
+  if (target && protectedKeys.includes(target.key)) { setError(tr('field_delete_confirm')); return }
+  if (!confirm(tr('field_delete_confirm'))) return
   loading.value = true
   try {
     const res = await fetch(`${apiBase}/admin/form-fields/${id}`, { method: 'DELETE', headers: authHeaders() })
@@ -113,7 +115,7 @@ async function removeField(id) {
     if (!res.ok) throw new Error(text)
     fields.value = fields.value.filter(f => f.id !== id)
     selectedFields.value = selectedFields.value.filter(sel => sel !== id)
-    setMessage('Feld gelöscht.')
+    setMessage(tr('field_deleted'))
   } catch (e) { setError(`Löschen fehlgeschlagen: ${e}`) } finally { loading.value = false }
 }
 
@@ -122,8 +124,8 @@ async function bulkRemoveFields() {
     const target = fields.value.find(f => f.id === id)
     return target && !protectedKeys.includes(target.key)
   })
-  if (!deletable.length) { setError('Keine löschbaren Felder ausgewählt.'); return }
-  if (!confirm(`Ausgewählte Felder (${deletable.length}) löschen?`)) return
+  if (!deletable.length) { setError(tr('no_fields_selected_for_deletion')); return }
+  if (!confirm(tr('fields_delete_confirm', { count: deletable.length }))) return
   loading.value = true
   try {
     for (const id of deletable) {
@@ -133,7 +135,7 @@ async function bulkRemoveFields() {
     }
     fields.value = fields.value.filter(f => !deletable.includes(f.id))
     selectedFields.value = []
-    setMessage('Ausgewählte Felder gelöscht.')
+    setMessage(tr('fields_deleted'))
   } catch (e) { setError(`Löschen fehlgeschlagen: ${e}`) } finally { loading.value = false }
 }
 
@@ -150,9 +152,9 @@ async function reorderFields(ids) {
       const text = await res.text()
       if (!res.ok) throw new Error(text)
     }
-    setMessage('Reihenfolge aktualisiert.')
+    setMessage(tr('order_updated'))
   } catch (e) {
-    setError(`Reihenfolge konnte nicht gespeichert werden: ${e}`)
+    setError(tr('order_save_failed') + ': ' + e)
   } finally {
     loading.value = false
   }

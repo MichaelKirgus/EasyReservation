@@ -2,7 +2,10 @@
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import IconButton from './IconButton.vue'
 import { adminFetch } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
+
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
+const { tr } = useTranslation()
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const faqs = ref([])
 const loading = ref(false)
@@ -18,7 +21,7 @@ function sortFaqs(list) {
 }
 
 async function loadFaqs() {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (!apiKey.value) { setError(tr('please_login_api_key_missing')); return }
   loading.value = true
   try {
     const res = await adminFetch('faqs', {}, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
@@ -26,9 +29,9 @@ async function loadFaqs() {
     if (!res.ok) throw new Error(text)
     const data = text ? JSON.parse(text) : []
     faqs.value = sortFaqs(data)
-    setMessage('FAQ geladen.')
+    setMessage(tr('faqs_loaded'))
   } catch (e) {
-    setError(`Fehler beim Laden: ${e}`)
+    setError(tr('error_loading') + ': ' + e)
   } finally {
     loading.value = false
   }
@@ -37,9 +40,9 @@ async function loadFaqs() {
 async function createFaq() {
   if (window.__faqCreateInProgress) return;
   window.__faqCreateInProgress = true;
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); window.__faqCreateInProgress = false; return }
+  if (!apiKey.value) { setError(tr('please_login_api_key_missing')); window.__faqCreateInProgress = false; return }
   if (!newFaq.question.trim() || !newFaq.answer.trim()) {
-    setError('Bitte Frage und Antwort ausfüllen.'); window.__faqCreateInProgress = false; return
+    setError(tr('please_fill_in_question_and_answer')); window.__faqCreateInProgress = false; return
   }
   loading.value = true
   try {
@@ -50,13 +53,13 @@ async function createFaq() {
     if (created) {
       faqs.value = sortFaqs([created, ...faqs.value])
     }
-    setMessage('FAQ erstellt.')
+    setMessage(tr('faq_created'))
     newFaq.question = ''
     newFaq.answer = ''
     newFaq.position = null
     newFaq.is_published = true
   } catch (e) {
-    setError(`Erstellen fehlgeschlagen: ${e}`)
+    setError(tr('creation_failed') + ': ' + e)
   } finally {
     loading.value = false;
     window.__faqCreateInProgress = false;
@@ -64,7 +67,7 @@ async function createFaq() {
 }
 
 async function updateFaq(faq) {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (!apiKey.value) { setError(tr('please_login_api_key_missing')); return }
   loading.value = true
   try {
     const res = await adminFetch(`faqs/${faq.id}`, {
@@ -80,9 +83,9 @@ async function updateFaq(faq) {
     if (!res.ok) throw new Error(text)
     const updated = text ? JSON.parse(text) : faq
     faqs.value = sortFaqs(faqs.value.map(f => f.id === updated.id ? updated : f))
-    setMessage('Gespeichert.')
+    setMessage(tr('saved'))
   } catch (e) {
-    setError(`Speichern fehlgeschlagen: ${e}`)
+    setError(tr('saving_failed') + ': ' + e)
   } finally {
     loading.value = false
   }
@@ -91,17 +94,17 @@ async function updateFaq(faq) {
 async function deleteFaq(id) {
   if (window.__faqDeleteInProgress) return;
   window.__faqDeleteInProgress = true;
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); window.__faqDeleteInProgress = false; return }
-  if (!confirm('Eintrag wirklich löschen?')) { window.__faqDeleteInProgress = false; return }
+  if (!apiKey.value) { setError(tr('please_login_api_key_missing')); window.__faqDeleteInProgress = false; return }
+  if (!confirm(tr('entry_deleted_confirm'))) { window.__faqDeleteInProgress = false; return }
   loading.value = true
   try {
     const res = await adminFetch(`faqs/${id}`, { method: 'DELETE' }, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     faqs.value = faqs.value.filter(f => f.id !== id)
-    setMessage('FAQ gelöscht.')
+    setMessage(tr('faq_deleted'))
   } catch (e) {
-    setError(`Löschen fehlgeschlagen: ${e}`)
+    setError(tr('deletion_failed') + ': ' + e)
   } finally {
     loading.value = false;
     window.__faqDeleteInProgress = false;

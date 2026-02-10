@@ -33,6 +33,9 @@ import IconButton from './IconButton.vue'
 import WebhookTemplateDialog from './WebhookTemplateDialog.vue'
 import axios from 'axios'
 import { buildAdminHeaders } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
+
+const { tr } = useTranslation()
 
 function apiConfig() {
   return { headers: buildAdminHeaders() };
@@ -68,12 +71,13 @@ function editTemplate(template) {
 }
 
 function deleteTemplate(template) {
-  if (confirm('Wirklich löschen?')) {
-    loading.value = true
-    axios.delete(`/api/admin/webhook-templates/${template.id}`, apiConfig())
-      .then(fetchTemplates)
-      .finally(() => { loading.value = false })
+  if (!confirm(tr('really_delete_webhook_template'))) {
+    return
   }
+  loading.value = true
+  axios.delete(`/api/admin/webhook-templates/${template.id}`, apiConfig())
+    .then(fetchTemplates)
+    .finally(() => { loading.value = false })
 }
 
 function testTemplate(row) {

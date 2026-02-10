@@ -28,7 +28,7 @@ class AuditLogController extends Controller
             abort(403);
         }
         AuditLog::truncate();
-        return response()->json(['message' => 'Audit-Log geleert']);
+        return response()->json(['message' => __('audit_log_cleared')]);
     }
 
     public function count(Request $request)

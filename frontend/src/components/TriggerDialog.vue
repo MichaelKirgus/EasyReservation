@@ -63,6 +63,10 @@
 <script setup>
 import { ref, watch } from 'vue'
 import IconButton from './IconButton.vue'
+import { useTranslation } from '../composables/useTranslation'
+
+const { tr } = useTranslation()
+
 const props = defineProps({
   trigger: Object,
   emailTemplates: Array,
@@ -122,7 +126,7 @@ watch(() => props.trigger, (val) => {
 function onSave() {
   // Pflichtfeld für webhook_template_id, wenn Aktion webhook
   if (form.value.action_type === 'webhook' && !form.value.webhook_template_id) {
-    alert('Bitte eine Webhook-Vorlage auswählen.');
+    alert(tr('please_select_webhook_template'));
     return;
   }
   emit('save', { ...form.value })

@@ -65,11 +65,11 @@ class AdminReservationController extends Controller
         $siteToken = $data['site_token'] ?? null; // Get site token from request
 
         if (! $this->validator->nameIsValid($name)) {
-            return response()->json(['message' => 'Invalid name.'], 422);
+            return response()->json(['message' => __('validation_invalid_name')], 422);
         }
 
         if (! $this->validator->emailIsValid($email)) {
-            return response()->json(['message' => 'Invalid email.'], 422);
+            return response()->json(['message' => __('validation_invalid_email')], 422);
         }
 
         $duplicate = Reservation::query()
@@ -77,7 +77,7 @@ class AdminReservationController extends Controller
             ->exists();
 
         if ($duplicate) {
-            return response()->json(['message' => 'Name already reserved.'], 409);
+            return response()->json(['message' => __('reservation_name_already_reserved')], 409);
         }
 
         // If no site token provided, get a valid one from guest users
@@ -118,7 +118,7 @@ class AdminReservationController extends Controller
             }
         }
 
-        return response()->json(['message' => 'Reservation deleted.']);
+        return response()->json(['message' => __('reservation_deleted_successfully')]);
     }
 
     public function export(): StreamedResponse
@@ -163,11 +163,11 @@ class AdminReservationController extends Controller
         $email = array_key_exists('email', $data) ? (string) $data['email'] : (string) $reservation->email;
 
         if (! $this->validator->nameIsValid($name)) {
-            return response()->json(['message' => 'Invalid name.'], 422);
+            return response()->json(['message' => __('validation_invalid_name')], 422);
         }
 
         if (! $this->validator->emailIsValid($email)) {
-            return response()->json(['message' => 'Invalid email.'], 422);
+            return response()->json(['message' => __('validation_invalid_email')], 422);
         }
 
         $reservation->display_name = $name;

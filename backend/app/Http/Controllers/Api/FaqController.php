@@ -74,6 +74,6 @@ class FaqController extends Controller
     {
         $faq->delete();
 
-        return response()->json(['message' => 'FAQ deleted.']);
+        return response()->json(['message' => __('faq_deleted_successfully')]);
     }
 }

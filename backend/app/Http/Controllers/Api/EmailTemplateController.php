@@ -54,7 +54,7 @@ class EmailTemplateController extends Controller
     {
         $emailTemplate->delete();
 
-        return response()->json(['message' => 'Email template deleted.']);
+        return response()->json(['message' => __('email_template_deleted')]);
     }
 
     public function preview(Request $request, EmailTemplate $emailTemplate): JsonResponse

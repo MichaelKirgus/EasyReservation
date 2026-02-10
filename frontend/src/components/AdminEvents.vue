@@ -3,6 +3,9 @@ import { ref, reactive, onMounted } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 import { adminFetch } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
+
+const { tr } = useTranslation()
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const loading = ref(false)
@@ -68,14 +71,14 @@ function setError(msg, opts = {}) {
 function setMessage(msg) { message.value = msg; error.value = '' }
 
 async function load(opts = {}) {
-  if (!apiKey.value) { setError('API-Key fehlt.', opts); return }
+  if (!apiKey.value) { setError(tr('api_key_missing'), opts); return }
   loading.value = true
   try {
     const res = await adminFetch('events', {}, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
     const data = await res.text()
     if (!res.ok) throw new Error(data)
     events.value = data ? JSON.parse(data) : []
-    if (!opts.auto) setMessage('Aktualisiert.')
+    if (!opts.auto) setMessage(tr('updated'))
   } catch (e) { setError(e.message || String(e), opts) } finally { loading.value = false }
 }
 
@@ -115,8 +118,8 @@ function editEvent(ev) {
 }
 
 async function save() {
-  if (!apiKey.value) { setError('API-Key fehlt.'); return }
-  if (!form.title || !form.start_at) { setError('Titel und Startzeit erforderlich.'); return }
+  if (!apiKey.value) { setError(tr('api_key_missing')); return }
+  if (!form.title || !form.start_at) { setError(tr('title_and_start_time_required')); return }
   loading.value = true
   try {
     const payload = {
@@ -138,11 +141,11 @@ async function save() {
     if (form.id) {
       const res = await adminFetch(`events/${form.id}`, { method: 'PATCH', body: JSON.stringify(payload) }, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
       const text = await res.text(); if (!res.ok) throw new Error(text)
-      setMessage('Termin aktualisiert.')
+      setMessage(tr('event_updated'))
     } else {
       const res = await adminFetch('events', { method: 'POST', body: JSON.stringify(payload) }, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
       const text = await res.text(); if (!res.ok) throw new Error(text)
-      setMessage('Termin angelegt.')
+      setMessage(tr('event_created'))
     }
     resetForm()
     await load()
@@ -150,20 +153,20 @@ async function save() {
 }
 
 async function remove(id) {
-  if (!apiKey.value) { setError('API-Key fehlt.'); return }
-  if (!confirm('Termin wirklich löschen?')) return
+  if (!apiKey.value) { setError(tr('api_key_missing')); return }
+  if (!confirm(tr('event_deleted_confirm'))) return
   loading.value = true
   try {
     const res = await adminFetch(`events/${id}`, { method: 'DELETE' }, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
     const text = await res.text(); if (!res.ok) throw new Error(text)
-    setMessage('Gelöscht.')
+    setMessage(tr('deleted'))
     await load()
   } catch (e) { setError(e.message || String(e)) } finally { loading.value = false }
 }
 
 async function bulkRemove() {
   if (!selectedEvents.value.length) return
-  if (!confirm(`Ausgewählte Termine (${selectedEvents.value.length}) löschen?`)) return
+  if (!confirm(tr('bulk_delete_events_confirm', { count: selectedEvents.value.length }))) return
   loading.value = true
   try {
     for (const id of selectedEvents.value) {
@@ -171,7 +174,7 @@ async function bulkRemove() {
       const text = await res.text(); if (!res.ok) throw new Error(text)
     }
     selectedEvents.value = []
-    setMessage('Ausgewählte Termine gelöscht.')
+    setMessage(tr('selected_events_deleted'))
     await load()
   } catch (e) { setError(e.message || String(e)) } finally { loading.value = false }
 }

@@ -76,7 +76,7 @@ class TwoFactorApiController extends Controller
             ]);
             return response()->json([
                 'confirmed' => false,
-                'message' => 'The provided two factor authentication code was invalid.',
+                'message' => __('two_factor_invalid_code'),
                 'errors' => $validator->errors(),
             ], 422);
         }
@@ -97,7 +97,7 @@ class TwoFactorApiController extends Controller
         ]);
         return response()->json([
             'confirmed' => false,
-            'message' => 'The provided two factor authentication code was invalid.',
+            'message' => __('two_factor_invalid_code'),
             'errors' => ['code' => ['The provided two factor authentication code was invalid.']],
         ], 422);
     }

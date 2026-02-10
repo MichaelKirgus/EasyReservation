@@ -1,6 +1,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { adminFetch } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
+
+const { tr } = useTranslation()
 
 // Client-Zeit und Zeitzone
 const clientTime = ref(new Date().toISOString())
@@ -69,7 +72,7 @@ function setError(msg, opts = {}) {
 const fetchWithAuth = (relative, opts = {}) => adminFetch(relative, opts, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
 
 async function loadDiagnostics(opts = {}) {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.', opts); return }
+  if (!apiKey.value) { setError(tr('please_login_api_key_missing'), opts); return }
   loading.value = true
   try {
     const res = await fetchWithAuth('diagnostics')
@@ -77,9 +80,9 @@ async function loadDiagnostics(opts = {}) {
     if (!res.ok) throw new Error(text)
     diagnostics.value = JSON.parse(text)
     localStorage.setItem('admin_api_key', apiKey.value)
-    if (!opts.auto) setMessage('')
+    if (!opts.auto) setMessage(tr(''))
   } catch (e) {
-    setError(`Fehler beim Laden: ${e}`, opts)
+    setError(tr('error_loading') + ': ' + e, opts)
   } finally {
     loading.value = false
   }

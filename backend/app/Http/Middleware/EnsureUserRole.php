@@ -21,7 +21,7 @@ class EnsureUserRole
 
         if (! $apiKey) {
             return response()->json([
-                'message' => 'Missing API key.',
+                'message' => __('middleware_missing_api_key'),
             ], Response::HTTP_FORBIDDEN);
         }
 
@@ -40,7 +40,7 @@ class EnsureUserRole
 
         if (! $candidate) {
             return response()->json([
-                'message' => 'Unauthorized (role: '.implode(',', $roles).').',
+                'message' => __('middleware_unauthorized_role', ['roles' => implode(', ', $roles)]),
             ], Response::HTTP_FORBIDDEN);
         }
 

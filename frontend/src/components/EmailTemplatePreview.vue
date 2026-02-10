@@ -2,6 +2,9 @@
 import { ref, computed, watch } from 'vue'
 import IconButton from './IconButton.vue'
 import { renderMarkdown } from '../utils/markdown'
+import { useTranslation } from '../composables/useTranslation'
+
+const { tr } = useTranslation()
 
 const props = defineProps({
   modelValue: {
@@ -45,7 +48,7 @@ async function loadPreview() {
     previewData.value = data
   } catch (e) {
     console.error('Failed to load preview:', e)
-    alert('Fehler beim Laden der Vorschau: ' + e.message)
+    alert(tr('error_loading_preview') + ': ' + e.message)
   }
 }
 

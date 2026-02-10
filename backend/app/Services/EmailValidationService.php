@@ -92,7 +92,7 @@ class EmailValidationService
                         ->whereRaw('LOWER(display_name) = ?', [mb_strtolower($name)])
                         ->exists();
                     if ($duplicateName) {
-                        throw new \RuntimeException('Name bereits reserviert.');
+                        throw new \RuntimeException(__('name_already_reserved'));
                     }
                 }
                 if (! $allowDuplicateEmail && $email !== null && $email !== '') {
@@ -100,7 +100,7 @@ class EmailValidationService
                         ->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])
                         ->exists();
                     if ($duplicateEmail) {
-                        throw new \RuntimeException('E-Mail bereits reserviert.');
+                        throw new \RuntimeException(__('email_already_reserved'));
                     }
                 }
             }
@@ -117,7 +117,7 @@ class EmailValidationService
                         ->whereRaw('LOWER(display_name) = ?', [mb_strtolower($name)])
                         ->exists();
                     if ($duplicateName) {
-                        throw new \RuntimeException('Name bereits auf Warteliste.');
+                        throw new \RuntimeException(__('name_already_on_waitlist'));
                     }
                 }
                 if (! $allowDuplicateEmail && $email !== null && $email !== '') {
@@ -126,7 +126,7 @@ class EmailValidationService
                         ->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])
                         ->exists();
                     if ($duplicateEmail) {
-                        throw new \RuntimeException('E-Mail bereits auf Warteliste.');
+                        throw new \RuntimeException(__('email_already_on_waitlist'));
                     }
                 }
             }
@@ -162,23 +162,23 @@ class EmailValidationService
         $validation = EmailValidation::query()->where('token', $token)->first();
 
         if (! $validation) {
-            throw new \RuntimeException('Token nicht gefunden.');
+            throw new \RuntimeException(__('validation_token_not_found'));
         }
 
         if ($validation->expires_at && now()->greaterThan($validation->expires_at)) {
             $validation->status = 'expired';
             $validation->last_error = 'Token abgelaufen';
             $validation->save();
-            throw new \RuntimeException('Der Link ist abgelaufen.');
+            throw new \RuntimeException(__('validation_link_expired'));
         }
 
         if (in_array($validation->status, ['completed', 'cancelled', 'expired', 'failed'])) {
-            throw new \RuntimeException('Der Link wurde bereits verwendet oder ist abgelaufen.');
+            throw new \RuntimeException(__('validation_link_already_used'));
         }
 
         if ($validation->validated_at) {
             if ($validation->status === 'completed') {
-                throw new \RuntimeException('Der Link wurde bereits verwendet.');
+                throw new \RuntimeException(__('validation_link_already_used'));
             }
         }
 
@@ -267,15 +267,15 @@ class EmailValidationService
             if ($overflowEnabled && $this->waitlist->waitlistEnabled()) {
                 return $this->waitlist->addToWaitlist($name, $email, $payload);
             }
-            throw new \RuntimeException('Reservierungen sind deaktiviert.');
+            throw new \RuntimeException(__('reservation_disabled'));
         }
 
         if (! $this->validator->nameIsValid($name)) {
-            throw new \RuntimeException('Name ungültig.');
+            throw new \RuntimeException(__('name_invalid'));
         }
 
         if (! $this->validator->emailIsValid($email)) {
-            throw new \RuntimeException('E-Mail ungültig.');
+            throw new \RuntimeException(__('email_invalid'));
         }
 
         $siteToken = $validation->site_token ?? null;
@@ -289,7 +289,7 @@ class EmailValidationService
                 if ($overflowEnabled && $this->waitlist->waitlistEnabled()) {
                     return $this->waitlist->addToWaitlist($name, $email, $payload);
                 }
-                throw new \RuntimeException('Reservation limit reached.');
+                throw new \RuntimeException(__('reservation_limit_reached'));
             }
 
             if (! $allowDuplicateName) {
@@ -298,7 +298,7 @@ class EmailValidationService
                     ->lockForUpdate()
                     ->exists();
                 if ($duplicateName) {
-                    throw new \RuntimeException('Name already reserved.');
+                    throw new \RuntimeException(__('reservation_name_already_reserved'));
                 }
             }
 
@@ -308,7 +308,7 @@ class EmailValidationService
                     ->lockForUpdate()
                     ->exists();
                 if ($duplicateEmail) {
-                    throw new \RuntimeException('E-Mail bereits reserviert.');
+                    throw new \RuntimeException(__('email_already_reserved'));
                 }
             }
 
@@ -325,7 +325,7 @@ class EmailValidationService
     public function resendValidationEmail(EmailValidation $validation): void
     {
         if ($validation->status === 'completed') {
-            throw new \RuntimeException('Validierung bereits abgeschlossen.');
+            throw new \RuntimeException(__('validation_completed'));
         }
         $this->sendValidationEmail($validation);
     }
@@ -334,7 +334,7 @@ class EmailValidationService
     {
         $mailerConfig = $this->buildMailerConfig();
         if (! $mailerConfig) {
-            throw new \RuntimeException('Mail-Server ist nicht konfiguriert.');
+            throw new \RuntimeException(__('mail_server_not_configured'));
         }
 
         $this->emailService->sendValidationEmail($mailerConfig, $validation);

@@ -36,12 +36,12 @@ class EmailBroadcastService
     ): array {
         $template = EmailTemplate::query()->find($templateId);
         if (! $template) {
-            throw new \RuntimeException('E-Mail-Vorlage nicht gefunden.');
+            throw new \RuntimeException(__('email_template_not_found'));
         }
 
         $mailerConfig = $this->buildMailerConfig();
         if (! $mailerConfig) {
-            throw new \RuntimeException('Mail-Server ist nicht konfiguriert.');
+            throw new \RuntimeException(__('mail_server_not_configured'));
         }
 
         $recipients = $this->collectRecipients($scope, $sendToAll, $reservationIds, $waitlistIds, $customRecipients);
@@ -254,11 +254,11 @@ class EmailBroadcastService
             // Kein Template angegeben, nichts tun
             return;
         }
-        // Nutze die bestehende Bulk-Logik
+        // Use existing bulk logic
         $this->queueBroadcast(
             $templateId,
-            'reservations', // scope: nur Reservierungen
-            true,           // sendToAll: alle Teilnehmer
+            'reservations', // scope: reservations only
+            true,           // sendToAll: all participants
             [],             // reservationIds
             [],             // waitlistIds
             [],             // customRecipients

@@ -4,8 +4,10 @@ import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 import EmailTemplatePreview from './EmailTemplatePreview.vue'
 import { adminFetch } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
 
 const props = defineProps({ defaultSubTab: { type: String, default: 'send' } })
+const { tr } = useTranslation()
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const currentUser = ref(JSON.parse(localStorage.getItem('admin_user') || sessionStorage.getItem('admin_user') || 'null'))
@@ -90,13 +92,13 @@ async function loadPlaceholders() {
 }
 
 async function loadAll() {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (!apiKey.value) { setError(tr('please_login_api_key_missing')); return }
   loading.value = true
   try {
     await Promise.all([loadTemplates(), loadRecipients(), loadPlaceholders()])
-    setMessage('Daten geladen.')
+    setMessage(tr('data_loaded'))
   } catch (e) {
-    setError(`Fehler beim Laden: ${e}`)
+    setError(tr('error_loading') + ': ' + e)
   } finally {
     loading.value = false
   }
@@ -118,8 +120,8 @@ function handleKeyUpdate(e) {
 }
 
 async function sendBroadcast() {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
-  if (!form.templateId) { setError('Bitte Vorlage auswählen.'); return }
+  if (!apiKey.value) { setError(tr('please_login_api_key_missing')); return }
+  if (!form.templateId) { setError(tr('please_select_template')); return }
 
   const payload = {
     template_id: form.templateId,
@@ -133,7 +135,7 @@ async function sendBroadcast() {
     payload.reservation_ids = form.selectedReservations.filter(Boolean)
     payload.waitlist_ids = form.selectedWaitlist.filter(Boolean)
     if ((payload.reservation_ids?.length || 0) === 0 && (payload.waitlist_ids?.length || 0) === 0 && customList().length === 0) {
-      setError('Bitte mindestens einen Empfänger auswählen.')
+      setError(tr('please_select_at_least_one_recipient'))
       return
     }
   }
@@ -149,16 +151,16 @@ async function sendBroadcast() {
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     const data = JSON.parse(text)
-    setMessage(data.message || 'E-Mails werden gesendet.')
+    setMessage(data.message || tr('emails_sending'))
   } catch (e) {
-    setError(`Versand fehlgeschlagen: ${e}`)
+    setError(tr('sending_failed') + ': ' + e)
   } finally {
     loading.value = false
   }
 }
 
 async function saveTemplate(tpl) {
-  if (!canManageTemplates.value) { setError('Vorlagen können nur als Admin bearbeitet werden.'); return }
+  if (!canManageTemplates.value) { setError(tr('templates_can_only_be_edited_by_admin')); return }
   try {
     const res = await fetchWithAuth(`email-templates/${tpl.id}`, {
       method: 'PATCH',
@@ -166,28 +168,28 @@ async function saveTemplate(tpl) {
     })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
-    setMessage('Vorlage gespeichert.')
+    setMessage(tr('template_saved'))
   } catch (e) {
-    setError(`Speichern fehlgeschlagen: ${e}`)
+    setError(tr('saving_failed') + ': ' + e)
   }
 }
 
 async function deleteTemplate(id) {
-  if (!canManageTemplates.value) { setError('Vorlagen können nur als Admin gelöscht werden.'); return }
-  if (!confirm('Vorlage löschen?')) return
+  if (!canManageTemplates.value) { setError(tr('templates_can_only_be_deleted_by_admin')); return }
+  if (!confirm(tr('really_delete_template'))) return
   try {
     const res = await fetchWithAuth(`email-templates/${id}`, { method: 'DELETE' })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     templates.value = templates.value.filter(t => t.id !== id)
-    setMessage('Vorlage gelöscht.')
+    setMessage(tr('template_deleted'))
   } catch (e) {
-    setError(`Löschen fehlgeschlagen: ${e}`)
+    setError(tr('deletion_failed') + ': ' + e)
   }
 }
 
 async function createTemplate() {
-  if (!canManageTemplates.value) { setError('Vorlagen können nur als Admin erstellt werden.'); return }
+  if (!canManageTemplates.value) { setError(tr('templates_can_only_be_created_by_admin')); return }
   try {
     const res = await fetchWithAuth('email-templates', {
       method: 'POST',
@@ -195,7 +197,7 @@ async function createTemplate() {
     })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
-    setMessage('Vorlage erstellt.')
+    setMessage(tr('template_created'))
     templateForm.name = ''
     templateForm.subject = ''
     templateForm.body = ''

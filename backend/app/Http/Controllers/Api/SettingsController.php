@@ -36,11 +36,11 @@ class SettingsController extends Controller
 
         foreach ($settings as $name => $value) {
             if (is_array($value)) {
-                return response()->json(['message' => 'Invalid value for '.$name], 422);
+                return response()->json(['message' => __('settings_invalid_value_for', ['name' => $name])], 422);
             }
             if (! $this->media->isAllowedSetting($name, (string) ($value ?? ''))) {
                 return response()->json([
-                    'message' => 'Invalid media selection for '.$name,
+                    'message' => __('settings_invalid_media_selection_for', ['name' => $name]),
                 ], 422);
             }
         }
@@ -83,7 +83,7 @@ class SettingsController extends Controller
     {
         $setting = Setting::query()->where('name', $key)->first();
         if (!$setting) {
-            return response()->json(['error' => 'Not found'], 404);
+            return response()->json(['error' => __('not_found')], 404);
         }
         return response()->json(['value' => $setting->value]);
     }

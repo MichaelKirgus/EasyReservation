@@ -51,7 +51,7 @@ class EmailBroadcastController extends Controller
         }
 
         return response()->json([
-            'message' => 'E-Mails wurden zur Verarbeitung in die Queue gestellt.',
+            'message' => __('emails_queued_successfully'),
             'result' => $result,
         ]);
     }

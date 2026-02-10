@@ -23,7 +23,7 @@ class EnsureAdminKey
         }
 
         return response()->json([
-            'message' => 'Unauthorized (admin key required).',
+            'message' => __('middleware_unauthorized_admin'),
         ], Response::HTTP_FORBIDDEN);
     }
 }

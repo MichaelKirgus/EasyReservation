@@ -23,7 +23,7 @@ class EnsureModeratorKey
         }
 
         return response()->json([
-            'message' => 'Unauthorized (moderator key required).',
+            'message' => __('middleware_unauthorized_moderator'),
         ], Response::HTTP_FORBIDDEN);
     }
 }

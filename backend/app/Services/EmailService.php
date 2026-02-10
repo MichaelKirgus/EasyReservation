@@ -49,7 +49,7 @@ class EmailService
     public function sendValidationEmail(array $mailerConfig, EmailValidation $validation): void
     {
         if (! $validation->email) {
-            throw new \RuntimeException('E-Mail wird für die Validierung benötigt.');
+            throw new \RuntimeException(__('validation_invalid_email'));
         }
 
         // Check if email is blacklisted

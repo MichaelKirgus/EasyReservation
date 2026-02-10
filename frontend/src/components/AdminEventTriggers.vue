@@ -55,6 +55,9 @@ import IconButton from './IconButton.vue'
 import TriggerDialog from './TriggerDialog.vue'
 import axios from 'axios'
 import { buildAdminHeaders } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
+
+const { tr } = useTranslation()
 
 const triggers = ref([])
 const loading = ref(false)
@@ -136,12 +139,13 @@ function saveTrigger(trigger) {
 }
 
 function deleteTrigger(trigger) {
-  if (confirm('Wirklich löschen?')) {
-    loading.value = true
-    axios.delete(`/api/admin/event-triggers/${trigger.id}`, apiConfig())
-      .then(fetchTriggers)
-      .finally(() => { loading.value = false })
+  if (!confirm(tr('really_delete_event_trigger'))) {
+    return
   }
+  loading.value = true
+  axios.delete(`/api/admin/event-triggers/${trigger.id}`, apiConfig())
+    .then(fetchTriggers)
+    .finally(() => { loading.value = false })
 }
 
 function simulate(trigger) {

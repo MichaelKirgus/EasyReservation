@@ -45,7 +45,7 @@ class EmailValidationAdminController extends Controller
         $waitlist = (bool) ($result['waitlist'] ?? false);
 
         return response()->json([
-            'message' => $waitlist ? 'Wartelisten-Eintrag freigegeben.' : 'Reservierung freigegeben.',
+            'message' => $waitlist ? __('waitlist_entry_approved') : __('reservation_approved'),
             'result' => $result,
         ]);
     }
@@ -54,9 +54,9 @@ class EmailValidationAdminController extends Controller
     {
         try {
             $this->service->resendValidationEmail($validation);
-            return response()->json(['message' => 'Validierungs-E-Mail erneut gesendet.']);
+            return response()->json(['message' => __('validation_email_resent')]);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 400);
+            return response()->json(['message' => __('error_generic', ['message' => $e->getMessage()])], 400);
         }
     }
 
@@ -66,6 +66,6 @@ class EmailValidationAdminController extends Controller
         $validation->last_error = 'Cancelled by admin';
         $validation->save();
 
-        return response()->json(['message' => 'Validierung verworfen.']);
+        return response()->json(['message' => __('validation_discarded')]);
     }
 }

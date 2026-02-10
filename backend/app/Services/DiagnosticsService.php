@@ -19,7 +19,7 @@ class DiagnosticsService
         $lastExecutedAt = $lastExecutedAtCache ? (is_string($lastExecutedAtCache) ? \Carbon\Carbon::parse($lastExecutedAtCache) : $lastExecutedAtCache) : $lastExecuted?->executed_at;
         if ($lastExecutedAt) {
             $diff = now()->diffInMinutes($lastExecutedAt);
-            $schedulerActive = $diff < 10; // z.B. aktiv, wenn <10min her
+            $schedulerActive = $diff < 10; // e.g., active if less than 10 minutes ago
         }
         return [
             'server_time' => now()->toIso8601String(),

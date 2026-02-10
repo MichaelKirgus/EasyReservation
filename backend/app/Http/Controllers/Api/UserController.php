@@ -90,7 +90,7 @@ class UserController extends Controller
 
         $user->delete();
 
-        return response()->json(['message' => 'User deleted.']);
+        return response()->json(['message' => __('user_deleted_successfully')]);
     }
 
     public function rotateToken(Request $request, User $user): JsonResponse
@@ -112,7 +112,7 @@ class UserController extends Controller
     {
         // Nur Admins dürfen diese Aktion durchführen
         if (!($request->user() && $request->user()->role === 'admin')) {
-            return response()->json(['message' => 'Forbidden'], 403);
+            return response()->json(['message' => __('forbidden_access')], 403);
         }
         $request->validate([
             'password' => ['required', 'string', 'min:6'],
@@ -131,7 +131,7 @@ class UserController extends Controller
             ->exists();
 
         if (! $hasOtherAdmin) {
-            abort(response()->json(['message' => 'Operation denied: at least one active admin is required.'], 422));
+            abort(response()->json(['message' => __('admin_operation_requires_at_least_one_admin')], 422));
         }
     }
 }

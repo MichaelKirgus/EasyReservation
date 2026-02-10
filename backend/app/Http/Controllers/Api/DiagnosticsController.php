@@ -28,7 +28,7 @@ class DiagnosticsController extends Controller
     {
         $key = $request->input('key');
         if (!$key) {
-            return response()->json(['error' => 'Key fehlt'], 400);
+            return response()->json(['error' => __('key_missing')], 400);
         }
         try {
             \Illuminate\Support\Facades\Redis::del($key);

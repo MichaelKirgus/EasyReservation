@@ -40,7 +40,7 @@ class EnsureSiteToken
         }
 
         return response()->json([
-            'message' => 'Invalid or missing site token.',
+            'message' => __('middleware_invalid_site_token'),
         ], Response::HTTP_FORBIDDEN);
     }
 

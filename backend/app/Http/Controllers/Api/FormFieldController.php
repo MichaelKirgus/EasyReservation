@@ -50,12 +50,12 @@ class FormFieldController extends Controller
     public function destroy(FormField $formField): JsonResponse
     {
         if (in_array($formField->key, $this->protectedKeys, true)) {
-            throw new BadRequestHttpException('Key is reserved and cannot be deleted.');
+            throw new BadRequestHttpException(__('form_field_reserved'));
         }
 
         $formField->delete();
 
-        return response()->json(['message' => 'Form field deleted.']);
+        return response()->json(['message' => __('form_field_deleted')]);
     }
 
     private function ensureDefaults(): void

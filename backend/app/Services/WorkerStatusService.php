@@ -70,7 +70,7 @@ class WorkerStatusService
             foreach ($keys as $key) {
                 $data = $this->store->get($key);
                 if ($data) {
-                    // worker_id extrahieren (Prefix und worker_status: entfernen)
+                    // Extract worker_id (remove prefix and worker_status:)
                     $workerId = $key;
                     if ($prefix && strpos($workerId, $prefix) === 0) {
                         $workerId = substr($workerId, strlen($prefix));

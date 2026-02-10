@@ -3,6 +3,9 @@ import { ref, computed, onMounted } from 'vue'
 import AdminDataTable from './AdminDataTable.vue'
 import IconButton from './IconButton.vue'
 import { buildAdminHeaders } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
+
+const { tr } = useTranslation()
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
@@ -43,7 +46,7 @@ async function fetchLogs() {
 
 async function clearLogs() {
   if (!isSuperAdmin.value) return
-  if (!confirm('Audit-Log wirklich löschen?')) return
+  if (!confirm(tr('really_delete_audit_log'))) return
   loading.value = true
   error.value = ''
   try {

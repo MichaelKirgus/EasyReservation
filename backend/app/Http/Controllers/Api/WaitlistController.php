@@ -49,11 +49,11 @@ class WaitlistController extends Controller
         $siteToken = $data['site_token'] ?? null;
 
         if (! $this->validator->nameIsValid($name)) {
-            return response()->json(['message' => 'Invalid name.'], 422);
+            return response()->json(['message' => __('validation_invalid_name')], 422);
         }
 
         if (! $this->validator->emailIsValid($email)) {
-            return response()->json(['message' => 'Invalid email.'], 422);
+            return response()->json(['message' => __('validation_invalid_email')], 422);
         }
 
         try {
@@ -63,7 +63,7 @@ class WaitlistController extends Controller
                 if ($user && in_array($user->role, ['admin', 'superadmin', 'moderator'])) {
                     $siteToken = $this->siteTokenService->getValidSiteToken();
                 } else {
-                    return response()->json(['message' => 'Site token is required for waitlist entries.'], 422);
+                    return response()->json(['message' => __('waitlist_site_token_required')], 422);
                 }
             }
             $entry = $this->waitlist->addToWaitlist($name, $email, $payload, $siteToken);
@@ -119,7 +119,7 @@ class WaitlistController extends Controller
     public function update(Request $request, WaitlistEntry $entry): JsonResponse
     {
         if ($entry->status !== 'pending') {
-            return response()->json(['message' => 'Entry already processed.'], 409);
+            return response()->json(['message' => __('waitlist_entry_already_processed')], 409);
         }
 
         $data = $request->validate([
@@ -133,11 +133,11 @@ class WaitlistController extends Controller
         $email = array_key_exists('email', $data) ? (string) $data['email'] : (string) $entry->email;
 
         if (! $this->validator->nameIsValid($name)) {
-            return response()->json(['message' => 'Invalid name.'], 422);
+            return response()->json(['message' => __('validation_invalid_name')], 422);
         }
 
         if (! $this->validator->emailIsValid($email)) {
-            return response()->json(['message' => 'Invalid email.'], 422);
+            return response()->json(['message' => __('validation_invalid_email')], 422);
         }
 
         $entry->display_name = $name;
@@ -181,7 +181,7 @@ class WaitlistController extends Controller
     {
         $settings = $this->settings->all();
         if ((int) ($settings['waitlist_undo_enabled'] ?? 0) !== 1) {
-            return response()->json(['message' => 'Undo is disabled.'], 403);
+            return response()->json(['message' => __('waitlist_undo_disabled')], 403);
         }
 
         $entry = WaitlistEntry::query()
@@ -190,7 +190,7 @@ class WaitlistController extends Controller
             ->first();
 
         if (! $entry) {
-            return response()->json(['message' => 'Waitlist entry not found.'], 404);
+            return response()->json(['message' => __('waitlist_entry_not_found')], 404);
         }
 
         $entry->undo_used_at = now();
@@ -202,7 +202,7 @@ class WaitlistController extends Controller
 
         $entry->delete();
 
-        return response()->json(['message' => 'Waitlist entry removed.']);
+        return response()->json(['message' => __('waitlist_entry_removed')]);
     }
 
     private function shouldNotify(Request $request, mixed $override): bool

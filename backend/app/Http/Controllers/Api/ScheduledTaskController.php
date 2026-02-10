@@ -37,9 +37,9 @@ class ScheduledTaskController extends Controller
             'relative_offset_minutes' => 'nullable|integer',
             'active' => 'boolean',
         ]);
-        // Validierung: Entweder run_at oder (relative_to + relative_offset_minutes) muss gesetzt sein
+        // Validation: Either run_at or (relative_to + relative_offset_minutes) must be set
         if (empty($data['run_at']) && (empty($data['relative_to']) || $data['relative_offset_minutes'] === null)) {
-            return response()->json(['message' => 'Entweder run_at oder relative_to + relative_offset_minutes muss gesetzt sein.'], 422);
+            return response()->json(['message' => __('scheduled_task_either_run_at_or_relative')], 422);
         }
         $task = ScheduledTask::create($data);
         return response()->json($task, 201);

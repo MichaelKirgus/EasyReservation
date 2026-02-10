@@ -3,8 +3,10 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 import { adminFetch } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
+const { tr } = useTranslation()
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const data = ref([])
@@ -110,7 +112,7 @@ function parsePayload(json) {
 }
 
 async function load(opts = {}) {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.', opts); return }
+  if (!apiKey.value) { setError(tr('please_login_api_key_missing'), opts); return }
   loading.value = true
   try {
     const res = await fetchWithAuth('reservations')
@@ -118,35 +120,35 @@ async function load(opts = {}) {
     data.value = await res.json()
     localStorage.setItem('admin_api_key', apiKey.value)
     localStorage.setItem('admin_notify_on_change', notifyOnChange.value ? '1' : '0')
-    if (!opts.auto) setMessage('')
+    if (!opts.auto) setMessage(tr(''))
   } catch (e) {
-    setError(`Fehler beim Laden: ${e}`, opts)
+    setError(tr('error_loading') + ': ' + e, opts)
   } finally { loading.value = false }
 }
 
 async function loadWaitlist(opts = {}) {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.', opts); return }
+  if (!apiKey.value) { setError(tr('please_login_api_key_missing'), opts); return }
   waitlistLoading.value = true
   try {
     const res = await fetchWithAuth('waitlist')
     if (!res.ok) throw new Error(await res.text())
     waitlist.value = await res.json()
   } catch (e) {
-    setError(`Fehler beim Laden der Warteliste: ${e}`, opts)
+    setError(tr('error_loading_waitlist') + ': ' + e, opts)
   } finally {
     waitlistLoading.value = false
   }
 }
 
 async function loadValidations(opts = {}) {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.', opts); return }
+  if (!apiKey.value) { setError(tr('please_login_api_key_missing'), opts); return }
   validationLoading.value = true
   try {
     const res = await fetchWithAuth('email-validations?status=pending')
     if (!res.ok) throw new Error(await res.text())
     validations.value = await res.json()
   } catch (e) {
-    setError(`Fehler beim Laden der Validierungen: ${e}`, opts)
+    setError(tr('error_loading_validations') + ': ' + e, opts)
   } finally {
     validationLoading.value = false
   }
@@ -159,7 +161,7 @@ async function reloadAll(opts = {}) {
 async function removeItem(id) {
   if (window.__reservationDeleteInProgress) return;
   window.__reservationDeleteInProgress = true;
-  if (!confirm('Eintrag löschen?')) {
+  if (!confirm(tr('entry_deleted_confirm'))) {
     window.__reservationDeleteInProgress = false;
     return;
   }
@@ -181,7 +183,7 @@ async function removeItem(id) {
 
 async function bulkDeleteReservations() {
   if (!selectedReservations.value.length) return
-  if (!confirm(`Ausgewählte Reservierungen (${selectedReservations.value.length}) löschen?`)) return
+  if (!confirm(tr('fields_delete_confirm', { count: selectedReservations.value.length }))) return
   loading.value = true
   try {
     for (const id of selectedReservations.value) {
@@ -190,37 +192,37 @@ async function bulkDeleteReservations() {
       if (!res.ok) throw new Error(text)
     }
     selectedReservations.value = []
-    setMessage('Ausgewählte Reservierungen gelöscht.')
+    setMessage(tr('reservations_deleted'))
     await reloadAll()
   } catch (e) {
-    setError(`Löschen fehlgeschlagen: ${e}`)
+    setError(tr('deletion_failed') + ': ' + e)
   } finally { loading.value = false }
 }
 
 async function clearReservations() {
   if (!data.value.length) return
-  if (!confirm('Alle Teilnehmer-Einträge löschen?')) return
+  if (!confirm(tr('fields_delete_confirm', { count: data.value.length }))) return
   loading.value = true
   try {
     for (const r of data.value) {
       await fetchWithAuth(`reservations/${r.id}?${notifyQuery()}`, { method: 'DELETE' })
     }
     selectedReservations.value = []
-    setMessage('Teilnehmerliste geleert.')
+    setMessage(tr('participants_cleared'))
     await reloadAll()
   } catch (e) {
-    setError(`Leeren fehlgeschlagen: ${e}`)
+    setError(tr('clear_failed') + ': ' + e)
   } finally { loading.value = false }
 }
 
 function exportCsv() {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (!apiKey.value) { setError(tr('api_key_missing')); return }
   const url = `${apiBase}/${routePrefix.value}/export?api_key=${encodeURIComponent(apiKey.value)}`
   window.open(url, '_blank')
 }
 
 function exportWaitlistCsv() {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (!apiKey.value) { setError(tr('api_key_missing')); return }
   const url = `${apiBase}/${routePrefix.value}/waitlist/export?api_key=${encodeURIComponent(apiKey.value)}`
   window.open(url, '_blank')
 }
@@ -230,7 +232,7 @@ function handleKeyUpdate(e) {
 }
 
 async function saveReservation(r) {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (!apiKey.value) { setError(tr('api_key_missing')); return }
   loading.value = true
   try {
     const res = await fetchWithAuth(`reservations/${r.id}?${notifyQuery()}`, {
@@ -239,9 +241,9 @@ async function saveReservation(r) {
     })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
-    setMessage('Reservierung aktualisiert.')
+    setMessage(tr('reservation_updated'))
   } catch (e) {
-    setError(`Fehler beim Speichern: ${e}`)
+    setError(tr('error_saving') + ': ' + e)
   } finally { loading.value = false }
 }
 
@@ -252,7 +254,7 @@ async function saveEmail(r) {
 async function removeWaitlistEntry(id) {
   if (window.__waitlistDeleteInProgress) return;
   window.__waitlistDeleteInProgress = true;
-  if (!confirm('Wartelisten-Eintrag löschen?')) {
+  if (!confirm(tr('entry_deleted_confirm'))) {
     window.__waitlistDeleteInProgress = false;
     return;
   }
@@ -273,7 +275,7 @@ async function removeWaitlistEntry(id) {
 
 async function bulkDeleteWaitlist() {
   if (!selectedWaitlist.value.length) return
-  if (!confirm(`Ausgewählte Wartelisten-Einträge (${selectedWaitlist.value.length}) löschen?`)) return
+  if (!confirm(tr('fields_delete_confirm', { count: selectedWaitlist.value.length }))) return
   waitlistLoading.value = true
   try {
     for (const id of selectedWaitlist.value) {
@@ -282,40 +284,40 @@ async function bulkDeleteWaitlist() {
       if (!res.ok) throw new Error(text)
     }
     selectedWaitlist.value = []
-    setMessage('Ausgewählte Wartelisten-Einträge gelöscht.')
+    setMessage(tr('waitlist_entries_deleted'))
     await reloadAll()
   } catch (e) {
-    setError(`Löschen fehlgeschlagen: ${e}`)
+    setError(tr('deletion_failed') + ': ' + e)
   } finally { waitlistLoading.value = false }
 }
 
 async function clearWaitlist() {
   if (!waitlist.value.length) return
-  if (!confirm('Alle Wartelisten-Einträge löschen?')) return
+  if (!confirm(tr('fields_delete_confirm', { count: waitlist.value.length }))) return
   waitlistLoading.value = true
   try {
     for (const w of waitlist.value) {
       await fetchWithAuth(`waitlist/${w.id}`, { method: 'DELETE' })
     }
     selectedWaitlist.value = []
-    setMessage('Warteliste geleert.')
+    setMessage(tr('waitlist_cleared'))
     await reloadAll()
   } catch (e) {
-    setError(`Leeren fehlgeschlagen: ${e}`)
+    setError(tr('clear_failed') + ': ' + e)
   } finally { waitlistLoading.value = false }
 }
 
 async function approveValidation(id) {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (!apiKey.value) { setError(tr('please_login_api_key_missing')); return }
   validationLoading.value = true
   try {
     const res = await fetchWithAuth(`email-validations/${id}/approve`, { method: 'POST' })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
-    setMessage('Validierung freigegeben.')
+    setMessage(tr('validation_approved'))
     await reloadAll()
   } catch (e) {
-    setError(`Freigabe fehlgeschlagen: ${e}`)
+    setError(tr('approval_failed') + ': ' + e)
   } finally {
     validationLoading.value = false
   }
@@ -323,7 +325,7 @@ async function approveValidation(id) {
 
 async function bulkApproveValidations() {
   if (!selectedValidations.value.length) return
-  if (!confirm(`Ausgewählte Validierungen (${selectedValidations.value.length}) freigeben?`)) return
+  if (!confirm(tr('bulk_approve_validations_confirm', { count: selectedValidations.value.length }))) return
   validationLoading.value = true
   try {
     for (const id of selectedValidations.value) {
@@ -332,26 +334,26 @@ async function bulkApproveValidations() {
       if (!res.ok) throw new Error(text)
     }
     selectedValidations.value = []
-    setMessage('Ausgewählte Validierungen freigegeben.')
+    setMessage(tr('validations_approved'))
     await reloadAll()
   } catch (e) {
-    setError(`Freigabe fehlgeschlagen: ${e}`)
+    setError(tr('approval_failed') + ': ' + e)
   } finally {
     validationLoading.value = false
   }
 }
 
 async function discardValidation(id) {
-  if (!confirm('Validierung verwerfen?')) return
+  if (!confirm(tr('discard_validation'))) return
   validationLoading.value = true
   try {
     const res = await fetchWithAuth(`email-validations/${id}`, { method: 'DELETE' })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
-    setMessage('Validierung verworfen.')
+    setMessage(tr('validation_discarded'))
     validations.value = validations.value.filter(v => v.id !== id)
   } catch (e) {
-    setError(`Verwerfen fehlgeschlagen: ${e}`)
+    setError(tr('discard_failed') + ': ' + e)
   } finally {
     validationLoading.value = false
   }
@@ -359,7 +361,7 @@ async function discardValidation(id) {
 
 async function bulkDiscardValidations() {
   if (!selectedValidations.value.length) return
-  if (!confirm(`Ausgewählte Validierungen (${selectedValidations.value.length}) verwerfen?`)) return
+  if (!confirm(tr('bulk_discard_validations_confirm', { count: selectedValidations.value.length }))) return
   validationLoading.value = true
   try {
     for (const id of selectedValidations.value) {
@@ -368,10 +370,10 @@ async function bulkDiscardValidations() {
       if (!res.ok) throw new Error(text)
     }
     selectedValidations.value = []
-    setMessage('Ausgewählte Validierungen verworfen.')
+    setMessage(tr('validations_discarded'))
     await reloadAll()
   } catch (e) {
-    setError(`Verwerfen fehlgeschlagen: ${e}`)
+    setError(tr('discard_failed') + ': ' + e)
   } finally {
     validationLoading.value = false
   }
@@ -379,17 +381,17 @@ async function bulkDiscardValidations() {
 
 async function clearValidations() {
   if (!validations.value.length) return
-  if (!confirm('Alle offenen Validierungen löschen?')) return
+  if (!confirm(tr('clear_all_open_validations_confirm'))) return
   validationLoading.value = true
   try {
     for (const v of validations.value) {
       await fetchWithAuth(`email-validations/${v.id}`, { method: 'DELETE' })
     }
     selectedValidations.value = []
-    setMessage('Validierungen geleert.')
+    setMessage(tr('validations_cleared'))
     await reloadAll()
   } catch (e) {
-    setError(`Leeren fehlgeschlagen: ${e}`)
+    setError(tr('clear_failed') + ': ' + e)
   } finally { validationLoading.value = false }
 }
 
@@ -408,15 +410,15 @@ function statusLabel(status) {
 }
 
 async function resendValidation(id) {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (!apiKey.value) { setError(tr('please_login_api_key_missing')); return }
   validationLoading.value = true
   try {
     const res = await fetchWithAuth(`email-validations/${id}/resend`, { method: 'POST' })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
-    setMessage('Validierungs-E-Mail erneut gesendet.')
+    setMessage(tr('validation_email_resent'))
   } catch (e) {
-    setError(`Erneut senden fehlgeschlagen: ${e}`)
+    setError(tr('resend_failed') + ': ' + e)
   } finally {
     validationLoading.value = false
   }
@@ -447,7 +449,7 @@ onUnmounted(() => {
 async function createReservation() {
   if (window.__reservationCreateInProgress) return;
   window.__reservationCreateInProgress = true;
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); window.__reservationCreateInProgress = false; return }
+  if (!apiKey.value) { setError(tr('api_key_missing')); window.__reservationCreateInProgress = false; return }
   const payload = (() => {
     try { return parsePayload(newReservation.value.payloadJson) } catch (e) { setError(e.message); return null }
   })()
@@ -465,10 +467,10 @@ async function createReservation() {
       throw new Error(text)
     }
     newReservation.value = { name: '', email: '', payloadJson: '' }
-    setMessage('Reservierung angelegt.')
+    setMessage(tr('reservation_created'))
     await load()
   } catch (e) {
-    setError(`Anlegen fehlgeschlagen: ${e.message || e}`)
+    setError(tr('creation_failed') + ': ' + (e.message || e))
   } finally {
     loading.value = false;
     window.__reservationCreateInProgress = false;
@@ -478,7 +480,7 @@ async function createReservation() {
 async function createWaitlistEntry() {
   if (window.__waitlistCreateInProgress) return;
   window.__waitlistCreateInProgress = true;
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); window.__waitlistCreateInProgress = false; return }
+  if (!apiKey.value) { setError(tr('api_key_missing')); window.__waitlistCreateInProgress = false; return }
   const payload = (() => {
     try { return parsePayload(newWaitlist.value.payloadJson) } catch (e) { setError(e.message); return null }
   })()
@@ -496,10 +498,10 @@ async function createWaitlistEntry() {
       throw new Error(text)
     }
     newWaitlist.value = { name: '', email: '', payloadJson: '' }
-    setMessage('Auf Warteliste gesetzt.')
+    setMessage(tr('added_to_waitlist'))
     await loadWaitlist()
   } catch (e) {
-    setError(`Anlegen fehlgeschlagen: ${e.message || e}`)
+    setError(tr('creation_failed') + ': ' + (e.message || e))
   } finally {
     waitlistLoading.value = false;
     window.__waitlistCreateInProgress = false;
@@ -507,15 +509,15 @@ async function createWaitlistEntry() {
 }
 
 async function updateWaitlistEntry(entry) {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (!apiKey.value) { setError(tr('please_login_api_key_missing')); return }
   waitlistLoading.value = true
   try {
     const res = await fetchWithAuth(`waitlist/${entry.id}`, { method: 'PATCH', body: JSON.stringify({ name: entry.display_name, email: entry.email || '' }) })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
-    setMessage('Wartelisten-Eintrag aktualisiert.')
+    setMessage(tr('waitlist_entry_updated'))
   } catch (e) {
-    setError(`Aktualisieren fehlgeschlagen: ${e}`)
+    setError(tr('update_failed') + ': ' + e)
   } finally {
     waitlistLoading.value = false
   }
@@ -524,16 +526,16 @@ async function updateWaitlistEntry(entry) {
 async function promoteWaitlistEntry(id) {
   if (window.__promoteInProgress) return;
   window.__promoteInProgress = true;
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); window.__promoteInProgress = false; return }
+  if (!apiKey.value) { setError(tr('api_key_missing')); window.__promoteInProgress = false; return }
   waitlistLoading.value = true
   try {
     const res = await fetchWithAuth(`waitlist/${id}/promote`, { method: 'POST' })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
-    setMessage('Wartelisten-Eintrag befördert.')
+    setMessage(tr('waitlist_entry_promoted'))
     await reloadAll()
   } catch (e) {
-    setError(`Befördern fehlgeschlagen: ${e}`)
+    setError(tr('promotion_failed') + ': ' + e)
   } finally {
     waitlistLoading.value = false;
     window.__promoteInProgress = false;
@@ -541,7 +543,7 @@ async function promoteWaitlistEntry(id) {
 }
 
 async function loadRateLimits() {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
+  if (!apiKey.value) { setError(tr('please_login_api_key_missing')); return }
   rateLimitLoading.value = true
   try {
     const res = await fetchWithAuth('email-validation-rate-limits')
@@ -555,46 +557,46 @@ async function loadRateLimits() {
 }
 
 async function resetRateLimit(ip) {
-  if (!confirm(`Rate-Limit für IP ${ip} zurücksetzen?`)) return
+  if (!confirm(tr('reset_rate_limit_confirm', { ip: ip }))) return
   rateLimitLoading.value = true
   try {
     const res = await fetchWithAuth(`email-validation-rate-limits/${encodeURIComponent(ip)}`, { method: 'DELETE' })
     if (!res.ok) throw new Error(await res.text())
-    setMessage('Rate-Limit zurückgesetzt.')
+    setMessage(tr('rate_limit_reset'))
     await loadRateLimits()
   } catch (e) {
-    setError(`Zurücksetzen fehlgeschlagen: ${e}`)
+    setError(tr('reset_failed') + ': ' + e)
   } finally {
     rateLimitLoading.value = false
   }
 }
 
 async function clearAllRateLimits() {
-  if (!confirm('Alle Rate-Limit-Daten löschen?')) return
+  if (!confirm(tr('delete_all_rate_limit_data'))) return
   rateLimitLoading.value = true
   try {
     const res = await fetchWithAuth('email-validation-rate-limits', { method: 'DELETE' })
     if (!res.ok) throw new Error(await res.text())
-    setMessage('Alle Rate-Limits gelöscht.')
+    setMessage(tr('all_rate_limits_deleted'))
     await loadRateLimits()
   } catch (e) {
-    setError(`Löschen fehlgeschlagen: ${e}`)
+    setError(tr('deletion_failed') + ': ' + e)
   } finally {
     rateLimitLoading.value = false
   }
     }
 
 async function purgeAllData() {
-  if (!apiKey.value) { setError('Bitte anmelden, API-Key fehlt.'); return }
-  if (!confirm('Wirklich ALLE Teilnehmer, Wartelisten-Einträge und Rate-Limits unwiderruflich löschen? Es werden keine E-Mail-Benachrichtigungen versendet!')) return
+  if (!apiKey.value) { setError(tr('api_key_missing')); return }
+  if (!confirm(tr('purge_all_data_confirm'))) return
   loading.value = true
   try {
     const res = await fetchWithAuth('purge-all', { method: 'POST' })
     if (!res.ok) throw new Error(await res.text())
-    setMessage('Alle Daten wurden gelöscht.')
+    setMessage(tr('all_data_deleted'))
     await reloadAll()
   } catch (e) {
-    setError(`Löschen aller Daten fehlgeschlagen: ${e}`)
+    setError(tr('data_deletion_failed') + ': ' + e)
   } finally {
     loading.value = false
   }

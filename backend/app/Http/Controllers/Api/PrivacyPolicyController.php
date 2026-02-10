@@ -18,7 +18,7 @@ class PrivacyPolicyController extends Controller
         $enabled = (int) $this->settings->get('privacy_policy_enabled', 0) === 1;
         $text = $this->settings->get('privacy_policy_text', '');
         if (!$enabled || !$text) {
-            return response()->json(['message' => 'Privacy policy not available.'], 404);
+            return response()->json(['message' => __('privacy_policy_not_available')], 404);
         }
         $text = $this->placeholders->replaceString($text);
         return response()->json(['text' => $text]);

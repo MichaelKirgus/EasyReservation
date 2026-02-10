@@ -50,6 +50,9 @@ import TaskDialog from './TaskDialog.vue'
 import IconButton from './IconButton.vue'
 import axios from 'axios'
 import { buildAdminHeaders } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
+
+const { tr } = useTranslation()
 
 function apiConfig() {
   return { headers: buildAdminHeaders() };
@@ -132,12 +135,13 @@ function runNow(task) {
 }
 
 function deleteTask(task) {
-  if (confirm('Wirklich löschen?')) {
-    loading.value = true
-    axios.delete(`/api/admin/scheduled-tasks/${task.id}`, apiConfig())
-      .then(fetchTasks)
-      .finally(() => { loading.value = false })
+  if (!confirm(tr('really_delete_scheduled_task'))) {
+    return
   }
+  loading.value = true
+  axios.delete(`/api/admin/scheduled-tasks/${task.id}`, apiConfig())
+    .then(fetchTasks)
+    .finally(() => { loading.value = false })
 }
 
 function saveTask(task) {

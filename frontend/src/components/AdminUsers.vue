@@ -4,10 +4,12 @@ import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 import SecretField from './SecretField.vue'
 import { buildAdminHeaders } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
 
 import ResetPasswordDialog from './ResetPasswordDialog.vue'
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
+const { tr } = useTranslation()
 const apiKey = ref(localStorage.getItem('admin_api_key') || '')
 const users = ref([])
 const loading = ref(false)
@@ -77,11 +79,11 @@ async function resetPassword(user, password) {
       body: JSON.stringify({ password })
     })
     if (!res.ok) throw new Error(await res.text())
-    setMessage('Kennwort wurde geändert.')
+    setMessage(tr('password_changed'))
     showResetPassword.value = false
     resetUser.value = null
   } catch (e) {
-    setError(`Kennwort-Reset fehlgeschlagen: ${e}`)
+    setError(tr('password_reset_failed') + ': ' + e)
   } finally {
     resetLoading.value = false
   }
@@ -97,13 +99,13 @@ async function parseJsonSafe(res) {
   try {
     return JSON.parse(text)
   } catch {
-    throw new Error(text || 'Ungültige Antwort vom Server')
+    throw new Error(text || tr('invalid_server_response'))
   }
 }
 
 async function fetchUsers(opts = {}) {
   if (!apiKey.value) {
-    setError('Bitte API-Key eintragen.', opts)
+    setError(tr('api_key_required'), opts)
     return
   }
   loading.value = true
@@ -112,9 +114,9 @@ async function fetchUsers(opts = {}) {
     if (!res.ok) throw new Error(await res.text())
     users.value = await parseJsonSafe(res)
     localStorage.setItem('admin_api_key', apiKey.value)
-    if (!opts.auto) setMessage('Benutzer geladen.')
+    if (!opts.auto) setMessage(tr('users_loaded'))
   } catch (e) {
-    setError(`Fehler beim Laden: ${e}`, opts)
+    setError(tr('error_loading') + ': ' + e, opts)
   } finally {
     loading.value = false
   }
@@ -137,10 +139,10 @@ async function createUser() {
       newUser.api_token = data.api_token
     }
     users.value.push(newUser)
-    setMessage('Benutzer angelegt.')
+    setMessage(tr('user_created'))
     Object.assign(form, { name: '', email: '', role: 'admin', active: true, password: '', api_token: '', api_token_is_hashed: false })
   } catch (e) {
-    setError(`Fehler beim Anlegen: ${e}`)
+    setError(tr('error_creating_user') + ': ' + e)
   }
 }
 
@@ -158,9 +160,9 @@ async function updateUser(user) {
     })
     if (!res.ok) throw new Error(await res.text())
     await parseJsonSafe(res)
-    setMessage('Benutzer aktualisiert.')
+    setMessage(tr('user_updated'))
   } catch (e) {
-    setError(`Fehler beim Speichern: ${e}`)
+    setError(tr('error_saving') + ': ' + e)
   }
 }
 
@@ -180,9 +182,9 @@ async function rotateToken(user, hash = false) {
       user.api_token = undefined
       user.api_token_is_hashed = true
     }
-    setMessage('Token neu generiert.')
+    setMessage(tr('token_regenerated'))
   } catch (e) {
-    setError(`Fehler beim Token-Reset: ${e}`)
+    setError(tr('error_resetting_token') + ': ' + e)
   }
 }
 
@@ -197,15 +199,15 @@ async function deleteUser(user) {
     if (!res.ok) throw new Error(text)
     users.value = users.value.filter((u) => u.id !== user.id)
     selectedUsers.value = selectedUsers.value.filter(id => id !== user.id)
-    setMessage('Benutzer gelöscht.')
+    setMessage(tr('user_deleted'))
   } catch (e) {
-    setError(`Löschen fehlgeschlagen: ${e}`)
+    setError(tr('deletion_failed') + ': ' + e)
   }
 }
 
 async function bulkDeleteUsers() {
   if (!selectedUsers.value.length) return
-  if (!confirm(`Ausgewählte Benutzer (${selectedUsers.value.length}) löschen?`)) return
+  if (!confirm(tr('bulk_delete_users_confirm', { count: selectedUsers.value.length }))) return
   try {
     for (const id of selectedUsers.value) {
       const user = users.value.find(u => u.id === id)
@@ -216,9 +218,9 @@ async function bulkDeleteUsers() {
     }
     users.value = users.value.filter(u => !selectedUsers.value.includes(u.id))
     selectedUsers.value = []
-    setMessage('Ausgewählte Benutzer gelöscht.')
+    setMessage(tr('selected_users_deleted'))
   } catch (e) {
-    setError(`Löschen fehlgeschlagen: ${e}`)
+    setError(tr('deletion_failed') + ': ' + e)
   }
 }
 
@@ -234,45 +236,45 @@ function handleKeyUpdate(e) {
 }
 
 async function enable2FA(user) {
-  if (!confirm(`2FA für ${user.name} aktivieren?`)) return;
+  if (!confirm(tr('enable_2fa_for_user', { name: user.name }))) return;
   loading.value = true;
   try {
     const res = await fetch(`${apiBase}/admin/users/${user.id}/2fa/enable`, { method: 'POST', headers: authHeaders() });
     if (!res.ok) throw new Error(await res.text());
-    setMessage('2FA aktiviert.');
+    setMessage(tr('2fa_enabled'));
     await fetchUsers();
   } catch (e) {
-    setError(`2FA-Aktivierung fehlgeschlagen: ${e}`);
+    setError(tr('2fa_activation_failed') + ': ' + e);
   } finally {
     loading.value = false;
   }
 }
 
 async function disable2FA(user) {
-  if (!confirm(`2FA für ${user.name} deaktivieren?`)) return;
+  if (!confirm(tr('disable_2fa_for_user', { name: user.name }))) return;
   loading.value = true;
   try {
     const res = await fetch(`${apiBase}/admin/users/${user.id}/2fa/disable`, { method: 'POST', headers: authHeaders() });
     if (!res.ok) throw new Error(await res.text());
-    setMessage('2FA deaktiviert.');
+    setMessage(tr('2fa_disabled'));
     await fetchUsers();
   } catch (e) {
-    setError(`2FA-Deaktivierung fehlgeschlagen: ${e}`);
+    setError(tr('2fa_deactivation_failed') + ': ' + e);
   } finally {
     loading.value = false;
   }
 }
 
 async function reset2FA(user) {
-  if (!confirm(`2FA für ${user.name} zurücksetzen?`)) return;
+  if (!confirm(tr('reset_2fa_for_user', { name: user.name }))) return;
   loading.value = true;
   try {
     const res = await fetch(`${apiBase}/admin/users/${user.id}/2fa/reset`, { method: 'POST', headers: authHeaders() });
     if (!res.ok) throw new Error(await res.text());
-    setMessage('2FA zurückgesetzt.');
+    setMessage(tr('2fa_reset'));
     await fetchUsers();
   } catch (e) {
-    setError(`2FA-Reset fehlgeschlagen: ${e}`);
+    setError(tr('2fa_reset_failed') + ': ' + e);
   } finally {
     loading.value = false;
   }
@@ -298,9 +300,9 @@ async function enableSelf2FA() {
     await fetchSelf2FAStatus()
     await fetchSelf2FAQr()
     self2FA.value.showQr = true
-    self2FA.value.message = 'Bitte QR-Code scannen und OTP eingeben.'
+    self2FA.value.message = tr('please_scan_qr_and_enter_otp')
   } catch (e) {
-    self2FA.value.error = `Aktivierung fehlgeschlagen: ${e}`
+    self2FA.value.error = tr('activation_failed') + ': ' + e
   }
 }
 
@@ -315,9 +317,9 @@ async function disableSelf2FA() {
     self2FA.value.recovery = []
     self2FA.value.showQr = false
     self2FA.value.showRecovery = false
-    self2FA.value.message = '2FA deaktiviert.'
+    self2FA.value.message = tr('2fa_disabled')
   } catch (e) {
-    self2FA.value.error = `Deaktivierung fehlgeschlagen: ${e}`
+    self2FA.value.error = tr('deactivation_failed') + ': ' + e
   }
 }
 
@@ -329,7 +331,7 @@ async function fetchSelf2FAQr() {
     self2FA.value.qr = data.svg || ''
     self2FA.value.secret = data.secret || ''
   } catch (e) {
-    self2FA.value.error = `QR-Code konnte nicht geladen werden: ${e}`
+    self2FA.value.error = tr('qr_code_load_failed') + ': ' + e
   }
 }
 
@@ -341,7 +343,7 @@ async function fetchSelf2FARecovery() {
     self2FA.value.recovery = data
     self2FA.value.showRecovery = true
   } catch (e) {
-    self2FA.value.error = `Recovery-Codes konnten nicht geladen werden: ${e}`
+    self2FA.value.error = tr('recovery_codes_load_failed') + ': ' + e
   }
 }
 
@@ -356,12 +358,12 @@ async function confirmSelf2FA() {
       body: JSON.stringify({ code: self2FA.value.otp })
     })
     if (!res.ok) throw new Error(await res.text())
-    self2FA.value.message = 'OTP bestätigt. 2FA ist jetzt aktiv.'
+    self2FA.value.message = tr('otp_confirmed_2fa_active')
     self2FA.value.otp = ''
     await fetchSelf2FAStatus()
     await fetchSelf2FARecovery()
   } catch (e) {
-    self2FA.value.error = `OTP-Überprüfung fehlgeschlagen: ${e}`
+    self2FA.value.error = tr('otp_verification_failed') + ': ' + e
   }
 }
 

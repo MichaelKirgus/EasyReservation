@@ -50,7 +50,7 @@ class WebhookTemplateController extends Controller
     {
         $template = WebhookTemplate::findOrFail($id);
         $template->delete();
-        return response()->json(['success' => true]);
+        return response()->json(['success' => true, 'message' => __('webhook_template_deleted')]);
     }
 
     /**
@@ -78,13 +78,13 @@ class WebhookTemplateController extends Controller
                     $headersArr = [];
                 }
             }
-            // Versenden
+            // Send
             $webhookService->send($template->url, json_decode($payload, true) ?: [], $headersArr);
-            return response()->json(['success' => true, 'message' => 'Webhook wurde gesendet.']);
+            return response()->json(['success' => true, 'message' => __('webhook_sent_successfully')]);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Fehler: ' . $e->getMessage(),
+                'message' => __('error_generic', ['message' => $e->getMessage()]),
             ], 500);
         }
     }

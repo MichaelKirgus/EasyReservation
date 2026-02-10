@@ -152,16 +152,16 @@ class WaitlistService
         $reservation = DB::transaction(function () use ($entry) {
             $max = (int) ($this->settings->get('reservation_max', 0) ?? 0);
             if ($max <= 0) {
-                throw new \RuntimeException('Reservation limit not set.');
+                throw new \RuntimeException(__('reservation_limit_not_set'));
             }
 
             $current = Reservation::query()->lockForUpdate()->count();
             if ($current >= $max) {
-                throw new \RuntimeException('No free slots available.');
+                throw new \RuntimeException(__('no_free_slots_available'));
             }
 
             if ($entry->status !== 'pending') {
-                throw new \RuntimeException('Entry already processed.');
+                throw new \RuntimeException(__('entry_already_processed'));
             }
 
             $reservation = Reservation::create([

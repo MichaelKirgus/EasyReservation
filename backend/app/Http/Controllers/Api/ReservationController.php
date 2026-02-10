@@ -63,17 +63,17 @@ class ReservationController extends Controller
         $missingRequiredCheckboxes = $this->validator->missingRequiredCheckboxes($payload);
         if (! empty($missingRequiredCheckboxes)) {
             return response()->json([
-                'message' => 'Required confirmation missing.',
+                'message' => __('reservation_required_confirmation_missing'),
                 'missing' => $missingRequiredCheckboxes,
             ], 422);
         }
 
         if (! $this->validator->nameIsValid($name)) {
-            return response()->json(['message' => 'Invalid name.'], 422);
+            return response()->json(['message' => __('validation_invalid_name')], 422);
         }
 
         if (! $this->validator->emailIsValid($email)) {
-            return response()->json(['message' => 'Invalid email.'], 422);
+            return response()->json(['message' => __('validation_invalid_email')], 422);
         }
 
         $max = (int) ($settings['reservation_max'] ?? 0);
@@ -157,7 +157,7 @@ class ReservationController extends Controller
             if ($user && in_array($user->role, ['admin', 'superadmin', 'moderator'])) {
                 $siteToken = $this->siteTokenService->getValidSiteToken();
             } else {
-                return response()->json(['message' => 'Site token is required for reservations.'], 422);
+                return response()->json(['message' => __('reservation_site_token_required')], 422);
             }
         }
 
@@ -185,7 +185,7 @@ class ReservationController extends Controller
         $settings = $this->settings->all();
 
         if ((int) ($settings['reservation_undo_enabled'] ?? 0) !== 1) {
-            return response()->json(['message' => 'Undo is disabled.'], 403);
+            return response()->json(['message' => __('reservation_undo_disabled')], 403);
         }
 
         $user = $this->resolveUserFromToken($request);
@@ -199,11 +199,11 @@ class ReservationController extends Controller
         }
 
         if ($email === '' || ! $this->validator->emailIsValid($email)) {
-            return response()->json(['message' => 'Invalid email.'], 422);
+            return response()->json(['message' => __('validation_invalid_email')], 422);
         }
 
         if (! $this->validator->nameIsValid($name)) {
-            return response()->json(['message' => 'Invalid name.'], 422);
+            return response()->json(['message' => __('validation_invalid_name')], 422);
         }
 
         $query = Reservation::query()
@@ -218,7 +218,7 @@ class ReservationController extends Controller
         $candidate = $query->first();
 
         if (! $candidate) {
-            return response()->json(['message' => 'Reservation not found.'], 404);
+            return response()->json(['message' => __('reservation_not_found')], 404);
         }
 
         $this->emailValidation->sendReservationNotification($candidate, 'email_reservation_cancel_template_id', false);
@@ -236,20 +236,20 @@ class ReservationController extends Controller
             }
         }
 
-        return response()->json(['message' => 'Reservation removed.']);
+        return response()->json(['message' => __('reservation_removed')]);
     }
 
     public function undoByToken(string $token): JsonResponse
     {
         $settings = $this->settings->all();
         if ((int) ($settings['reservation_undo_enabled'] ?? 0) !== 1) {
-            return response()->json(['message' => 'Undo is disabled.'], 403);
+            return response()->json(['message' => __('undo_disabled')], 403);
         }
 
         $reservation = Reservation::query()->where('undo_token', $token)->first();
 
         if (! $reservation) {
-            return response()->json(['message' => 'Reservation not found.'], 404);
+            return response()->json(['message' => __('reservation_not_found')], 404);
         }
 
         $this->emailValidation->sendReservationNotification($reservation, 'email_reservation_cancel_template_id', false);
@@ -267,7 +267,7 @@ class ReservationController extends Controller
             }
         }
 
-        return response()->json(['message' => 'Reservation removed.']);
+        return response()->json(['message' => __('reservation_removed')]);
     }
 
     private function resolveUserFromToken(Request $request): ?User
