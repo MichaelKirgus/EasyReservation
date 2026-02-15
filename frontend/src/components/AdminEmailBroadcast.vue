@@ -31,7 +31,7 @@ const form = reactive({
   customRecipients: [{ name: '', email: '' }],
 })
 
-const templateForm = reactive({ name: '', subject: '', body: '', type: 'generic' })
+const templateForm = reactive({ name: '', subject: '', body: '', cc: '', bcc: '', type: 'generic' })
 const userRole = computed(() => currentUser.value?.role?.toLowerCase?.() || '')
 const canManageTemplates = computed(() =>
   routePrefix.value === 'admin' || userRole.value === 'admin' || userRole.value === 'superadmin'
@@ -41,6 +41,8 @@ const templateColumns = [
   { key: 'id', label: 'ID', sortable: true },
   { key: 'name', label: 'Bezeichnung', sortable: true },
   { key: 'subject', label: 'Betreff', sortable: true },
+  { key: 'cc', label: 'CC', sortable: false },
+  { key: 'bcc', label: 'BCC', sortable: false },
   { key: 'body', label: 'Inhalt', sortable: false },
 ]
 
@@ -176,7 +178,7 @@ async function saveTemplate(tpl) {
   try {
     const res = await fetchWithAuth(`email-templates/${tpl.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ name: tpl.name, subject: tpl.subject, body: tpl.body, type: tpl.type || 'generic' }),
+      body: JSON.stringify({ name: tpl.name, subject: tpl.subject, body: tpl.body, cc: tpl.cc || '', bcc: tpl.bcc || '', type: tpl.type || 'generic' }),
     })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
@@ -213,6 +215,8 @@ async function createTemplate() {
     templateForm.name = ''
     templateForm.subject = ''
     templateForm.body = ''
+    templateForm.cc = ''
+    templateForm.bcc = ''
     templateForm.type = 'generic'
     await loadTemplates()
   } catch (e) {
@@ -404,6 +408,12 @@ watch(() => props.defaultSubTab, (val) => {
               <span class="placeholder-indicator" :title="placeholderText || 'Unterstützt Platzhalter'" aria-hidden="true">⧉</span>
             </div>
           </template>
+          <template #cell-cc="{ row }">
+            <input v-model="row.cc" :disabled="!canManageTemplates" @change="saveTemplate(row)" placeholder="kommagetrennt" />
+          </template>
+          <template #cell-bcc="{ row }">
+            <input v-model="row.bcc" :disabled="!canManageTemplates" @change="saveTemplate(row)" placeholder="kommagetrennt" />
+          </template>
           <template #cell-body="{ row }">
             <div class="with-placeholder-icon">
               <textarea v-model="row.body" rows="4" class="body-input" :disabled="!canManageTemplates" @change="saveTemplate(row)" :title="placeholderText || 'Unterstützt Platzhalter'"></textarea>
@@ -423,6 +433,18 @@ watch(() => props.defaultSubTab, (val) => {
             <div class="input-wrap">
               <input v-model="templateForm.subject" :title="placeholderText || 'Unterstützt Platzhalter'" />
               <span class="placeholder-indicator" :title="placeholderText || 'Unterstützt Platzhalter'" aria-hidden="true">⧉</span>
+            </div>
+          </label>
+          <label class="with-placeholder-icon">CC (kommagetrennt)
+            <div class="input-wrap">
+              <input v-model="templateForm.cc" :title="'Kopie an (optional, mehrere Adressen durch Komma getrennt)'" />
+              <span class="placeholder-indicator" :title="'Kopie an (optional, mehrere Adressen durch Komma getrennt)'" aria-hidden="true">⧉</span>
+            </div>
+          </label>
+          <label class="with-placeholder-icon">BCC (kommagetrennt)
+            <div class="input-wrap">
+              <input v-model="templateForm.bcc" :title="'Blindkopie an (optional, mehrere Adressen durch Komma getrennt)'" />
+              <span class="placeholder-indicator" :title="'Blindkopie an (optional, mehrere Adressen durch Komma getrennt)'" aria-hidden="true">⧉</span>
             </div>
           </label>
           <label class="with-placeholder-icon">Inhalt

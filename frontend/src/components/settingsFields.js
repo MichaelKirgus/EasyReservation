@@ -117,6 +117,8 @@ export const settingsFields = [
     { key: 'mail_password', type: 'text' },
     { key: 'mail_encryption', type: 'text' },
     { key: 'mail_from_address', type: 'text' },
+    { key: 'mail_global_cc', type: 'text' },
+    { key: 'mail_global_bcc', type: 'text' },
     { key: 'mail_debug_domain_blacklist', type: 'text' },
     { key: 'mail_from_name', type: 'text' },
     { key: 'ical_timezone', type: 'text' },

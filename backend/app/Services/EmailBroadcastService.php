@@ -96,12 +96,23 @@ class EmailBroadcastService
             $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
             $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
 
+            // Use template-specific CC/BCC if set, otherwise use global
+            $templateCc = $template->cc ?? null;
+            $templateBcc = $template->bcc ?? null;
+            
+            $globalCc = $this->settings->get('mail_global_cc');
+            $globalBcc = $this->settings->get('mail_global_bcc');
+
+            // If template has CC/BCC, use those; otherwise fall back to global
+            $cc = $templateCc ?: $globalCc;
+            $bcc = $templateBcc ?: $globalBcc;
+
             $attachments = [];
             if ($icsAttachment) {
                 $attachments[] = $icsAttachment;
             }
 
-            SendMailJob::dispatch($mailerConfig, $recipient['email'], $recipient['name'] ?? $recipient['email'], $subject, $body, $fromAddress, $fromName, $attachments);
+            SendMailJob::dispatch($mailerConfig, $recipient['email'], $recipient['name'] ?? $recipient['email'], $subject, $body, $fromAddress, $fromName, $attachments, $cc, $bcc);
             $queued++;
         }
 

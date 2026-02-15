@@ -15,5 +15,7 @@ return [
     'fields' => [
         'mail_password',
         'mail_username',
+        'mail_global_cc',
+        'mail_global_bcc',
     ],
 ];

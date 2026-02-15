@@ -191,6 +191,8 @@ const tabFieldMap = {
     'mail_password',
     'mail_encryption',
     'mail_from_address',
+    'mail_global_cc',
+    'mail_global_bcc',
     'mail_from_name',
     'email_validation_rate_limit_per_hour',
     'email_validation_rate_limit_header',

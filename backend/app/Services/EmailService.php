@@ -57,7 +57,6 @@ class EmailService
             return;
         }
 
-        $template = $this->resolveTemplate();
         $link = $this->linkBuilder->buildValidationLink($validation);
 
         // Use PlaceholderService for all placeholders including custom
@@ -71,15 +70,33 @@ class EmailService
             'attach_event_ical' => '',
         ]);
 
+        $template = $this->resolveTemplate();
+        
+        if (!$template) {
+            \Illuminate\Support\Facades\Log::error('EmailService: Could not resolve validation template');
+            return;
+        }
+
         $subject = strtr($template['subject'], $replacements);
         $body = strtr($template['body'], $replacements);
 
         $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
         $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
 
+        // Use template-specific CC/BCC if set, otherwise use global
+        $templateCc = $template['cc'] ?? null;
+        $templateBcc = $template['bcc'] ?? null;
+        
+        $globalCc = $this->settings->get('mail_global_cc');
+        $globalBcc = $this->settings->get('mail_global_bcc');
+
+        // If template has CC/BCC, use those; otherwise fall back to global
+        $cc = $templateCc ?: $globalCc;
+        $bcc = $templateBcc ?: $globalBcc;
+
         $attachments = $this->attachmentsForTemplate($template);
 
-        SendMailJob::dispatch($mailerConfig, $validation->email, $validation->display_name, $subject, $body, $fromAddress, $fromName, $attachments);
+        SendMailJob::dispatch($mailerConfig, $validation->email, $validation->display_name, $subject, $body, $fromAddress, $fromName, $attachments, $cc, $bcc);
     }
 
     /**
@@ -112,16 +129,33 @@ class EmailService
             'attach_event_ical' => '',
         ]);
 
-        $template = $this->resolveTemplateById($templateId, 'Info zu deiner Reservierung', '<p>Hallo {{name}},</p><p>deine Reservierung für {{reservation_name}} war erfolgreich.</p><p><a href="{{undo_link}}">Reservierung stornieren</a></p>');
+        $template = $this->resolveTemplateById($templateId);
+        
+        if (!$template) {
+            \Illuminate\Support\Facades\Log::error('EmailService: Could not resolve template for reservation notification');
+            return;
+        }
+        
         $subject = $this->renderTemplate($template['subject'], $replacements);
         $body = $this->renderTemplate($template['body'], $replacements);
 
         $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
         $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
 
+        // Use template-specific CC/BCC if set, otherwise use global
+        $templateCc = $template['cc'] ?? null;
+        $templateBcc = $template['bcc'] ?? null;
+        
+        $globalCc = $this->settings->get('mail_global_cc');
+        $globalBcc = $this->settings->get('mail_global_bcc');
+
+        // If template has CC/BCC, use those; otherwise fall back to global
+        $cc = $templateCc ?: $globalCc;
+        $bcc = $templateBcc ?: $globalBcc;
+
         $attachments = $this->attachmentsForTemplate($template);
 
-        SendMailJob::dispatch($mailerConfig, $reservation->email, $reservation->display_name, $subject, $body, $fromAddress, $fromName, $attachments);
+        SendMailJob::dispatch($mailerConfig, $reservation->email, $reservation->display_name, $subject, $body, $fromAddress, $fromName, $attachments, $cc, $bcc);
     }
 
     /**
@@ -244,9 +278,20 @@ class EmailService
         $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
         $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
 
+        // Use template-specific CC/BCC if set, otherwise use global
+        $templateCc = $template->cc ?? null;
+        $templateBcc = $template->bcc ?? null;
+        
+        $globalCc = $this->settings->get('mail_global_cc');
+        $globalBcc = $this->settings->get('mail_global_bcc');
+
+        // If template has CC/BCC, use those; otherwise fall back to global
+        $cc = $templateCc ?: $globalCc;
+        $bcc = $templateBcc ?: $globalBcc;
+
         $attachments = $this->attachmentsForTemplate($template);
 
-        SendMailJob::dispatch($mailerConfig, $recipient->email, $recipient->display_name ?? $recipient->email, $subject, $body, $fromAddress, $fromName, $attachments);
+        SendMailJob::dispatch($mailerConfig, $recipient->email, $recipient->display_name ?? $recipient->email, $subject, $body, $fromAddress, $fromName, $attachments, $cc, $bcc);
     }
 
     /**
@@ -258,40 +303,44 @@ class EmailService
     }
 
     /**
-     * Resolve email template by ID or use default
+     * Resolve email template by ID
      */
-    private function resolveTemplateById(?int $templateId, string $defaultSubject, string $defaultBody): array
+    private function resolveTemplateById(?int $templateId): ?array
     {
-        $template = $templateId ? EmailTemplate::query()->find($templateId) : null;
-        if ($template) {
-            return ['subject' => $template->subject, 'body' => $template->body];
+        if (!$templateId) {
+            \Illuminate\Support\Facades\Log::error('EmailService: No template ID provided');
+            return null;
         }
 
-        return ['subject' => $defaultSubject, 'body' => $defaultBody];
+        $template = EmailTemplate::query()->find($templateId);
+        if ($template) {
+            return ['subject' => $template->subject, 'body' => $template->body, 'cc' => $template->cc, 'bcc' => $template->bcc];
+        }
+
+        \Illuminate\Support\Facades\Log::error('EmailService: Template not found for ID ' . $templateId);
+        return null;
     }
 
     /**
-     * Resolve default validation template
+     * Resolve validation template
      */
-    private function resolveTemplate(): array
+    private function resolveTemplate(): ?array
     {
-        $templateId = $this->settings->get('email_validation_template_id');
-        $template = $templateId ? EmailTemplate::query()->find($templateId) : null;
-
-        $subject = 'Bitte E-Mail bestätigen';
-        $body = <<<HTML
-<p>Hallo {{name}},</p>
-<p>bitte bestätige deine E-Mail-Adresse, um die Reservierung abzuschliessen.</p>
-<p>{{validation_link_html}}</p>
-<p>Falls der Link nicht klickbar ist, kopiere ihn in die Adresszeile: {{validation_link}}</p>
-HTML;
-
-        if ($template) {
-            $subject = $template->subject;
-            $body = $template->body;
+        $templateId = (int) ($this->settings->get('email_validation_template_id') ?? 0);
+        
+        if ($templateId <= 0) {
+            \Illuminate\Support\Facades\Log::error('EmailService: No validation template ID configured');
+            return null;
         }
 
-        return ['subject' => $subject, 'body' => $body];
+        $template = EmailTemplate::query()->find($templateId);
+        
+        if (!$template) {
+            \Illuminate\Support\Facades\Log::error('EmailService: Validation template not found for ID ' . $templateId);
+            return null;
+        }
+
+        return ['subject' => $template->subject, 'body' => $template->body, 'cc' => $template->cc, 'bcc' => $template->bcc];
     }
 
     /**

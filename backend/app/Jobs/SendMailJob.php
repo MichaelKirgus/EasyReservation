@@ -28,6 +28,8 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
         private readonly ?string $fromAddress = null,
         private readonly ?string $fromName = null,
         private readonly array $attachments = [],
+        private readonly ?string $globalCc = null,
+        private readonly ?string $globalBcc = null,
     ) {
     }
 
@@ -61,7 +63,9 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
             'has_attachments' => count($this->attachments) > 0,
             'attachment_count' => count($this->attachments),
             'from_address' => $this->fromAddress,
-            'from_name' => $this->fromName
+            'from_name' => $this->fromName,
+            'global_cc' => $this->globalCc ? 'configured' : null,
+            'global_bcc' => $this->globalBcc ? 'configured' : null
         ];
         
         Log::info('SendMailJob: Starting email send process', $jobStartData);
@@ -81,6 +85,27 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
             if ($this->fromAddress) {
                 $message->from($this->fromAddress, $this->fromName ?: $this->fromAddress);
             }
+            
+            // Add global CC if configured
+            if ($this->globalCc) {
+                $ccAddresses = array_filter(array_map('trim', explode(',', $this->globalCc)));
+                foreach ($ccAddresses as $ccAddress) {
+                    if (filter_var($ccAddress, FILTER_VALIDATE_EMAIL)) {
+                        $message->cc($ccAddress);
+                    }
+                }
+            }
+            
+            // Add global BCC if configured
+            if ($this->globalBcc) {
+                $bccAddresses = array_filter(array_map('trim', explode(',', $this->globalBcc)));
+                foreach ($bccAddresses as $bccAddress) {
+                    if (filter_var($bccAddress, FILTER_VALIDATE_EMAIL)) {
+                        $message->bcc($bccAddress);
+                    }
+                }
+            }
+            
             $message->subject($this->subject);
             $message->html($this->body);
 
@@ -98,6 +123,8 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
         $jobCompleteData = [
             'to_email' => $this->toEmail,
             'subject' => $this->subject,
+            'global_cc' => $this->globalCc ? 'configured' : null,
+            'global_bcc' => $this->globalBcc ? 'configured' : null,
             'status' => 'success',
             'timestamp' => now()->toISOString()
         ];

@@ -11,5 +11,7 @@ class EmailTemplate extends Model
         'type',
         'subject',
         'body',
+        'cc',
+        'bcc',
     ];
 }
