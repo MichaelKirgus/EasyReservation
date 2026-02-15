@@ -6,6 +6,7 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
+use App\Services\SettingsService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -46,8 +47,23 @@ class FortifyServiceProvider extends ServiceProvider
 
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
+            
+            /** @var SettingsService $settings */
+            $settings = app(SettingsService::class);
+            $attempts = $settings->loginRateLimitAttempts();
+            $decayMinutes = $settings->loginRateLimitDecayMinutes();
 
-            return Limit::perMinute(5)->by($throttleKey);
+            return Limit::perMinute($attempts)->by($throttleKey)->after(function ($response) use ($attempts) {
+                if ($response->status() === 429) {
+                    // Add retry-after header with remaining seconds
+                    $remaining = $response->headers->get('Retry-After');
+                    if ($remaining) {
+                        return response()->json([
+                            'message' => __('auth_throttled', ['seconds' => $remaining]),
+                        ], 429);
+                    }
+                }
+            });
         });
 
         RateLimiter::for('two-factor', function (Request $request) {

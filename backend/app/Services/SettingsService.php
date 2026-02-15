@@ -10,7 +10,11 @@ class SettingsService
     public function all(): array
     {
         return Cache::remember('settings.all', now()->addMinutes(5), function () {
-            return Setting::query()->pluck('value', 'name')->toArray();
+            $settings = [];
+            foreach (Setting::all() as $setting) {
+                $settings[$setting->name] = $setting->value;
+            }
+            return $settings;
         });
     }
 
@@ -35,6 +39,16 @@ class SettingsService
     public function siteToken(): ?string
     {
         return $this->get('reservation_token');
+    }
+
+    public function loginRateLimitAttempts(): int
+    {
+        return (int) $this->get('login_rate_limit_attempts', 5);
+    }
+
+    public function loginRateLimitDecayMinutes(): int
+    {
+        return (int) $this->get('login_rate_limit_decay_minutes', 1);
     }
 
     public function upcomingEvents(): array
