@@ -51,6 +51,7 @@ const tabs = [
   { id: 'general', labelKey: 'admin_settings_tab_general', fallback: 'Allgemein' },
   { id: 'text', labelKey: 'admin_settings_tab_text', fallback: 'Texte' },
   { id: 'design', labelKey: 'admin_settings_tab_design', fallback: 'Design / CSS' },
+  { id: 'security', labelKey: 'admin_settings_tab_security', fallback: 'Security' },
   { id: 'email', labelKey: 'admin_settings_tab_email', fallback: 'E-Mail' },
 ]
 
@@ -170,6 +171,12 @@ const tabFieldMap = {
     'waitlist_public_align',
     'reservation_attendees_align',
   ]),
+  security: new Set([
+    'login_rate_limit_attempts',
+    'login_rate_limit_decay_minutes',
+    'email_validation_rate_limit_per_hour',
+    'email_validation_rate_limit_header',
+  ]),
   email: new Set([
     'email_validation_enabled',
     'email_validation_admin_enabled',
@@ -194,8 +201,6 @@ const tabFieldMap = {
     'mail_global_cc',
     'mail_global_bcc',
     'mail_from_name',
-    'email_validation_rate_limit_per_hour',
-    'email_validation_rate_limit_header',
   ]),
 }
 

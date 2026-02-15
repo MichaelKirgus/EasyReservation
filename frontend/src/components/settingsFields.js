@@ -134,4 +134,6 @@ export const settingsFields = [
     { key: 'reservation_admin_validation_pending_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
     { key: 'show_project_footer', type: 'boolean', default: 1 },
     { key: 'clear_localstorage_on_logout', type: 'boolean', default: 0 },
+    { key: 'login_rate_limit_attempts', type: 'number', default: 5 },
+    { key: 'login_rate_limit_decay_minutes', type: 'number', default: 1 },
 ];
