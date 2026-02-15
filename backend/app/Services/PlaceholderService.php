@@ -87,9 +87,11 @@ class PlaceholderService
             '{{reservation_list_max_count}}' => (string) ($this->settings->get('reservation_max', 0) ?? 0),
             '{{reservation_list_current_count}}' => (string) Reservation::query()->count(),
             '{{reservation_list_free_count}}' => (string) max(0, ($this->settings->get('reservation_max', 0) ?? 0) - Reservation::query()->count()),
+            '{{reservation_list_items}}' => $this->getReservationListItems(),
             '{{waitlist_max_count}}' => (string) ($this->settings->get('waitlist_limit', 0) ?? 0),
             '{{waitlist_current_count}}' => (string) WaitlistEntry::query()->where('status', 'pending')->count(),
             '{{waitlist_free_count}}' => (string) max(0, ($this->settings->get('waitlist_limit', 0) ?? 0) - WaitlistEntry::query()->where('status', 'pending')->count()),
+            '{{waiting_list_items}}' => $this->getWaitingListItems(),
         ];
         
         // Site tokens
@@ -130,5 +132,34 @@ class PlaceholderService
         }
 
         return strtr($value, $this->replacements());
+    }
+
+    private function getReservationListItems(): string
+    {
+        $names = Reservation::query()
+            ->pluck('display_name')
+            ->filter(fn ($v) => $v !== '')
+            ->values();
+
+        if ($names->isEmpty()) {
+            return '';
+        }
+
+        return $names->map(fn ($v) => $v . "\n")->implode('');
+    }
+
+    private function getWaitingListItems(): string
+    {
+        $names = WaitlistEntry::query()
+            ->where('status', 'pending')
+            ->pluck('display_name')
+            ->filter(fn ($v) => $v !== '')
+            ->values();
+
+        if ($names->isEmpty()) {
+            return '';
+        }
+
+        return $names->map(fn ($v) => $v . "\n")->implode('');
     }
 }
