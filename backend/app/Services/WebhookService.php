@@ -7,10 +7,37 @@ class WebhookService
 {
     public function send(string $url, array $payload = [], array $headers = []): void
     {
+        \Log::info('WebhookService: Sending webhook to URL ' . $url);
+        
+        if (empty($url)) {
+            \Log::error('WebhookService: Empty URL provided');
+            throw new \InvalidArgumentException('URL cannot be empty');
+        }
+        
+        // Validate URL format
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            \Log::error('WebhookService: Invalid URL format: ' . $url);
+            throw new \InvalidArgumentException('Invalid URL format: ' . $url);
+        }
+        
         try {
-            Http::timeout(10)->withHeaders($headers)->post($url, $payload);
+            \Log::debug('Webhook payload:', $payload);
+            \Log::debug('Webhook headers:', $headers);
+            
+            $response = Http::timeout(10)->withHeaders($headers)->post($url, $payload);
+            
+            if ($response->failed()) {
+                $statusCode = $response->status();
+                $body = $response->body();
+                \Log::error('Webhook request failed with status ' . $statusCode . ': ' . $body);
+                throw new \RuntimeException('Webhook request failed with status ' . $statusCode);
+            }
+            
+            \Log::info('Webhook sent successfully to ' . $url . ' (Status: ' . $response->status() . ')');
         } catch (\Throwable $e) {
-            // Fehlerbehandlung/Logging nach Bedarf
+            \Log::error('WebhookService: Error sending webhook to ' . $url . ': ' . $e->getMessage());
+            \Log::error('Stack trace:', ['trace' => $e->getTraceAsString()]);
+            throw $e;
         }
     }
     

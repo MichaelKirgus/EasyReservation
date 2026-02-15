@@ -58,33 +58,63 @@ class WebhookTemplateController extends Controller
      */
     public function test($id)
     {
+        \Log::info('WebhookTemplateController: test called for template ID ' . $id);
+        
         try {
             $template = WebhookTemplate::findOrFail($id);
             $placeholderService = app(\App\Services\PlaceholderService::class);
             $webhookService = app(\App\Services\WebhookService::class);
+
+            \Log::debug('WebhookTemplateController: Found template', [
+                'id' => $template->id,
+                'name' => $template->name,
+                'url' => $template->url
+            ]);
 
             // Platzhalter-Kontext: Für Testzwecke ggf. leer oder Dummy-Daten
             $context = [];
             // Payload und Header-Template auflösen
             $payload = $template->payload_template;
             $headers = $template->headers_template;
+            
+            \Log::debug('WebhookTemplateController: Original payload', ['payload' => $payload]);
+            \Log::debug('WebhookTemplateController: Original headers', ['headers' => $headers]);
+            
             // Platzhalter ersetzen
             $payload = $placeholderService->replaceString($payload);
             $headersArr = [];
             if ($headers) {
                 try {
-                    $headersArr = json_decode($placeholderService->replaceString($headers), true) ?: [];
+                    $headers = $placeholderService->replaceString($headers);
+                    $headersArr = json_decode($headers, true) ?: [];
                 } catch (\Throwable $e) {
+                    \Log::warning('WebhookTemplateController: Failed to parse headers as JSON', ['error' => $e->getMessage()]);
                     $headersArr = [];
                 }
             }
+            
+            $payloadArray = json_decode($payload, true) ?: [];
+            \Log::debug('WebhookTemplateController: Final payload after replacement', ['payload' => $payloadArray]);
+            \Log::debug('WebhookTemplateController: Final headers', ['headers' => $headersArr]);
+
             // Send
-            $webhookService->send($template->url, json_decode($payload, true) ?: [], $headersArr);
-            return response()->json(['success' => true, 'message' => __('webhook_sent_successfully')]);
+            $webhookService->send($template->url, $payloadArray, $headersArr);
+            
+            return response()->json([
+                'success' => true,
+                'message' => __('webhook_sent_successfully'),
+                'details' => [
+                    'url' => $template->url,
+                    'payload' => $payloadArray,
+                    'headers' => $headersArr
+                ]
+            ]);
         } catch (\Throwable $e) {
+            \Log::error('WebhookTemplateController: Error testing template ' . $id . ': ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => __('error_generic', ['message' => $e->getMessage()]),
+                'trace' => $e->getTraceAsString()
             ], 500);
         }
     }

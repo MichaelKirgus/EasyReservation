@@ -9,12 +9,19 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule)
     {
-        \Log::info('Starting overdue tasks...');
-        $schedule->command('scheduled-tasks:run')->everyMinute();
-        \Log::info('Register scheduled task job...');
-        $schedule->job(new \App\Jobs\CheckScheduledTasksJob)->everyMinute();
-        \Log::info('Register heartbeat worker job...');
+        \Log::info('Registering scheduled tasks...');
+        
+        // Run the command-based scheduler every minute
+        $schedule->command('scheduled-tasks:run')->everyMinute()->withoutOverlapping();
+        \Log::info('Registered scheduled-tasks:run command');
+        
+        // Run the job-based scheduler every minute (alternative approach)
+        $schedule->job(new \App\Jobs\CheckScheduledTasksJob)->everyMinute()->withoutOverlapping();
+        \Log::info('Registered CheckScheduledTasksJob');
+        
+        // Register heartbeat worker job
         $schedule->job(new \App\Jobs\WorkerHeartbeatJob)->everyMinute()->onQueue('heartbeat');
+        \Log::info('Registered WorkerHeartbeatJob on heartbeat queue');
     }
 
     protected function commands()

@@ -86,15 +86,30 @@ class ScheduledTaskController extends Controller
     // POST /admin/scheduled-tasks/{id}/run-now
     public function runNow($id)
     {
+        \Log::info('ScheduledTaskController: runNow called for task ID ' . $id);
+        
         $task = ScheduledTask::findOrFail($id);
+        
         try {
             // Unabhängig vom Status: Job für die Ausführung erzeugen und in die Queue stellen
             $service = app(ScheduledTaskService::class);
+            
+            \Log::info('ScheduledTaskController: Dispatching ExecuteScheduledTaskJob for task ' . $task->id);
             $service->queueTaskExecution($task);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Task execution started',
+                'task' => $task
+            ]);
         } catch (\Throwable $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Log::error('ScheduledTaskController: Error running task ' . $id . ': ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
         }
-        return response()->json($task);
     }
 
     // DELETE /admin/scheduled-tasks/{id}

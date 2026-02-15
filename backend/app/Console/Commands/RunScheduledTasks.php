@@ -15,10 +15,13 @@ class RunScheduledTasks extends Command
 
     public function handle()
     {
+        \Log::info('RunScheduledTasks: Starting execution');
+        
+        // 1. Relative Zeiten berechnen
         $tasks = ScheduledTask::where('executed', false)->get();
+        \Log::info('RunScheduledTasks: Found ' . $tasks->count() . ' unexecuted tasks');
 
         foreach ($tasks as $task) {
-            // Dynamische Berechnung von run_at, falls relative Felder gesetzt sind
             if ($task->reference_type === 'event' && $task->reference_id && $task->relative_to && $task->relative_offset_minutes !== null) {
                 $event = \App\Models\Event::find($task->reference_id);
                 if ($event && $event->{$task->relative_to}) {
@@ -27,26 +30,31 @@ class RunScheduledTasks extends Command
                     if (!$task->run_at || !$task->run_at->eq($calculated)) {
                         $task->run_at = $calculated;
                         $task->save();
+                        \Log::info('RunScheduledTasks: Updated run_at for task ' . $task->id . ' to ' . $task->run_at->toIso8601String());
                     }
                 }
             }
         }
 
-        // Nach Aktualisierung: nur fällige Tasks ausführen
+        // 2. Fällige Tasks ausführen
         $dueTasks = ScheduledTask::where('run_at', '<=', now())
             ->where('executed', false)
             ->where('active', true)
             ->orderBy('run_at')
             ->get();
 
+        \Log::info('RunScheduledTasks: Found ' . $dueTasks->count() . ' due tasks to execute');
+
         foreach ($dueTasks as $task) {
             try {
                 // Wenn reference_id null: für alle zukünftigen Events ausführen
                 if ($task->reference_type === 'event' && ($task->reference_id === null || $task->reference_id === 0)) {
+                    \Log::info('RunScheduledTasks: Executing task ' . $task->id . ' for all future events');
                     $futureEvents = \App\Models\Event::where('start_at', '>=', now())->get();
                     foreach ($futureEvents as $event) {
                         switch ($task->type) {
                             case 'email_broadcast':
+                                \Log::info('RunScheduledTasks: Sending email broadcast to event ' . $event->id);
                                 $service = app(EmailBroadcastService::class);
                                 $service->sendTemplateToReservationList($event->id, $task->options['template_id'] ?? null);
                                 break;
@@ -55,11 +63,11 @@ class RunScheduledTasks extends Command
                                 $value = $task->options['setting_value'] ?? null;
                                 if ($key !== null) {
                                     \App\Models\Setting::updateOrCreate(['key' => $key], ['value' => $value]);
-                                    Log::info('Setting geändert: ' . $key . ' => ' . $value);
+                                    Log::info('RunScheduledTasks: Setting changed: ' . $key . ' => ' . $value);
                                 }
                                 break;
                             default:
-                                Log::warning('Unbekannter Task-Typ: ' . $task->type);
+                                Log::warning('RunScheduledTasks: Unknown task type: ' . $task->type);
                         }
                     }
                     $task->executed = true;
@@ -67,9 +75,13 @@ class RunScheduledTasks extends Command
                     $task->save();
                     continue;
                 }
+                
                 // Standard: nur für das eine Event oder global
+                \Log::info('RunScheduledTasks: Executing task ' . $task->id . ' (type: ' . $task->type . ')');
+                
                 switch ($task->type) {
                     case 'email_broadcast':
+                        \Log::info('RunScheduledTasks: Sending email broadcast for task ' . $task->id);
                         $service = app(EmailBroadcastService::class);
                         $service->sendTemplateToReservationList($task->options['event_id'] ?? $task->reference_id, $task->options['template_id'] ?? null);
                         break;
@@ -78,19 +90,24 @@ class RunScheduledTasks extends Command
                         $value = $task->options['setting_value'] ?? null;
                         if ($key !== null) {
                             \App\Models\Setting::updateOrCreate(['key' => $key], ['value' => $value]);
-                            Log::info('Setting geändert: ' . $key . ' => ' . $value);
+                            Log::info('RunScheduledTasks: Setting changed: ' . $key . ' => ' . $value);
                         }
                         break;
                     default:
-                        Log::warning('Unbekannter Task-Typ: ' . $task->type);
+                        Log::warning('RunScheduledTasks: Unknown task type: ' . $task->type);
                 }
+                
                 $task->executed = true;
                 $task->executed_at = now();
                 $task->save();
+                \Log::info('RunScheduledTasks: Task ' . $task->id . ' completed successfully');
             } catch (\Throwable $e) {
-                Log::error('Fehler beim Ausführen von ScheduledTask ' . $task->id . ': ' . $e->getMessage());
+                Log::error('RunScheduledTasks: Error executing task ' . $task->id . ': ' . $e->getMessage());
+                Log::error('Stack trace:', ['trace' => $e->getTraceAsString()]);
             }
         }
+        
+        \Log::info('RunScheduledTasks: Execution completed');
         return 0;
     }
 }

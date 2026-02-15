@@ -22,10 +22,27 @@ class ExecuteScheduledTaskJob implements ShouldQueue
 
     public function handle()
     {
-        $task = ScheduledTask::find($this->taskId);
-        if (!$task) return;
-        // Die Ausführung erfolgt wie im Service
-        $service = app(ScheduledTaskService::class);
-        $service->executeTask($task);
+        \Log::info('ExecuteScheduledTaskJob: Starting job for task ID ' . $this->taskId);
+        
+        try {
+            $task = ScheduledTask::find($this->taskId);
+            
+            if (!$task) {
+                \Log::error('ExecuteScheduledTaskJob: Task with ID ' . $this->taskId . ' not found');
+                return;
+            }
+            
+            \Log::info('ExecuteScheduledTaskJob: Found task ' . $task->id . ', executing via ScheduledTaskService');
+            
+            // Die Ausführung erfolgt wie im Service
+            $service = app(ScheduledTaskService::class);
+            $service->executeTask($task);
+            
+            \Log::info('ExecuteScheduledTaskJob: Task ' . $this->taskId . ' completed successfully');
+        } catch (\Throwable $e) {
+            \Log::error('ExecuteScheduledTaskJob: Error executing task ' . $this->taskId . ': ' . $e->getMessage());
+            \Log::error('Stack trace:', ['trace' => $e->getTraceAsString()]);
+            throw $e;
+        }
     }
 }

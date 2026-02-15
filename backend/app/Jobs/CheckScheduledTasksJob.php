@@ -15,7 +15,17 @@ class CheckScheduledTasksJob implements ShouldQueue, ShouldBeUnique
 
     public function handle(ScheduledTaskService $service): void
     {
-        // Fällige Aufgaben prüfen und ausführen (axiom/relativ/absolut)
-        $service->runDueTasks();
+        \Log::info('CheckScheduledTasksJob: Starting check for due tasks');
+        
+        try {
+            // Fällige Aufgaben prüfen und ausführen (axiom/relativ/absolut)
+            $service->runDueTasks();
+            
+            \Log::info('CheckScheduledTasksJob: Task check completed successfully');
+        } catch (\Throwable $e) {
+            \Log::error('CheckScheduledTasksJob: Error during task check: ' . $e->getMessage());
+            \Log::error('Stack trace:', ['trace' => $e->getTraceAsString()]);
+            throw $e;
+        }
     }
 }
