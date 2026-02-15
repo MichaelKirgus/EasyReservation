@@ -15,43 +15,77 @@
           <option value="webhook">Webhook</option>
         </select>
       </div>
+      <!-- Scheduling Mode Selection -->
       <div>
+        <label>Zeitplanung:</label>
+        <select v-model="schedulingMode">
+          <option value="absolute">Einmalig (festes Datum/Uhrzeit)</option>
+          <option value="relative">Relativ zu Event/Reservierung</option>
+          <option value="cron">Cron-basiert (wiederholend)</option>
+        </select>
+      </div>
+
+      <!-- Absolute scheduling -->
+      <div v-if="schedulingMode === 'absolute'">
         <label>Ausführungszeit (run_at):</label>
         <input v-model="form.run_at" type="datetime-local" />
+        <span class="help-inline">Die Aufgabe wird genau einmal zu diesem Zeitpunkt ausgeführt.</span>
       </div>
-      <div>
+
+      <!-- Relative scheduling -->
+      <div v-if="schedulingMode === 'relative'">
         <label>Referenz-Typ:</label>
         <select v-model="form.reference_type">
           <option value="event">Event</option>
           <option value="reservation">Reservierung</option>
           <option value="user">Benutzer</option>
         </select>
-      </div>
-      <div v-if="referenceObjects.length">
-        <label>Referenz-Objekt:</label>
-        <select v-model="form.reference_id">
-          <option :value="null">Alle Objekte</option>
-          <option v-for="obj in referenceObjects" :key="obj.id" :value="obj.id">
-            {{ objDisplay(obj) }}
-          </option>
-        </select>
-      </div>
-      <div>
-        <label>Relativ zu:
-          <span class="help-inline">Optional: Feld des Referenzobjekts.</span>
-        </label>
+
+        <div v-if="referenceObjects.length" style="margin-top:0.5em;">
+          <label>Referenz-Objekt:</label>
+          <select v-model="form.reference_id">
+            <option :value="null">Alle Objekte</option>
+            <option v-for="obj in referenceObjects" :key="obj.id" :value="obj.id">
+              {{ objDisplay(obj) }}
+            </option>
+          </select>
+        </div>
+
+        <label style="margin-top:0.5em;">Relativ zu:</label>
         <select v-model="form.relative_to">
           <option value="">Bitte wählen…</option>
           <option v-for="field in relativeFields" :key="field" :value="field">
             {{ field }}
           </option>
         </select>
-      </div>
-      <div>
-        <label>Offset (Minuten):
-          <span class="help-inline">Optional: Zeitverschiebung in Minuten (z.B. <code>-180</code> für 3 Stunden vor dem Ereignis).</span>
-        </label>
+
+        <label style="margin-top:0.5em;">Offset (Minuten):</label>
         <input v-model.number="form.relative_offset_minutes" type="number" />
+        <span class="help-inline">Zeitverschiebung in Minuten (z.B. <code>-180</code> für 3 Stunden vor dem Ereignis).</span>
+      </div>
+
+      <!-- Cron scheduling -->
+      <div v-if="schedulingMode === 'cron'">
+        <label>Cron-Ausdruck:</label>
+        <input v-model="form.cron_expression" type="text" placeholder="* * * * *" />
+        <span class="help-inline">Cron-Syntax (5 Felder: Minute Stunde Tag Monat Wochentag). Beispiel: <code>0 * * * *</code> für jede Stunde.</span>
+        
+        <!-- Cron Examples Dropdown -->
+        <div style="margin-top:0.5em;">
+          <label>Cron-Beispiele:</label>
+          <select @change="selectCronExample($event)" style="width:100%;">
+            <option value="">Bitte wählen…</option>
+            <option v-for="example in cronExamples" :key="example.label" :value="example.value">
+              {{ example.label }}
+            </option>
+          </select>
+        </div>
+        
+        <div v-if="form.cron_expression" style="margin-top:0.5em;">
+          <label>Nächste Ausführung:</label>
+          <input :value="nextCronRunAt" type="text" readonly />
+          <button type="button" @click="calculateNextCronRuns" class="secondary">Berechnen</button>
+        </div>
       </div>
 
       <div v-if="form.type === 'change_setting'">
@@ -131,9 +165,32 @@ function apiConfig() {
 const props = defineProps({ task: Object })
 const emit = defineEmits(['save', 'close'])
 
+const schedulingMode = ref('absolute')
+const nextCronRunAt = ref('')
+const cronRuns = ref([])
+
+// Watch for scheduling mode changes to update reference_type
+watch(schedulingMode, (newMode) => {
+  if (newMode === 'cron') {
+    form.value.reference_type = 'cron'
+  } else if (newMode === 'relative') {
+    form.value.reference_type = 'event'
+  }
+})
+
+// Cron expression examples
+const cronExamples = [
+  { label: 'Jede Minute', value: '* * * * *' },
+  { label: 'Jede Stunde (zur vollen Stunde)', value: '0 * * * *' },
+  { label: 'Täglich um 08:00 Uhr', value: '0 8 * * *' },
+  { label: 'Wöchentlich am Montag um 14:30', value: '30 14 * * 1' },
+  { label: 'Monatlich am 1. um 00:00', value: '0 0 1 * *' },
+]
+
 const form = ref({
   type: '',
   run_at: '',
+  cron_expression: '',
   reference_type: 'event',
   reference_id: null,
   relative_to: '',
@@ -202,6 +259,42 @@ const relativeFieldsMap = {
 }
 const relativeFields = computed(() => relativeFieldsMap[form.value.reference_type] || [])
 
+// Berechne nächste Cron-Ausführungszeiten
+function calculateNextCronRuns() {
+  if (!form.value.cron_expression) {
+    nextCronRunAt.value = ''
+    return
+  }
+  
+  try {
+    // Verwende den Server für die Berechnung (da cron-parser nicht im Browser verfügbar ist)
+    axios.post('/api/admin/cron/next-run', { expression: form.value.cron_expression }, apiConfig())
+      .then(res => {
+        if (res.data && res.data.next_runs) {
+          cronRuns.value = res.data.next_runs
+          nextCronRunAt.value = res.data.next_runs[0] ? toDatetimeLocal(res.data.next_runs[0]) : ''
+        }
+      })
+      .catch(() => {
+        // Fallback: Zeige die Cron-Expression an
+        nextCronRunAt.value = form.value.cron_expression + ' (Berechnung fehlgeschlagen)'
+      })
+  } catch (e) {
+    console.error('Error calculating cron runs:', e)
+    nextCronRunAt.value = ''
+  }
+}
+
+function selectCronExample(event) {
+  const value = event.target.value
+  if (value) {
+    form.value.cron_expression = value
+    calculateNextCronRuns()
+    // Reset the dropdown selection
+    event.target.value = ''
+  }
+}
+
 function objDisplay(obj) {
   if (form.value.reference_type === 'event') return `${obj.title} (ID: ${obj.id})`
   if (form.value.reference_type === 'reservation') return `${obj.name || obj.title || 'Reservierung'} (ID: ${obj.id})`
@@ -234,12 +327,39 @@ onMounted(async () => {
 
 
 let loadedFromTask = false
+
+// Determine scheduling mode based on task data
+function determineSchedulingMode(task) {
+  if (task?.cron_expression) return 'cron'
+  if (task?.relative_to && task.relative_offset_minutes !== null) return 'relative'
+  if (task?.run_at) return 'absolute'
+  return 'absolute' // default
+}
+
 watch(() => props.task, (task) => {
   if (task) {
     // Erstelle ein Plain-Object, um Vue-Proxy-Probleme zu vermeiden
-    form.value = JSON.parse(JSON.stringify({ ...task, options: task.options || {}, reference_type: task.reference_type || 'event' }))
+    const taskData = JSON.parse(JSON.stringify({ ...task, options: task.options || {} }))
+    
+    // Setze Scheduling Mode basierend auf den Daten
+    schedulingMode.value = determineSchedulingMode(task)
+    
+    // Für Cron-basierte Aufgaben: reference_type auf 'cron' setzen, bevor wir die Daten laden
+    let finalTaskData = { ...taskData, options: task.options || {} }
+    if (schedulingMode.value === 'cron') {
+      finalTaskData.reference_type = 'cron'
+    } else if (!finalTaskData.reference_type) {
+      // Fallback für alte Tasks ohne reference_type
+      finalTaskData.reference_type = 'event'
+    }
+    
+    form.value = finalTaskData
+    
     // Korrigiere das Datumsformat für das Input-Feld
-    form.value.run_at = toDatetimeLocal(task.run_at || '');
+    if (schedulingMode.value === 'absolute') {
+      form.value.run_at = toDatetimeLocal(task.run_at || '')
+    }
+    
     if (
       form.value.type === 'attendees_email_broadcast' ||
       form.value.type === 'waitlist_email_broadcast' ||
@@ -249,6 +369,7 @@ watch(() => props.task, (task) => {
     } else {
       selectedTemplateId.value = ''
     }
+    
     if (form.value.type === 'custom_email_broadcast') {
       // custom_recipients als Zeilen-String
       customEmails.value = (form.value.options?.custom_recipients || [])
@@ -257,11 +378,13 @@ watch(() => props.task, (task) => {
     } else {
       customEmails.value = ''
     }
+    
     if (form.value.type === 'webhook') {
       selectedWebhookTemplateId.value = form.value.options?.webhook_template_id || ''
     } else {
       selectedWebhookTemplateId.value = ''
     }
+    
     if (form.value.type === 'change_setting') {
       selectedSettingKey.value = form.value.options?.key || ''
       settingValue.value = form.value.options?.value ?? ''
@@ -272,9 +395,11 @@ watch(() => props.task, (task) => {
       loadedFromTask = false
     }
   } else {
+    schedulingMode.value = 'absolute'
     form.value = {
       type: '',
       run_at: '',
+      cron_expression: '',
       reference_type: 'event',
       reference_id: null,
       relative_to: '',
@@ -333,12 +458,25 @@ function toUtcIsoString(localDateTimeStr) {
 function submit() {
   // Dynamisch options bauen je nach Typ
   const payload = { ...form.value };
-  // run_at auf null setzen, wenn leer
-  if (!payload.run_at || payload.run_at === '') {
-    payload.run_at = null;
+  
+  // Setze run_at basierend auf Scheduling Mode
+  if (schedulingMode.value === 'absolute') {
+    if (!payload.run_at || payload.run_at === '') {
+      payload.run_at = null;
+    } else {
+      payload.run_at = toUtcIsoString(payload.run_at);
+    }
+  } else if (schedulingMode.value === 'cron') {
+    // Cron Expression direkt übertragen
+    if (!payload.cron_expression) {
+      alert('Bitte geben Sie einen gültigen Cron-Ausdruck ein.')
+      return
+    }
   } else {
-    payload.run_at = toUtcIsoString(payload.run_at);
+    // Relative Zeit: run_at ist nicht relevant, aber für Kompatibilität setzen
+    payload.run_at = null
   }
+  
   if ([
     'attendees_email_broadcast',
     'waitlist_email_broadcast',

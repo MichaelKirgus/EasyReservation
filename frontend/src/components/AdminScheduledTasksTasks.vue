@@ -90,7 +90,15 @@ const columns = [
   },
   { key: 'run_at', label: 'Ausführungszeit' },
   { key: 'planned_run_at', label: 'Geplantes Ausführungsdatum' },
-  { key: 'reference_type', label: 'Referenztyp' },
+  { key: 'reference_type', label: 'Referenztyp',
+    formatter: (type) => {
+      if (type === 'cron') return 'Cron';
+      if (type === 'event') return 'Event';
+      if (type === 'reservation') return 'Reservierung';
+      if (type === 'user') return 'Benutzer';
+      return type;
+    }
+  },
   { key: 'reference_id', label: 'Referenz-ID' },
   { key: 'relative_to', label: 'Relativ zu' },
   { key: 'relative_offset_minutes', label: 'Offset (Minuten)' },

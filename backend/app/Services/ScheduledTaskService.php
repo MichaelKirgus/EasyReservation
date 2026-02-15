@@ -17,7 +17,12 @@ class ScheduledTaskService
         \Log::info('ScheduledTaskService: Found ' . $tasks->count() . ' active, unexecuted tasks');
         
         foreach ($tasks as $task) {
-            if ($task->relative_to && $task->reference_type === 'event') {
+            // Handle cron-based scheduling
+            if (!empty($task->cron_expression)) {
+                $this->updateCronRunTime($task);
+            }
+            // Handle relative time scheduling (existing logic)
+            elseif ($task->relative_to && $task->reference_type === 'event') {
                 $event = null;
                 if ($task->reference_id) {
                     $event = Event::find($task->reference_id);
@@ -47,12 +52,19 @@ class ScheduledTaskService
             }
         }
 
-        // 2. Fällige Tasks ausführen
-        $dueTasks = ScheduledTask::where('run_at', '<=', now())
-            ->where('executed', false)
-            ->where('active', true)
-            ->orderBy('run_at')
-            ->get();
+        // 2. Fällige Tasks ausführen (including cron tasks)
+        $dueTasks = ScheduledTask::where(function($query) {
+            // Standard tasks with run_at
+            $query->where('run_at', '<=', now())
+                  ->whereNull('cron_expression');
+        })->orWhere(function($query) {
+            // Cron tasks where next_run_at is due
+            $query->whereNotNull('cron_expression')
+                  ->where('next_run_at', '<=', now());
+        })->where('executed', false)
+          ->where('active', true)
+          ->orderBy('run_at')
+          ->get();
 
         \Log::info('ScheduledTaskService: Found ' . $dueTasks->count() . ' due tasks to execute');
         
@@ -60,6 +72,22 @@ class ScheduledTaskService
             \Log::info('ScheduledTaskService: Executing task ' . $task->id);
             try {
                 $this->executeTask($task);
+                
+                // Update cron task for next run
+                if (!empty($task->cron_expression)) {
+                    $task->last_run_at = now();
+                    $task->save();
+                    
+                    // Recalculate next_run_at after execution
+                    $tempTask = new ScheduledTask();
+                    $tempTask->fill([
+                        'cron_expression' => $task->cron_expression,
+                        'last_run_at' => $task->last_run_at
+                    ]);
+                    $task->next_run_at = $tempTask->next_run_at;
+                    $task->save();
+                }
+                
                 \Log::info('ScheduledTaskService: Task ' . $task->id . ' executed successfully');
             } catch (\Throwable $e) {
                 \Log::error('ScheduledTaskService: Failed to execute task ' . $task->id . ': ' . $e->getMessage());
@@ -69,6 +97,24 @@ class ScheduledTaskService
         // Letzte Ausführung IMMER im Cache speichern, auch wenn keine Tasks fällig waren
         \Cache::put('scheduler:last_executed_at', now(), 86400);
         \Log::info('ScheduledTaskService: runDueTasks completed');
+    }
+
+    /**
+     * Update the next_run_at for a cron-based task.
+     */
+    private function updateCronRunTime(ScheduledTask $task): void
+    {
+        try {
+            $nextRunAt = $task->getNextRunAtAttribute();
+            
+            if ($nextRunAt && (!$task->next_run_at || !$task->next_run_at->eq($nextRunAt))) {
+                $task->next_run_at = $nextRunAt;
+                $task->save();
+                \Log::info('ScheduledTaskService: Updated next_run_at for cron task ' . $task->id . ': ' . $nextRunAt->toIso8601String());
+            }
+        } catch (\Throwable $e) {
+            \Log::error('ScheduledTaskService: Error updating cron run time for task ' . $task->id . ': ' . $e->getMessage());
+        }
     }
 
     /**

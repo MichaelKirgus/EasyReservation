@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Cron\CronExpression;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -12,6 +13,9 @@ class ScheduledTask extends Model
     protected $fillable = [
         'type',
         'run_at',
+        'cron_expression',
+        'next_run_at',
+        'last_run_at',
         'options',
         'executed',
         'executed_at',
@@ -24,6 +28,8 @@ class ScheduledTask extends Model
 
     protected $casts = [
         'run_at' => 'datetime',
+        'next_run_at' => 'datetime',
+        'last_run_at' => 'datetime',
         'executed_at' => 'datetime',
         'options' => 'array',
         'executed' => 'boolean',
@@ -38,6 +44,17 @@ class ScheduledTask extends Model
         if ($this->run_at) {
             // ISO-Format mit Z für UTC
             return $this->run_at->copy()->setTimezone('UTC')->format('Y-m-d\TH:i:s\Z');
+        }
+        if (!empty($this->cron_expression)) {
+            // Cron-basierte Aufgabe - berechne nächste Ausführungszeit
+            try {
+                $cron = CronExpression::factory($this->cron_expression);
+                $nextRun = $cron->getNextRunDate(now());
+                return $nextRun->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
+            } catch (\Exception $e) {
+                // Ungültiger Cron-Ausdruck
+                return null;
+            }
         }
         if ($this->reference_type && $this->relative_to && $this->relative_offset_minutes !== null) {
             // Einzelnes Objekt
@@ -91,4 +108,58 @@ class ScheduledTask extends Model
     }
 
     protected $appends = ['planned_run_at'];
+
+    /**
+     * Calculate the next run time from a cron expression.
+     * Returns the next datetime when the task should run based on the cron pattern.
+     */
+    public function getNextRunAtAttribute()
+    {
+        if (!$this->cron_expression) {
+            return null;
+        }
+
+        try {
+            // Use dragonmantank/cron-expression to parse and calculate next run
+            $cron = CronExpression::factory($this->cron_expression);
+            
+            // Get the next run time from now (or from last_run_at if available)
+            $baseTime = $this->last_run_at ? $this->last_run_at : now();
+            
+            return $cron->getNextRunDate($baseTime)->setTimezone(new \DateTimeZone('UTC'));
+        } catch (\Exception $e) {
+            \Log::warning('Invalid cron expression for task ' . $this->id . ': ' . $this->cron_expression);
+            return null;
+        }
+    }
+
+    /**
+     * Check if a cron expression is valid.
+     */
+    public static function isValidCron(string $expression): bool
+    {
+        // Basic validation: must have exactly 5 space-separated fields
+        $parts = preg_split('/\s+/', trim($expression));
+        if (count($parts) !== 5) {
+            return false;
+        }
+
+        // Validate each field contains only valid cron characters
+        foreach ($parts as $part) {
+            if (!preg_match('/^[\*0-9,\-\/]+$/', $part)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Get human-readable description of cron expression.
+     */
+    public static function getCronDescription(string $expression): string
+    {
+        // Return the expression itself as a simple description
+        return $expression;
+    }
 }

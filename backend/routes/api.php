@@ -117,6 +117,7 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::patch('/admin/scheduled-tasks/{id}/activate', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'activate']);
     Route::patch('/admin/scheduled-tasks/{id}/deactivate', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'deactivate']);
     Route::post('/admin/scheduled-tasks/{id}/run-now', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'runNow']);
+    Route::post('/admin/cron/next-run', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'getNextCronRun']);
     Route::get('/admin/diagnostics', [DiagnosticsController::class, 'show']);
     Route::get('/admin/diagnostics/redis-keys', [DiagnosticsController::class, 'redisKeys']);
     Route::delete('/admin/diagnostics/redis-keys', [DiagnosticsController::class, 'deleteRedisKey']);

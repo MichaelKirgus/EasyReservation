@@ -22,7 +22,20 @@ class RunScheduledTasks extends Command
         \Log::info('RunScheduledTasks: Found ' . $tasks->count() . ' unexecuted tasks');
 
         foreach ($tasks as $task) {
-            if ($task->reference_type === 'event' && $task->reference_id && $task->relative_to && $task->relative_offset_minutes !== null) {
+            if (!empty($task->cron_expression)) {
+                // Update cron-based next_run_at
+                try {
+                    $nextRunAt = $task->getNextRunAtAttribute();
+                    if ($nextRunAt && (!$task->next_run_at || !$task->next_run_at->eq($nextRunAt))) {
+                        $task->next_run_at = $nextRunAt;
+                        $task->save();
+                        \Log::info('RunScheduledTasks: Updated next_run_at for cron task ' . $task->id . ' to ' . $nextRunAt->toIso8601String());
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('RunScheduledTasks: Error updating cron run time for task ' . $task->id . ': ' . $e->getMessage());
+                }
+            } elseif ($task->reference_type === 'event' && $task->reference_id && $task->relative_to && $task->relative_offset_minutes !== null) {
+                // Existing relative time logic
                 $event = \App\Models\Event::find($task->reference_id);
                 if ($event && $event->{$task->relative_to}) {
                     $calculated = $event->{$task->relative_to}->copy()->addMinutes($task->relative_offset_minutes);
@@ -37,11 +50,18 @@ class RunScheduledTasks extends Command
         }
 
         // 2. Fällige Tasks ausführen
-        $dueTasks = ScheduledTask::where('run_at', '<=', now())
-            ->where('executed', false)
-            ->where('active', true)
-            ->orderBy('run_at')
-            ->get();
+        $dueTasks = ScheduledTask::where(function($query) {
+            // Standard tasks with run_at (not cron-based)
+            $query->where('run_at', '<=', now())
+                  ->whereNull('cron_expression');
+        })->orWhere(function($query) {
+            // Cron tasks where next_run_at is due
+            $query->whereNotNull('cron_expression')
+                  ->where('next_run_at', '<=', now());
+        })->where('executed', false)
+          ->where('active', true)
+          ->orderBy('run_at')
+          ->get();
 
         \Log::info('RunScheduledTasks: Found ' . $dueTasks->count() . ' due tasks to execute');
 
@@ -73,6 +93,19 @@ class RunScheduledTasks extends Command
                     $task->executed = true;
                     $task->executed_at = now();
                     $task->save();
+                    
+                    // Update cron for next run if applicable
+                    if (!empty($task->cron_expression)) {
+                        try {
+                            $tempTask = new ScheduledTask();
+                            $tempTask->fill(['cron_expression' => $task->cron_expression, 'last_run_at' => now()]);
+                            $task->next_run_at = $tempTask->next_run_at;
+                            $task->save();
+                        } catch (\Throwable $e) {
+                            Log::error('RunScheduledTasks: Error updating cron next run for task ' . $task->id);
+                        }
+                    }
+                    
                     continue;
                 }
                 
@@ -100,6 +133,19 @@ class RunScheduledTasks extends Command
                 $task->executed = true;
                 $task->executed_at = now();
                 $task->save();
+                
+                // Update cron for next run if applicable
+                if (!empty($task->cron_expression)) {
+                    try {
+                        $tempTask = new ScheduledTask();
+                        $tempTask->fill(['cron_expression' => $task->cron_expression, 'last_run_at' => now()]);
+                        $task->next_run_at = $tempTask->next_run_at;
+                        $task->save();
+                    } catch (\Throwable $e) {
+                        Log::error('RunScheduledTasks: Error updating cron next run for task ' . $task->id);
+                    }
+                }
+                
                 \Log::info('RunScheduledTasks: Task ' . $task->id . ' completed successfully');
             } catch (\Throwable $e) {
                 Log::error('RunScheduledTasks: Error executing task ' . $task->id . ': ' . $e->getMessage());
