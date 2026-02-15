@@ -8,6 +8,7 @@ use App\Services\PlaceholderService;
 use App\Services\SettingsService;
 use App\Services\EventService;
 use App\Services\CustomPlaceholderService;
+use App\Services\SiteTokenService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,7 +21,8 @@ class AppServiceProvider extends ServiceProvider
             return new PlaceholderService(
                 $app->make(EventService::class),
                 $app->make(SettingsService::class),
-                $app->make(CustomPlaceholderService::class)
+                $app->make(CustomPlaceholderService::class),
+                $app->make(SiteTokenService::class)
             );
         });
     }
