@@ -54,10 +54,10 @@ class SettingsController extends Controller
             } else {
                 $value = (string)$value;
             }
-            Setting::query()->updateOrCreate(
-                ['name' => $name],
-                ['value' => $value]
-            );
+            // Use Eloquent model directly to ensure mutators are called for encryption handling
+            $setting = Setting::firstOrNew(['name' => $name]);
+            $setting->value = $value;  // This triggers setValueAttribute() which handles encryption
+            $setting->save();
         }
 
         $this->settings->refresh();
