@@ -93,6 +93,9 @@ class AdminReservationController extends Controller
             'site_token' => $siteToken,
         ]);
 
+        // Trigger: reservation_added (on new reservation creation)
+        $this->eventTriggers->handle('reservation_added', ['reservation' => $reservation]);
+
         if ($this->shouldNotify($request, $data['notify'] ?? null)) {
             $this->emailValidation->sendReservationNotification($reservation, 'email_reservation_success_template_id', true);
         }
@@ -103,6 +106,9 @@ class AdminReservationController extends Controller
     public function destroy(Request $request, Reservation $reservation): JsonResponse
     {
         $shouldNotify = $this->shouldNotify($request, $request->input('notify'));
+
+        // Trigger: reservation_removed (before deletion)
+        $this->eventTriggers->handle('reservation_removed', ['reservation' => $reservation]);
 
         if ($shouldNotify) {
             $this->emailValidation->sendReservationNotification($reservation, 'email_reservation_cancel_template_id', false);

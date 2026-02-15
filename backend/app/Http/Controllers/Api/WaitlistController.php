@@ -85,6 +85,9 @@ class WaitlistController extends Controller
     {
         $shouldNotify = $this->shouldNotify($request, $request->input('notify'));
 
+        // Trigger: waitlist_entry_removed (before entry is modified)
+        $this->eventTriggers->handle('waitlist_entry_removed', ['waitlist_entry' => $entry]);
+
         if ($entry->status !== 'cancelled') {
             $entry->status = 'cancelled';
             $entry->save();

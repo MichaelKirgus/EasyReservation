@@ -27,6 +27,14 @@
           <input type="checkbox" v-model="form.recipient_waitlist" /> An alle Warteliste
         </label>
       </div>
+      <div v-if="form.action_type === 'email'" style="margin:0.7em 0 0.2em;">
+        <label style="display:inline-block;margin-right:1em;">
+          <input type="checkbox" v-model="form.recipient_admins" /> An alle Administratoren
+        </label>
+        <label style="display:inline-block;">
+          <input type="checkbox" v-model="form.recipient_moderators" /> An alle Moderatoren
+        </label>
+      </div>
       <label v-if="form.action_type === 'email'">Weitere Empfänger (Komma oder Zeilenumbruch getrennt):
         <textarea v-model="form.custom_recipients" rows="2" style="width:100%" placeholder="z.B. mail1@example.com, mail2@example.com"></textarea>
       </label>
@@ -78,8 +86,12 @@ const eventTypes = [
   { value: 'reservation_full', label: 'Reservation list full' },
   { value: 'reservation_disabled', label: 'Reservation disabled' },
   { value: 'reservation_enabled', label: 'Reservation enabled' },
+  { value: 'reservation_added', label: 'Reservation entry added' },
+  { value: 'reservation_removed', label: 'Reservation entry removed' },
   { value: 'waitlist_enabled', label: 'Waitlist enabled' },
-  { value: 'waitlist_disabled', label: 'Waitlist disabled' }
+  { value: 'waitlist_disabled', label: 'Waitlist disabled' },
+  { value: 'waitlist_entry_added', label: 'Waitlist entry added' },
+  { value: 'waitlist_entry_removed', label: 'Waitlist entry removed' }
 ]
 
 
@@ -94,6 +106,8 @@ const form = ref({
   active: true,
   recipient_attendees: false,
   recipient_waitlist: false,
+  recipient_admins: false,
+  recipient_moderators: false,
   custom_recipients: ''
 })
 
@@ -102,6 +116,8 @@ watch(() => props.trigger, (val) => {
     form.value = {
       recipient_attendees: false,
       recipient_waitlist: false,
+      recipient_admins: false,
+      recipient_moderators: false,
       custom_recipients: '',
       webhook_template_id: '',
       ...val
@@ -118,6 +134,8 @@ watch(() => props.trigger, (val) => {
       active: true,
       recipient_attendees: false,
       recipient_waitlist: false,
+      recipient_admins: false,
+      recipient_moderators: false,
       custom_recipients: ''
     }
   }

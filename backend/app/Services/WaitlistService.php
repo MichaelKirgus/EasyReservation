@@ -90,7 +90,7 @@ class WaitlistService
             $siteToken = app(\App\Services\SiteTokenService::class)->getValidSiteToken();
         }
 
-        return WaitlistEntry::create([
+        $entry = WaitlistEntry::create([
             'display_name' => $name,
             'email' => $email === '' ? null : $email,
             'payload' => $payload,
@@ -98,6 +98,11 @@ class WaitlistService
             'undo_token' => (string) Str::uuid(),
             'site_token' => $siteToken,
         ]);
+
+        // Trigger: waitlist_entry_added (on new waitlist entry creation)
+        app(\App\Services\EventTriggerService::class)->handle('waitlist_entry_added', ['waitlist_entry' => $entry]);
+
+        return $entry;
     }
 
     public function promoteOldestIfSlotAvailable(): ?Reservation
@@ -172,6 +177,9 @@ class WaitlistService
                 'undo_token' => (string) Str::uuid(),
                 'site_token' => $entry->site_token,
             ]);
+
+            // Trigger: waitlist_entry_removed (before entry status is changed)
+            app(\App\Services\EventTriggerService::class)->handle('waitlist_entry_removed', ['waitlist_entry' => $entry]);
 
             $entry->status = 'promoted';
             $entry->reservation_id = $reservation->id;

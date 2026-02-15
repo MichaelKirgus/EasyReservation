@@ -88,8 +88,12 @@ const eventTypes = [
   { value: 'reservation_full', label: 'Reservation list full' },
   { value: 'reservation_disabled', label: 'Reservation disabled' },
   { value: 'reservation_enabled', label: 'Reservation enabled' },
+  { value: 'reservation_added', label: 'Reservation entry added' },
+  { value: 'reservation_removed', label: 'Reservation entry removed' },
   { value: 'waitlist_enabled', label: 'Waitlist enabled' },
-  { value: 'waitlist_disabled', label: 'Waitlist disabled' }
+  { value: 'waitlist_disabled', label: 'Waitlist disabled' },
+  { value: 'waitlist_entry_added', label: 'Waitlist entry added' },
+  { value: 'waitlist_entry_removed', label: 'Waitlist entry removed' }
 ]
 
 function eventTypeLabel(val) {

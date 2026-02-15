@@ -64,6 +64,18 @@ class EventTriggerService
                 return (int) (setting('waitlist_enabled') ?? 0) === 1;
             case 'waitlist_disabled':
                 return (int) (setting('waitlist_enabled') ?? 0) === 0;
+            case 'reservation_added':
+                // Always fires when triggered - context contains the reservation
+                return true;
+            case 'reservation_removed':
+                // Always fires when triggered - context contains the reservation
+                return true;
+            case 'waitlist_entry_added':
+                // Always fires when triggered - context contains the waitlist entry
+                return true;
+            case 'waitlist_entry_removed':
+                // Always fires when triggered - context contains the waitlist entry
+                return true;
             default:
                 return true; // Für andere Events ggf. anpassen
         }
@@ -90,6 +102,14 @@ class EventTriggerService
         }
         if ($trigger->recipient_waitlist) {
             $recipients = array_merge($recipients, WaitlistEntry::query()->pluck('email', 'display_name')->map(fn($email, $name) => ['name' => $name, 'email' => $email])->values()->toArray());
+        }
+        if ($trigger->recipient_admins) {
+            $adminRecipients = \App\Models\User::where('role', 'admin')->orWhere('role', 'superadmin')->pluck('email', 'name')->map(fn($email, $name) => ['name' => $name, 'email' => $email])->toArray();
+            $recipients = array_merge($recipients, $adminRecipients);
+        }
+        if ($trigger->recipient_moderators) {
+            $moderatorRecipients = \App\Models\User::where('role', 'moderator')->pluck('email', 'name')->map(fn($email, $name) => ['name' => $name, 'email' => $email])->toArray();
+            $recipients = array_merge($recipients, $moderatorRecipients);
         }
         if (!empty($trigger->custom_recipients)) {
             $customs = preg_split('/[\n,]+/', $trigger->custom_recipients);

@@ -171,6 +171,9 @@ class ReservationController extends Controller
 
         $this->emailValidation->sendReservationNotification($reservation, 'email_reservation_success_template_id', true);
 
+        // Trigger: reservation_added (on new reservation creation)
+        $this->eventTriggers->handle('reservation_added', ['reservation' => $reservation]);
+
         // Trigger: reservation_enabled (e.g. on successful reservation)
         $this->eventTriggers->handle('reservation_enabled', ['reservation' => $reservation]);
 
@@ -223,6 +226,9 @@ class ReservationController extends Controller
 
         $this->emailValidation->sendReservationNotification($candidate, 'email_reservation_cancel_template_id', false);
 
+        // Trigger: reservation_removed (before deletion)
+        $this->eventTriggers->handle('reservation_removed', ['reservation' => $candidate]);
+
         $candidate->delete();
 
         // Trigger: reservation_canceled (z.B. bei erfolgreichem Undo)
@@ -253,6 +259,9 @@ class ReservationController extends Controller
         }
 
         $this->emailValidation->sendReservationNotification($reservation, 'email_reservation_cancel_template_id', false);
+
+        // Trigger: reservation_removed (before deletion)
+        $this->eventTriggers->handle('reservation_removed', ['reservation' => $reservation]);
 
         $reservation->delete();
 
