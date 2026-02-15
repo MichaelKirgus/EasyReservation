@@ -469,6 +469,7 @@
   "please_login_api_key_missing": "Please log in, API key is missing.",
   "please_select_template": "Please select a template.",
   "please_select_at_least_one_recipient": "Please select at least one recipient.",
+  "please_select_at_least_one_role": "Please select at least one user role.",
   "templates_can_only_be_edited_by_admin": "Templates can only be edited by admin.",
   "templates_can_only_be_deleted_by_admin": "Templates can only be deleted by admin.",
   "templates_can_only_be_created_by_admin": "Templates can only be created by admin.",

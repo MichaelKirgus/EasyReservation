@@ -17,7 +17,7 @@ class EmailBroadcastController extends Controller
     {
         $data = $request->validate([
             'template_id' => ['required', 'integer', 'exists:email_templates,id'],
-            'scope' => ['required', 'in:reservations,waitlist,both,selection'],
+            'scope' => ['required', 'in:reservations,waitlist,both,selection,internal_users'],
             'send_to_all' => ['sometimes', 'boolean'],
             'deduplicate' => ['sometimes', 'boolean'],
             'reservation_ids' => ['sometimes', 'array'],
@@ -27,6 +27,8 @@ class EmailBroadcastController extends Controller
             'custom_recipients' => ['sometimes', 'array'],
             'custom_recipients.*.email' => ['required_with:custom_recipients', 'email'],
             'custom_recipients.*.name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'user_roles' => ['sometimes', 'array'],
+            'user_roles.*' => ['in:admin,moderator,user'],
         ]);
 
         $scope = $data['scope'];
@@ -35,6 +37,7 @@ class EmailBroadcastController extends Controller
         $reservationIds = $data['reservation_ids'] ?? [];
         $waitlistIds = $data['waitlist_ids'] ?? [];
         $customRecipients = $data['custom_recipients'] ?? [];
+        $userRoles = $data['user_roles'] ?? [];
 
         try {
             $result = $this->service->queueBroadcast(
@@ -45,6 +48,7 @@ class EmailBroadcastController extends Controller
                 $waitlistIds,
                 $customRecipients,
                 $deduplicate,
+                $userRoles,
             );
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);

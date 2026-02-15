@@ -7,6 +7,7 @@ use App\Models\JobLog;
 use Illuminate\Support\Str;
 use App\Models\EmailTemplate;
 use App\Models\Reservation;
+use App\Models\User;
 use App\Models\WaitlistEntry;
 use Illuminate\Support\Collection;
 
@@ -24,6 +25,7 @@ class EmailBroadcastService
      * @param  array<int,int>  $reservationIds
      * @param  array<int,int>  $waitlistIds
      * @param  array<int,array{name?:string,email:string}>  $customRecipients
+     * @param  array<string>  $userRoles  Array of roles to include: 'admin', 'moderator', 'user'
      */
     public function queueBroadcast(
         int $templateId,
@@ -33,6 +35,7 @@ class EmailBroadcastService
         array $waitlistIds = [],
         array $customRecipients = [],
         bool $deduplicate = true,
+        array $userRoles = [],
     ): array {
         $template = EmailTemplate::query()->find($templateId);
         if (! $template) {
@@ -44,7 +47,7 @@ class EmailBroadcastService
             throw new \RuntimeException(__('mail_server_not_configured'));
         }
 
-        $recipients = $this->collectRecipients($scope, $sendToAll, $reservationIds, $waitlistIds, $customRecipients);
+        $recipients = $this->collectRecipients($scope, $sendToAll, $reservationIds, $waitlistIds, $customRecipients, $userRoles);
 
         $beforeDedupCount = $recipients->count();
         $skippedNoEmail = $recipients->filter(fn ($r) => empty($r['email']))->count();
@@ -116,8 +119,9 @@ class EmailBroadcastService
      * @param  array<int,int>  $reservationIds
      * @param  array<int,int>  $waitlistIds
      * @param  array<int,array{name?:string,email:string}>  $customRecipients
+     * @param  array<string>  $userRoles  Array of roles to include: 'admin', 'moderator', 'user'
      */
-    private function collectRecipients(string $scope, bool $sendToAll, array $reservationIds, array $waitlistIds, array $customRecipients): Collection
+    private function collectRecipients(string $scope, bool $sendToAll, array $reservationIds, array $waitlistIds, array $customRecipients, array $userRoles = []): Collection
     {
         $recipients = collect();
 
@@ -179,7 +183,57 @@ class EmailBroadcastService
             ]);
         }
 
+        // Add internal users based on roles
+        if (! empty($userRoles)) {
+            $this->addUserRecipients($recipients, $userRoles);
+        }
+
         return $recipients;
+    }
+
+    /**
+     * Add recipients from internal user roles.
+     *
+     * @param  \Illuminate\Support\Collection  $recipients
+     * @param  array<string>  $roles  Roles to include: 'admin', 'moderator', 'user'
+     */
+    private function addUserRecipients(Collection $recipients, array $roles): void
+    {
+        // Map role names to database values
+        $roleMap = [
+            'admin' => ['superadmin', 'admin'],
+            'moderator' => ['moderator'],
+            'user' => ['user'],
+        ];
+
+        $includedRoles = [];
+        foreach ($roles as $role) {
+            if (isset($roleMap[$role])) {
+                $includedRoles = array_merge($includedRoles, $roleMap[$role]);
+            }
+        }
+
+        if (empty($includedRoles)) {
+            return;
+        }
+
+        User::query()
+            ->where('active', 1)
+            ->whereIn('role', $includedRoles)
+            ->get(['id', 'name', 'email'])
+            ->each(function (User $user) use (&$recipients) {
+                // Skip if email is empty
+                if (empty($user->email)) {
+                    return;
+                }
+                $recipients->push([
+                    'type' => 'internal_user',
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'undo_link' => '',
+                ]);
+            });
     }
 
     private function renderTemplate(string $template, array $replacements): string

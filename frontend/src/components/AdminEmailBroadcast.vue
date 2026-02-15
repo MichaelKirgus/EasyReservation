@@ -25,6 +25,7 @@ const form = reactive({
   templateId: null,
   mode: 'both',
   deduplicate: true,
+  userRoles: [], // New: for internal user roles
   selectedReservations: [],
   selectedWaitlist: [],
   customRecipients: [{ name: '', email: '' }],
@@ -130,12 +131,23 @@ async function sendBroadcast() {
     deduplicate: form.deduplicate,
   }
 
+  // Add user roles if selected
+  if (form.userRoles && form.userRoles.length > 0) {
+    payload.user_roles = form.userRoles
+  }
+
   if (form.mode === 'selection') {
     payload.send_to_all = false
     payload.reservation_ids = form.selectedReservations.filter(Boolean)
     payload.waitlist_ids = form.selectedWaitlist.filter(Boolean)
-    if ((payload.reservation_ids?.length || 0) === 0 && (payload.waitlist_ids?.length || 0) === 0 && customList().length === 0) {
+    if ((payload.reservation_ids?.length || 0) === 0 && (payload.waitlist_ids?.length || 0) === 0 && customList().length === 0 && !form.userRoles.length) {
       setError(tr('please_select_at_least_one_recipient'))
+      return
+    }
+  } else if (form.mode === 'internal_users') {
+    // For internal users, at least one role must be selected
+    if (!form.userRoles || form.userRoles.length === 0) {
+      setError(tr('please_select_at_least_one_role'))
       return
     }
   }
@@ -277,6 +289,7 @@ watch(() => props.defaultSubTab, (val) => {
             { value: 'both', label: 'Alle (Reservierungen + Warteliste)' },
             { value: 'reservations', label: 'Alle Reservierungen' },
             { value: 'waitlist', label: 'Alle Warteliste' },
+            { value: 'internal_users', label: 'Interne Benutzer (Admins, Moderatoren, Nutzer)' },
             { value: 'selection', label: 'Auswahl treffen' },
           ]" :key="mode.value" class="mode-option">
             <input type="radio" :value="mode.value" v-model="form.mode" />
@@ -310,6 +323,22 @@ watch(() => props.defaultSubTab, (val) => {
             </div>
             <p v-else>Keine passenden Wartelisten-Einträge.</p>
           </div>
+        </div>
+      </div>
+
+      <div v-if="form.mode === 'internal_users'" class="card">
+        <div class="card-header">
+          <h4>Interne Benutzerrollen auswählen</h4>
+        </div>
+        <div class="modes">
+          <label v-for="role in [
+            { value: 'admin', label: 'Admins (Superadmins und Admins)' },
+            { value: 'moderator', label: 'Moderatoren' },
+            { value: 'user', label: 'Registrierte Nutzer' },
+          ]" :key="role.value" class="mode-option">
+            <input type="checkbox" :value="role.value" v-model="form.userRoles" />
+            <span>{{ role.label }}</span>
+          </label>
         </div>
       </div>
 

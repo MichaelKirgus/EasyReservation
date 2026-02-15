@@ -467,6 +467,7 @@
   "please_login_api_key_missing": "Bitte anmelden, API-Key fehlt.",
   "please_select_template": "Bitte Vorlage auswählen.",
   "please_select_at_least_one_recipient": "Bitte mindestens einen Empfänger auswählen.",
+  "please_select_at_least_one_role": "Bitte mindestens eine Benutzerrolle auswählen.",
   "templates_can_only_be_edited_by_admin": "Vorlagen können nur als Admin bearbeitet werden.",
   "templates_can_only_be_deleted_by_admin": "Vorlagen können nur als Admin gelöscht werden.",
   "templates_can_only_be_created_by_admin": "Vorlagen können nur als Admin erstellt werden.",
