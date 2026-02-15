@@ -32,7 +32,7 @@
         <input type="checkbox" :checked="row.active" @change="toggleActive(row)" :disabled="loading" />
       </template>
       <template #row-actions="{ row }">
-        <IconButton icon="play" label="Simulieren" class="ghost" @click="simulate(row)" :disabled="loading || !row.active" />
+        <IconButton icon="play" label="Simulieren" class="ghost" @click.stop="simulate(row)" :disabled="loading || !row.active" />
         <IconButton icon="pencil" label="Bearbeiten" class="ghost" @click="editTrigger(row)" :disabled="loading" />
         <IconButton icon="trash" label="Löschen" class="ghost" variant="danger" @click.stop="deleteTrigger(row)" :disabled="loading" />
       </template>
@@ -85,11 +85,11 @@ const columns = [
 ]
 
 const eventTypes = [
-  { value: 'reservierungsliste_voll', label: 'Reservierungsliste voll' },
-  { value: 'reservierung_deaktiviert', label: 'Reservierung deaktiviert' },
-  { value: 'reservierung_aktiviert', label: 'Reservierung aktiviert' },
-  { value: 'warteliste_aktiviert', label: 'Warteliste aktiviert' },
-  { value: 'warteliste_deaktiviert', label: 'Warteliste deaktiviert' }
+  { value: 'reservation_full', label: 'Reservation list full' },
+  { value: 'reservation_disabled', label: 'Reservation disabled' },
+  { value: 'reservation_enabled', label: 'Reservation enabled' },
+  { value: 'waitlist_enabled', label: 'Waitlist enabled' },
+  { value: 'waitlist_disabled', label: 'Waitlist disabled' }
 ]
 
 function eventTypeLabel(val) {
