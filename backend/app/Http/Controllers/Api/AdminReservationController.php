@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Reservation;
 use App\Services\EmailService;
+use App\Services\EventTriggerService;
 use App\Services\ReservationValidationService;
 use App\Services\SettingsService;
 use App\Services\WaitlistService;
@@ -24,6 +25,7 @@ class AdminReservationController extends Controller
         private readonly ReservationValidationService $validator,
         private readonly EmailValidationService $emailValidation,
         private readonly EmailService $emailService,
+        private readonly EventTriggerService $eventTriggers,
         private readonly SiteTokenService $siteTokenService,
     ) {
     }

@@ -4,6 +4,7 @@ namespace App\Services;
 use App\Models\EventTrigger;
 use App\Models\Reservation;
 use App\Models\WaitlistEntry;
+use App\Services\SettingsService;
 use App\Jobs\SendEventTriggerJob;
 use Illuminate\Support\Carbon;
 
@@ -12,6 +13,7 @@ class EventTriggerService
     public function __construct(
         private readonly EmailBroadcastService $emailBroadcast,
         private readonly WebhookService $webhookService,
+        private readonly SettingsService $settings,
     ) {}
 
     /**
@@ -53,17 +55,17 @@ class EventTriggerService
         // Beispielhafte Checks für bekannte Event-Typen
         switch ($trigger->event_type) {
             case 'reservation_full':
-                $max = (int) (setting('reservation_max') ?? 0);
+                $max = (int) ($this->settings->get('reservation_max', 0) ?? 0);
                 $current = Reservation::query()->count();
                 return $max > 0 && $current >= $max;
             case 'reservation_enabled':
-                return (int) (setting('reservation_enabled') ?? 0) === 1;
+                return (int) ($this->settings->get('reservation_enabled', 0) ?? 0) === 1;
             case 'reservation_disabled':
-                return (int) (setting('reservation_enabled') ?? 0) === 0;
+                return (int) ($this->settings->get('reservation_enabled', 0) ?? 0) === 0;
             case 'waitlist_enabled':
-                return (int) (setting('waitlist_enabled') ?? 0) === 1;
+                return (int) ($this->settings->get('waitlist_enabled', 0) ?? 0) === 1;
             case 'waitlist_disabled':
-                return (int) (setting('waitlist_enabled') ?? 0) === 0;
+                return (int) ($this->settings->get('waitlist_enabled', 0) ?? 0) === 0;
             case 'reservation_added':
                 // Always fires when triggered - context contains the reservation
                 return true;
