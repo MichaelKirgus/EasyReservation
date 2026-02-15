@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Models\Event;
 use App\Models\Reservation;
+use App\Models\User;
 use App\Models\WaitlistEntry;
 use App\Services\CustomPlaceholderService;
+use App\Services\SiteTokenService;
 
 class PlaceholderService
 {
@@ -16,10 +18,16 @@ class PlaceholderService
         '{{validation_link}}',
     ];
 
+    private const SITE_TOKENS = [
+        '{{site_base_url}}',
+        '{{site_guest_token}}',
+    ];
+
     public function __construct(
         private readonly EventService $events,
         private readonly SettingsService $settings,
         private readonly CustomPlaceholderService $customPlaceholders,
+        private readonly SiteTokenService $siteTokens,
     ) {
     }
 
@@ -83,6 +91,15 @@ class PlaceholderService
             '{{waitlist_current_count}}' => (string) WaitlistEntry::query()->where('status', 'pending')->count(),
             '{{waitlist_free_count}}' => (string) max(0, ($this->settings->get('waitlist_limit', 0) ?? 0) - WaitlistEntry::query()->where('status', 'pending')->count()),
         ];
+        
+        // Site tokens
+        $appUrl = config('app.url');
+        $siteBaseUrl = rtrim($appUrl, '/');
+        $guestToken = $this->siteTokens->getValidSiteToken() ?? '';
+        
+        $core['{{site_base_url}}'] = $siteBaseUrl;
+        $core['{{site_guest_token}}'] = $guestToken;
+        
         $custom = $this->customPlaceholders->getAll();
         $recipientTokens = [
             '{{name}}' => $recipient['name'] ?? '',
@@ -97,7 +114,7 @@ class PlaceholderService
     public function tokens(): array
     {
         $tokens = array_keys($this->replacements());
-        $tokens = array_merge($tokens, self::RECIPIENT_TOKENS);
+        $tokens = array_merge($tokens, self::RECIPIENT_TOKENS, self::SITE_TOKENS);
         $tokens = array_values(array_unique($tokens));
         sort($tokens);
 
