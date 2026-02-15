@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 
 class Reservation extends Model
@@ -16,13 +17,30 @@ class Reservation extends Model
         'date_added',
         'from_waitlist',
         'site_token',
+        'email_encrypted',
     ];
 
     protected $casts = [
         'payload' => 'array',
         'date_added' => 'datetime',
         'from_waitlist' => 'boolean',
+        'email_encrypted' => 'boolean',
     ];
+
+    public function getEmailAttribute($value)
+    {
+        if ($this->email_encrypted) {
+            return Crypt::decryptString($value);
+        }
+
+        return $value;
+    }
+
+    public function setEmailAttribute($value)
+    {
+        $this->attributes['email'] = Crypt::encryptString($value);
+        $this->attributes['email_encrypted'] = true;
+    }
 
     public function emailValidations()
     {
