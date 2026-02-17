@@ -18,6 +18,13 @@ class AuditLogMiddleware
         $response = $next($request);
 
         if (env('AUDIT_LOG', 'TRUE') !== 'FALSE') {
+            if ($this->isBlacklisted($request)) {
+                \Log::debug('[AuditLogMiddleware] Route blacklisted, skipping', [
+                    'path' => $request->path(),
+                    'method' => $request->method(),
+                ]);
+                return $response;
+            }
             \Log::debug('[AuditLogMiddleware] Audit log is enabled, creating entry', [
                 'user_id' => auth()->id(),
                 'route' => $request->path(),
@@ -58,5 +65,38 @@ class AuditLogMiddleware
         }
 
         return $response;
+    }
+
+    /**
+     * Check if the current request matches any blacklisted route pattern.
+     * Each blacklist entry can specify 'methods' (array of HTTP methods) and 'path' (regex or prefix).
+     */
+    private function isBlacklisted($request): bool
+    {
+        $blacklist = config('auditlog.blacklist', []);
+        $method = strtoupper($request->method());
+        $path = $request->path();
+
+        foreach ($blacklist as $entry) {
+            // Check HTTP method filter
+            $methods = array_map('strtoupper', $entry['methods'] ?? ['*']);
+            if (!in_array('*', $methods, true) && !in_array($method, $methods, true)) {
+                continue;
+            }
+
+            // Check path pattern (supports * as wildcard)
+            $pattern = $entry['path'] ?? '';
+            if ($pattern === '') {
+                continue;
+            }
+
+            // Convert simple wildcard pattern to regex
+            $regex = '#^' . str_replace('\*', '.*', preg_quote($pattern, '#')) . '$#i';
+            if (preg_match($regex, $path)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
