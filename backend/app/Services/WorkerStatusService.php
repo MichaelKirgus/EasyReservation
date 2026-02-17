@@ -40,43 +40,31 @@ class WorkerStatusService
     {
         if (method_exists($this->store->getStore(), 'connection')) {
             $redis = $this->store->getStore()->connection();
-            // Prefix berücksichtigen (z.B. aus config/database.php)
-            $prefix = '';
-            if (method_exists($redis, 'getOptions')) {
-                $options = $redis->getOptions();
-                if ($options && isset($options['prefix'])) {
-                    $prefix = $options['prefix'];
-                }
-            } elseif (property_exists($redis, 'options') && isset($redis->options['prefix'])) {
-                $prefix = $redis->options['prefix'];
-            }
-            
-            // Try multiple patterns to find worker keys
-            $keys = [];
-            $patterns = [
-                'worker_status:*',
-                $prefix . 'worker_status:*'
-            ];
-            
-            foreach ($patterns as $pattern) {
-                $foundKeys = $redis->keys($pattern);
-                if (!empty($foundKeys)) {
-                    $keys = array_merge($keys, $foundKeys);
-                    break; // Found keys with one pattern, no need to try others
-                }
-            }
-            
+
+            // Get the cache prefix that Laravel's RedisStore prepends to every key.
+            // Without this, the KEYS pattern will never match the stored keys.
+            $cachePrefix = $this->store->getStore()->getPrefix();
+
+            // phpredis auto-prepends the Redis connection prefix to the pattern,
+            // so we only need to include the cache-level prefix here.
+            $keys = $redis->keys($cachePrefix . 'worker_status:*');
+
             $workers = [];
             foreach ($keys as $key) {
-                $data = $this->store->get($key);
+                // $key from keys() has the Redis connection prefix stripped (phpredis)
+                // but still carries the cache prefix. Strip it to get the logical key
+                // that Cache::store()->get() expects.
+                $logicalKey = $key;
+                if ($cachePrefix && strpos($logicalKey, $cachePrefix) === 0) {
+                    $logicalKey = substr($logicalKey, strlen($cachePrefix));
+                }
+
+                // Use the cache store so values are properly deserialized.
+                $data = $this->store->get($logicalKey);
                 if ($data) {
-                    // Extract worker_id (remove prefix and worker_status:)
-                    $workerId = $key;
-                    if ($prefix && strpos($workerId, $prefix) === 0) {
-                        $workerId = substr($workerId, strlen($prefix));
-                    }
-                    $workerId = str_replace('worker_status:', '', $workerId);
+                    $workerId = str_replace('worker_status:', '', $logicalKey);
                     $data['worker_id'] = $workerId;
+
                     $statsKey = 'worker_stats:' . $workerId;
                     $stats = $this->store->get($statsKey) ?: [
                         'total_jobs' => 0,

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\JobLog;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 
@@ -98,90 +99,11 @@ class DiagnosticsService
                 ->all();
             $processingJobs = JobLog::where('status', 'processing')->count();
             if (config('queue.default') === 'redis') {
-                // Worker-Status-Keys finden und Daten auslesen
-                // Redis Prefix berücksichtigen - use cache connection to match worker storage
-                $redis = app('redis')->connection('cache');
-                $prefix = '';
-                if (method_exists($redis, 'getOptions')) {
-                    $options = $redis->getOptions();
-                    if ($options && isset($options['prefix'])) {
-                        $prefix = $options['prefix'];
-                    }
-                } elseif (property_exists($redis, 'options') && isset($redis->options['prefix'])) {
-                    $prefix = $redis->options['prefix'];
-                }
-                
-                // Select the correct database for worker status (as configured)
-                $workerDb = config('workerstatus.redis_db', 1);
-                if (method_exists($redis, 'select')) {
-                    try {
-                        \Illuminate\Support\Facades\Log::debug('Selecting Redis DB: ' . $workerDb);
-                        $redis->select($workerDb);
-                    } catch (\Exception $e) {
-                        \Illuminate\Support\Facades\Log::error('Could not select Redis DB for worker status: ' . $e->getMessage());
-                    }
-                }
-                // Try to get worker keys with proper prefix handling
-                \Illuminate\Support\Facades\Log::debug('Attempting to find worker keys with prefix: ' . $prefix);
-                
-                // Debug: Let's also try a broader search to see what's in Redis
-                \Illuminate\Support\Facades\Log::debug('Checking all keys in Redis for debugging...');
-                try {
-                    $allKeys = $redis->keys('*');
-                    \Illuminate\Support\Facades\Log::debug('Found ' . count($allKeys) . ' total keys in Redis');
-                    foreach (array_slice($allKeys, 0, 20) as $key) { // Show first 20 keys
-                        \Illuminate\Support\Facades\Log::debug('Redis key: ' . $key);
-                    }
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Error getting all Redis keys: ' . $e->getMessage());
-                }
-                
-                $workerKeys = [];
-                // Try multiple patterns including both worker_status and worker_stats formats
-                $patterns = [
-                    'worker_status:*',
-                    $prefix . 'worker_status:*',
-                    'worker_stats:*',  // Also look for stats keys (might be what's actually stored)
-                    $prefix . 'worker_stats:*'
-                ];
-                
-                foreach ($patterns as $pattern) {
-                    \Illuminate\Support\Facades\Log::debug('Searching for Redis keys with pattern: ' . $pattern);
-                    try {
-                        $foundKeys = $redis->keys($pattern);
-                        \Illuminate\Support\Facades\Log::debug('Found ' . count($foundKeys) . ' keys with pattern: ' . $pattern);
-                        if (!empty($foundKeys)) {
-                            $workerKeys = array_merge($workerKeys, $foundKeys);
-                            \Illuminate\Support\Facades\Log::debug('Using pattern: ' . $pattern . ' - found ' . count($foundKeys) . ' keys');
-                            break; // Found keys with one pattern, no need to try others
-                        }
-                    } catch (\Exception $e) {
-                        \Illuminate\Support\Facades\Log::error('Error searching for pattern ' . $pattern . ': ' . $e->getMessage());
-                    }
-                }
-                
-                // Debug: Log all found keys and their content
-                \Illuminate\Support\Facades\Log::debug('Total worker keys found: ' . count($workerKeys));
-                foreach ($workerKeys as $key) {
-                    \Illuminate\Support\Facades\Log::debug('Worker key: ' . $key);
-                    try {
-                        $data = $redis->get($key);
-                        \Illuminate\Support\Facades\Log::debug('Data for key ' . $key . ': ' . ($data ? substr($data, 0, 100) . '...' : 'No data'));
-                    } catch (\Exception $e) {
-                        \Illuminate\Support\Facades\Log::error('Error getting data for key ' . $key . ': ' . $e->getMessage());
-                    }
-                }
-                $workerCount = is_array($workerKeys) ? count($workerKeys) : 0;
-                foreach ($workerKeys as $key) {
-                    $data = $redis->get($key);
-                    if ($data) {
-                        $decoded = json_decode($data, true);
-                        if (is_array($decoded)) {
-                            $decoded['redis_key'] = $key;
-                            $workers[] = $decoded;
-                        }
-                    }
-                }
+                // Delegate to WorkerStatusService which handles cache prefix and
+                // deserialization correctly.
+                $workerService = app(\App\Services\WorkerStatusService::class);
+                $workers = $workerService->getAllStatuses();
+                $workerCount = count($workers);
             }
         } catch (\Throwable $e) {
             $error = $e->getMessage();
