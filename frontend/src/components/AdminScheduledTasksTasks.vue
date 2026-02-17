@@ -24,6 +24,12 @@
       <template #cell-planned_run_at="{ value }">
         <span>{{ value ? formatDateTime(value) : '–' }}</span>
       </template>
+      <template #cell-next_run_at="{ value }">
+        <span>{{ value ? formatDateTime(value) : '–' }}</span>
+      </template>
+      <template #cell-last_run_at="{ value }">
+        <span>{{ value ? formatDateTime(value) : '–' }}</span>
+      </template>
       <template #cell-active="{ row }">
         <input type="checkbox" :checked="row.active" @change="toggleActive(row)" :disabled="loading" />
       </template>
@@ -60,12 +66,24 @@ function apiConfig() {
 
 function formatDateTime(val) {
   if (!val) return '–';
-  // Falls kein Z oder Zeitzonen-Offset, als UTC interpretieren
-  let iso = val.replace(' ', 'T');
-  if (!/Z|[+-]\d{2}:\d{2}$/.test(iso)) iso += 'Z';
+  // If it's a unix timestamp (number), convert directly
+  if (typeof val === 'number') {
+    const d = new Date(val * 1000);
+    if (isNaN(d)) return String(val);
+    return d.toLocaleString(navigator.language, {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+  }
+  // Interpret ISO strings without timezone suffix as UTC
+  let iso = String(val).replace(' ', 'T');
+  if (!/Z|[+-]\d{2}(:\d{2})?$/.test(iso)) iso += 'Z';
   const d = new Date(iso);
   if (isNaN(d)) return val;
-  return d.toLocaleString();
+  return d.toLocaleString(navigator.language, {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
 }
 
 const tasks = ref([])
@@ -88,8 +106,7 @@ const columns = [
       }
     }
   },
-  { key: 'run_at', label: 'Ausführungszeit' },
-  { key: 'planned_run_at', label: 'Geplantes Ausführungsdatum' },
+  { key: 'planned_run_at', label: 'Geplante Ausführung' },
   { key: 'reference_type', label: 'Referenztyp',
     formatter: (type) => {
       if (type === 'cron') return 'Cron';

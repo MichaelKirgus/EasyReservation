@@ -53,16 +53,19 @@ class ScheduledTaskService
         }
 
         // 2. Fällige Tasks ausführen (including cron tasks)
-        $dueTasks = ScheduledTask::where(function($query) {
-            // Standard tasks with run_at
-            $query->where('run_at', '<=', now())
-                  ->whereNull('cron_expression');
-        })->orWhere(function($query) {
-            // Cron tasks where next_run_at is due
-            $query->whereNotNull('cron_expression')
-                  ->where('next_run_at', '<=', now());
-        })->where('executed', false)
-          ->where('active', true)
+        $dueTasks = ScheduledTask::where('active', true)
+          ->where('executed', false)
+          ->where(function($outer) {
+              $outer->where(function($query) {
+                  // Standard tasks with run_at
+                  $query->where('run_at', '<=', now())
+                        ->whereNull('cron_expression');
+              })->orWhere(function($query) {
+                  // Cron tasks where next_run_at is due
+                  $query->whereNotNull('cron_expression')
+                        ->where('next_run_at', '<=', now());
+              });
+          })
           ->orderBy('run_at')
           ->get();
 
@@ -73,19 +76,14 @@ class ScheduledTaskService
             try {
                 $this->executeTask($task);
                 
-                // Update cron task for next run
+                // Update cron task for next run (cron tasks are recurring, so reset executed)
                 if (!empty($task->cron_expression)) {
                     $task->last_run_at = now();
+                    $task->executed = false;
                     $task->save();
                     
                     // Recalculate next_run_at after execution
-                    $tempTask = new ScheduledTask();
-                    $tempTask->fill([
-                        'cron_expression' => $task->cron_expression,
-                        'last_run_at' => $task->last_run_at
-                    ]);
-                    $task->next_run_at = $tempTask->next_run_at;
-                    $task->save();
+                    $this->updateCronRunTime($task);
                 }
                 
                 \Log::info('ScheduledTaskService: Task ' . $task->id . ' executed successfully');
@@ -239,9 +237,12 @@ class ScheduledTaskService
                     throw new \InvalidArgumentException('Unknown task type: ' . $task->type);
             }
             
-            $task->executed = true;
-            $task->executed_at = now();
-            $task->save();
+            // Cron tasks are recurring — don't mark them as permanently executed
+            if (empty($task->cron_expression)) {
+                $task->executed = true;
+                $task->executed_at = now();
+                $task->save();
+            }
             \Log::info('ScheduledTaskService: Task ' . $task->id . ' completed successfully');
             
         } catch (\Throwable $e) {
