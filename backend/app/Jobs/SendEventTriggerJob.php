@@ -20,6 +20,11 @@ class SendEventTriggerJob implements ShouldQueue, ShouldBeUnique
         public array $context = []
     ) {}
 
+    public function uniqueId(): string
+    {
+        return (string) $this->triggerId;
+    }
+
     public function handle(EventTriggerService $service)
     {
         $trigger = EventTrigger::find($this->triggerId);

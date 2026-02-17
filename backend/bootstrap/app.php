@@ -20,7 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(new \App\Jobs\CheckScheduledTasksJob)->everyMinute()->withoutOverlapping();
 
         // Register heartbeat worker job
-        $schedule->job(new \App\Jobs\WorkerHeartbeatJob)->everyMinute()->onQueue('heartbeat');
+        $schedule->job(new \App\Jobs\WorkerHeartbeatJob)->everyMinute();
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(HandleCors::class);

@@ -8,6 +8,7 @@ enum EventTriggerType: string
     case RESERVATION_ENABLED = 'reservation_enabled';
     case RESERVATION_ADDED = 'reservation_added';
     case RESERVATION_REMOVED = 'reservation_removed';
+    case RESERVATION_CANCELED = 'reservation_canceled';
     case WAITLIST_ENABLED = 'waitlist_enabled';
     case WAITLIST_DISABLED = 'waitlist_disabled';
     case WAITLIST_ENTRY_ADDED = 'waitlist_entry_added';

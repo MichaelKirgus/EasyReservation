@@ -17,8 +17,10 @@ class EventTrigger extends Model
         'meta',
         'recipient_attendees',
         'recipient_waitlist',
+        'recipient_admins',
+        'recipient_moderators',
         'custom_recipients',
-        'webhook_template_id', // NEU
+        'webhook_template_id',
     ];
 
     protected $casts = [
@@ -27,6 +29,8 @@ class EventTrigger extends Model
         'last_triggered_at' => 'datetime',
         'recipient_attendees' => 'boolean',
         'recipient_waitlist' => 'boolean',
+        'recipient_admins' => 'boolean',
+        'recipient_moderators' => 'boolean',
     ];
 
     public function webhookTemplate()

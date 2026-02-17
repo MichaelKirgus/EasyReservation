@@ -13,7 +13,10 @@ class WorkerHeartbeatJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $queue = 'heartbeat'; // niedrige Prio-Queue
+    public function __construct()
+    {
+        $this->onQueue('heartbeat');
+    }
 
     public function handle()
     {

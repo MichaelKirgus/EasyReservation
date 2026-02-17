@@ -72,6 +72,9 @@ class EventTriggerService
             case 'reservation_removed':
                 // Always fires when triggered - context contains the reservation
                 return true;
+            case 'reservation_canceled':
+                // Always fires when triggered - context contains the reservation
+                return true;
             case 'waitlist_entry_added':
                 // Always fires when triggered - context contains the waitlist entry
                 return true;
@@ -142,6 +145,18 @@ class EventTriggerService
 
     private function sendWebhookForTrigger(EventTrigger $trigger, array $context)
     {
+        // Prefer webhook_template_id if set, fallback to direct webhook_url
+        if ($trigger->webhook_template_id) {
+            $payload = [
+                'event' => $trigger->event_type,
+                'context' => $context,
+                'trigger_id' => $trigger->id,
+                'fired_at' => now()->toIso8601String(),
+            ];
+            $this->webhookService->sendTemplate($trigger->webhook_template_id, $payload);
+            return;
+        }
+
         if (!$trigger->webhook_url) return;
         $payload = [
             'event' => $trigger->event_type,
