@@ -69,8 +69,8 @@ class EmailValidationService
         $requiresEmail = $this->emailValidationEnabled();
         $requiresAdmin = $this->adminApprovalEnabled();
 
-        // Rate-Limit check
-        if ($requiresEmail) {
+        // Rate-Limit check — apply when any validation is active
+        if ($requiresEmail || $requiresAdmin) {
             $ip = $this->getClientIp();
             $this->checkRateLimit($ip);
         }
