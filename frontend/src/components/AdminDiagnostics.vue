@@ -146,7 +146,6 @@ watch(autoRefreshEnabled, (val) => {
   localStorage.setItem('admin_diag_autorefresh', val ? '1' : '0')
   if (val) {
     loadDiagnostics({ auto: true })
-    loadWorkerStatus()
     loadAuditLogCount()
     startAutoRefresh()
   } else {

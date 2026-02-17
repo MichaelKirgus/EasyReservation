@@ -44,10 +44,10 @@ class WorkerHeartbeatJob implements ShouldQueue
         // Create a unified status object that includes both stats and current status info
         $statusData = [
             'ip' => $ip,
-            'timestamp' => now()->timestamp,
-            'memory' => $memory,
+            'timestamp' => now()->toIso8601String(),
+            'memory' => round($memory / 1024 / 1024, 2),
             'redis_latency' => $redisLatency,
-            'jobs' => json_encode($jobs),
+            'jobs' => $jobs,
             'total_jobs' => $stats['total_jobs'],
             'last_job_time' => $stats['last_job_time'],
             'last_job_duration' => $stats['last_job_duration'],
