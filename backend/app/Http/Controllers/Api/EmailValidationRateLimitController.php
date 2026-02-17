@@ -12,17 +12,40 @@ class EmailValidationRateLimitController extends Controller
 {
     public function __construct(private EmailValidationService $service) {}
 
+    /**
+     * Return the cache prefix used by the current cache store.
+     */
+    private function getCachePrefix(): string
+    {
+        $store = Cache::getStore();
+        return method_exists($store, 'getPrefix') ? $store->getPrefix() : '';
+    }
+
+    /**
+     * Strip the cache prefix from a raw Redis key to get the logical cache key.
+     */
+    private function stripPrefix(string $key, string $prefix): string
+    {
+        if ($prefix !== '' && str_starts_with($key, $prefix)) {
+            return substr($key, strlen($prefix));
+        }
+        return $key;
+    }
+
     // GET /admin/email-validation-rate-limits
     public function index()
     {
-        $pattern = 'email_validation_rate:*';
-        $keys = Cache::getRedis()->keys($pattern);
+        $prefix = $this->getCachePrefix();
+        $redis = Cache::getStore()->connection();
+        $keys = $redis->keys($prefix . 'email_validation_rate:*');
         $result = [];
         foreach ($keys as $key) {
-            $parts = explode(':', $key);
+            $logicalKey = $this->stripPrefix($key, $prefix);
+            $parts = explode(':', $logicalKey);
+            // logicalKey = email_validation_rate:<ip>:<hour>
             $ip = $parts[1] ?? null;
             $hour = $parts[2] ?? null;
-            $count = Cache::get($key, 0);
+            $count = Cache::get($logicalKey, 0);
             if ($ip && $hour) {
                 $result[] = [
                     'ip' => $ip,
@@ -37,10 +60,11 @@ class EmailValidationRateLimitController extends Controller
     // DELETE /admin/email-validation-rate-limits/{ip}
     public function destroy($ip)
     {
-        $pattern = 'email_validation_rate:' . $ip . ':*';
-        $keys = Cache::getRedis()->keys($pattern);
+        $prefix = $this->getCachePrefix();
+        $redis = Cache::getStore()->connection();
+        $keys = $redis->keys($prefix . 'email_validation_rate:' . $ip . ':*');
         foreach ($keys as $key) {
-            Cache::forget($key);
+            Cache::forget($this->stripPrefix($key, $prefix));
         }
         return response()->noContent();
     }
@@ -48,10 +72,11 @@ class EmailValidationRateLimitController extends Controller
     // DELETE /admin/email-validation-rate-limits
     public function destroyAll()
     {
-        $pattern = 'email_validation_rate:*';
-        $keys = Cache::getRedis()->keys($pattern);
+        $prefix = $this->getCachePrefix();
+        $redis = Cache::getStore()->connection();
+        $keys = $redis->keys($prefix . 'email_validation_rate:*');
         foreach ($keys as $key) {
-            Cache::forget($key);
+            Cache::forget($this->stripPrefix($key, $prefix));
         }
         return response()->noContent();
     }
