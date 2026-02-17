@@ -17,6 +17,6 @@ return [
     |
     */
 
-    'store' => env('RATE_LIMIT_CACHE_STORE', redis),
+    'store' => env('RATE_LIMIT_CACHE_STORE', 'redis'),
 
 ];
