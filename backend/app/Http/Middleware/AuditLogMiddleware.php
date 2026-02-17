@@ -13,7 +13,6 @@ class AuditLogMiddleware
             'path' => $request->path(),
             'method' => $request->method(),
             'user_id' => auth()->id(),
-            'audit_log_enabled' => config('auditlog.enabled'),
         ]);
 
         $response = $next($request);
