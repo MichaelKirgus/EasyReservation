@@ -33,7 +33,7 @@
       </template>
       <template #row-actions="{ row }">
         <IconButton icon="play" label="Simulieren" class="ghost" @click.stop="simulate(row)" :disabled="loading || !row.active" />
-        <IconButton icon="pencil" label="Bearbeiten" class="ghost" @click="editTrigger(row)" :disabled="loading" />
+        <IconButton icon="pencil" label="Bearbeiten" class="ghost" @click.stop="editTrigger(row)" :disabled="loading" />
         <IconButton icon="trash" label="Löschen" class="ghost" variant="danger" @click.stop="deleteTrigger(row)" :disabled="loading" />
       </template>
     </AdminDataTable>

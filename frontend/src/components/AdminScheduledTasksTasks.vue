@@ -35,8 +35,8 @@
       </template>
       <template #row-actions="{ row }">
         <IconButton icon="play" label="Sofort ausführen" class="ghost" @click.stop="runNow(row)" :disabled="loading" />
-        <IconButton icon="pencil" label="Bearbeiten" class="ghost" @click="editTask(row)" :disabled="loading" />
-        <IconButton icon="trash" label="Löschen" class="ghost" variant="danger" @click="deleteTask(row)" :disabled="loading" />
+        <IconButton icon="pencil" label="Bearbeiten" class="ghost" @click.stop="editTask(row)" :disabled="loading" />
+        <IconButton icon="trash" label="Löschen" class="ghost" variant="danger" @click.stop="deleteTask(row)" :disabled="loading" />
       </template>
     </AdminDataTable>
     <TaskDialog

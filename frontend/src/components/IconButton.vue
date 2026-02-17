@@ -11,6 +11,8 @@ const props = defineProps({
   as: { type: String, default: 'button' }, // Neu: steuert das Tag
 })
 
+const emit = defineEmits(['click'])
+
 const ICONS = {
   lock: { viewBox: '0 0 24 24', paths: ['M17 11V7a5 5 0 0 0-10 0v4', 'M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z', 'M12 17v-2'] },
   plus: { viewBox: '0 0 24 24', paths: ['M12 5v14', 'M5 12h14'] },
