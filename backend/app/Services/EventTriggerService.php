@@ -43,7 +43,12 @@ class EventTriggerService
             if (!$this->shouldFireTrigger($trigger, $context)) {
                 continue;
             }
-            $this->executeAction($trigger, $context);
+            try {
+                $this->executeAction($trigger, $context);
+            } catch (\Throwable $e) {
+                \Log::error('EventTriggerService: Trigger #' . $trigger->id . ' (' . $trigger->event_type . ') failed: ' . $e->getMessage());
+                continue;
+            }
             $trigger->last_triggered_at = $now;
             $trigger->save();
         }
@@ -147,20 +152,23 @@ class EventTriggerService
     {
         // Prefer webhook_template_id if set, fallback to direct webhook_url
         if ($trigger->webhook_template_id) {
-            $payload = [
-                'event' => $trigger->event_type,
-                'context' => $context,
-                'trigger_id' => $trigger->id,
-                'fired_at' => now()->toIso8601String(),
-            ];
-            $this->webhookService->sendTemplate($trigger->webhook_template_id, $payload);
+            // Use the template's own payload_template (with placeholders resolved).
+            // Do NOT override the payload — the template defines the format the endpoint expects.
+            $this->webhookService->sendTemplate($trigger->webhook_template_id);
             return;
         }
 
         if (!$trigger->webhook_url) return;
+
+        // Serialize Eloquent models to arrays for clean JSON encoding
+        $serializedContext = array_map(
+            fn ($v) => $v instanceof \Illuminate\Database\Eloquent\Model ? $v->toArray() : $v,
+            $context,
+        );
+
         $payload = [
             'event' => $trigger->event_type,
-            'context' => $context,
+            'context' => $serializedContext,
             'trigger_id' => $trigger->id,
             'fired_at' => now()->toIso8601String(),
         ];
