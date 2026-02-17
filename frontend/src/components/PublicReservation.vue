@@ -1,6 +1,6 @@
 <script setup>
 
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../api'
 import { useTranslation } from '../composables/useTranslation'
@@ -84,8 +84,17 @@ const topImageStyle = computed(() => {
 })
 const renderFieldLabel = (field) => renderMarkdown(field.label || field.key)
 const renderFieldHelp = (field) => renderMarkdown(field.help_text || '')
-function setMessage(msg) { message.value = msg; error.value = '' }
-function setError(msg) { error.value = msg; message.value = '' }
+const messageRef = ref(null)
+const errorRef = ref(null)
+function scrollToFeedback(el) {
+  nextTick(() => {
+    if (el.value) {
+      el.value.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  })
+}
+function setMessage(msg) { message.value = msg; error.value = ''; if (msg) scrollToFeedback(messageRef) }
+function setError(msg) { error.value = msg; message.value = ''; if (msg) scrollToFeedback(errorRef) }
 
 
 
@@ -492,8 +501,8 @@ function goToGDPR() {
         <img v-if="loadingImageUrl" :src="loadingImageUrl" alt="Loading" class="loader-image" />
         <div v-else class="loader-spinner" aria-hidden="true"></div>
       </div>
-      <div v-if="message" class="message" v-html="message"></div>
-      <div v-if="error" class="error">{{ error }}</div>
+      <div v-if="message" ref="messageRef" class="message" v-html="message"></div>
+      <div v-if="error" ref="errorRef" class="error">{{ error }}</div>
 
       <div v-if="(modalMessageEnabled && message) || (modalErrorEnabled && error)" class="modal-backdrop" @click.self="() => { message = ''; error = '' }">
         <div class="modal">
@@ -637,7 +646,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .details div { padding-top: 0.5rem; text-align: left; }
 .top-image { text-align: center; margin-bottom: 0.75rem; }
 .top-image img { max-width: 100%; max-height: 240px; object-fit: contain; }
-.modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.65); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.65); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem; overflow-y: auto; }
 .modal {
   background: var(--app-card-bg, var(--surface));
   color: var(--text);
@@ -650,8 +659,8 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  max-height: 80vh;
-  overflow: auto;
+  max-height: min(80vh, calc(100dvh - 2rem));
+  overflow-y: auto;
 }
 .modal-text { margin: 0; font-size: 1rem; }
 .top-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
