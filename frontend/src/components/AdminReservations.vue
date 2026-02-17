@@ -60,9 +60,24 @@ const validationColumns = [
 
 const rateLimitColumns = [
   { key: 'ip', label: 'IP-Adresse', sortable: true },
-  { key: 'count', label: 'Versuche (diese Stunde)', sortable: true },
-  { key: 'hour', label: 'Stunde', sortable: true },
+  { key: 'count', label: 'Versuche', sortable: true },
+  { key: 'hour', label: 'Zeitfenster', sortable: true },
 ]
+
+function formatRateLimitHour(val) {
+  if (!val || val.length !== 10) return val
+  // val = YYYYMMDDhh (UTC from server)
+  const y = val.substring(0, 4)
+  const m = val.substring(4, 6)
+  const d = val.substring(6, 8)
+  const h = val.substring(8, 10)
+  const date = new Date(`${y}-${m}-${d}T${h}:00:00Z`)
+  if (Number.isNaN(date.getTime())) return val
+  const fmt = (dt) => new Intl.DateTimeFormat(navigator.language, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(dt)
+  const fmtTime = (dt) => new Intl.DateTimeFormat(navigator.language, { hour: '2-digit', minute: '2-digit' }).format(dt)
+  const end = new Date(date.getTime() + 3600000)
+  return fmt(date) + ' – ' + fmtTime(end)
+}
 
 function formatDateTime(val) {
   if (!val) return ''
@@ -155,7 +170,7 @@ async function loadValidations(opts = {}) {
 }
 
 async function reloadAll(opts = {}) {
-  await Promise.all([load(opts), loadWaitlist(opts), loadValidations(opts)])
+  await Promise.all([load(opts), loadWaitlist(opts), loadValidations(opts), loadRateLimits()])
 }
 
 async function removeItem(id) {
@@ -770,6 +785,9 @@ async function purgeAllData() {
       >
         <template #actions>
           <IconButton icon="trash2" variant="danger" label="Alle Rate-Limits löschen" @click="clearAllRateLimits" :disabled="rateLimitLoading || !rateLimits.length" />
+        </template>
+        <template #cell-hour="{ value }">
+          <span>{{ formatRateLimitHour(value) }}</span>
         </template>
         <template #row-actions="{ row }">
           <IconButton icon="trash" variant="danger" label="Zurücksetzen" @click="resetRateLimit(row.ip)" :disabled="rateLimitLoading" />

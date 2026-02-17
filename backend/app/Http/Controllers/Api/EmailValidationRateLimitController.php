@@ -45,6 +45,7 @@ class EmailValidationRateLimitController extends Controller
             // logicalKey = email_validation_rate:<ip>:<hour>
             $ip = $parts[1] ?? null;
             $hour = $parts[2] ?? null;
+            // Read via Cache facade so the value is properly unserialized
             $count = Cache::get($logicalKey, 0);
             if ($ip && $hour) {
                 $result[] = [

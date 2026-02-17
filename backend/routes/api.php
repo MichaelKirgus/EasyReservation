@@ -155,6 +155,8 @@ Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
     Route::delete('/moderator/email-validations/{validation}', [EmailValidationAdminController::class, 'destroy']);
 
     Route::get('/moderator/email-validation-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'index']);
+    Route::delete('/moderator/email-validation-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'destroyAll']);
+    Route::delete('/moderator/email-validation-rate-limits/{ip}', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'destroy']);
 
     Route::get('/moderator/email-templates', [EmailTemplateController::class, 'index']);
     Route::get('/moderator/email-templates/{emailTemplate}/preview', [EmailTemplateController::class, 'preview']);
