@@ -11,10 +11,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Request;
 use App\Services\PlaceholderService;
 use App\Services\EmailService;
+use App\Services\RateLimitCacheService;
 
 class EmailValidationService
 {
@@ -27,6 +27,7 @@ class EmailValidationService
         private readonly IcsService $ics,
         private readonly PlaceholderService $placeholders,
         private readonly EmailService $emailService,
+        private readonly RateLimitCacheService $rateLimitCache,
     ) {
     }
 
@@ -57,11 +58,11 @@ class EmailValidationService
             return; // No limit
         }
         $key = 'email_validation_rate:' . $ip . ':' . now()->format('YmdH');
-        $count = Cache::get($key, 0);
+        $count = $this->rateLimitCache->get($key, 0);
         if ($count >= $limit) {
             throw new \RuntimeException('Too many requests from IP, please try again later.');
         }
-        Cache::put($key, $count + 1, now()->addHour());
+        $this->rateLimitCache->put($key, $count + 1, now()->addHour());
     }
 
     public function createRequest(string $type, string $name, ?string $email, array $payload = [], ?string $siteToken = null): EmailValidation

@@ -22,17 +22,8 @@ class PurgeController extends Controller
                 \App\Models\Waitlist::query()->delete();
             }
         });
-        // Delete all email validation rate limits (Redis keys)
-        $store = \Cache::getStore();
-        $prefix = method_exists($store, 'getPrefix') ? $store->getPrefix() : '';
-        $redis = $store->connection();
-        $keys = $redis->keys($prefix . 'email_validation_rate:*');
-        foreach ($keys as $key) {
-            $logicalKey = ($prefix !== '' && str_starts_with($key, $prefix))
-                ? substr($key, strlen($prefix))
-                : $key;
-            \Cache::forget($logicalKey);
-        }
+        // Delete all email validation rate limits via central service
+        app(\App\Services\RateLimitCacheService::class)->forgetByPrefix('email_validation_rate:');
         return response()->json(['success' => true]);
     }
 }
