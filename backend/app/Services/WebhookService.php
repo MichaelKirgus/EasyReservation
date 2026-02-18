@@ -49,23 +49,24 @@ class WebhookService
         $template = \App\Models\WebhookTemplate::findOrFail($id);
         $placeholderService = app(\App\Services\PlaceholderService::class);
 
-        // Platzhalter-Kontext: Für Testzwecke ggf. leer oder Dummy-Daten
-        $context = [];
+        // Compute replacements once and reuse for URL, headers, and payload
+        $replacements = $placeholderService->replacements();
+
+        // Resolve placeholders in URL
+        $url = strtr($template->url ?? '', $replacements);
+
         // Payload und Header-Template auflösen
-        $payload = $template->payload_template;
-        $headers = $template->headers_template;
-        // Platzhalter ersetzen
-        $payload = $placeholderService->replaceString($payload);
+        $payload = strtr($template->payload_template ?? '', $replacements);
         $headersArr = [];
-        if ($headers) {
+        if ($template->headers_template) {
             try {
-                $headersArr = json_decode($placeholderService->replaceString($headers), true) ?: [];
+                $headersArr = json_decode(strtr($template->headers_template, $replacements), true) ?: [];
             } catch (\Throwable $e) {
                 $headersArr = [];
             }
         }
         // Payload-Override (z.B. für Scheduled Tasks)
         $finalPayload = !empty($payloadOverride) ? $payloadOverride : (json_decode($payload, true) ?: []);
-        $this->send($template->url, $finalPayload, $headersArr);
+        $this->send($url, $finalPayload, $headersArr);
     }
 }
