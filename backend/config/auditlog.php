@@ -11,6 +11,7 @@ return [
         ['path' => 'api/admin/*',   'methods' => ['GET']],
         ['path' => 'api/public/config', 'methods' => ['GET']],
         ['path' => 'api/health', 'methods' => ['*']],
+        ['path' => 'api/diagnostics/*', 'methods' => ['*']],
     ],
 
 ];
