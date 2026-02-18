@@ -12,6 +12,7 @@
     >
       <template #row-actions="{ row }">
         <IconButton icon="play" label="Testen" class="ghost" @click.stop="testTemplate(row)" :disabled="loading" />
+        <IconButton icon="copy" label="Klonen" class="ghost" @click.stop="cloneTemplate(row)" :disabled="loading" />
         <IconButton icon="pencil" label="Bearbeiten" class="ghost" @click.stop="editTemplate(row)" :disabled="loading" />
         <IconButton icon="trash" label="Löschen" class="ghost" variant="danger" @click.stop="deleteTemplate(row)" :disabled="loading" />
       </template>
@@ -76,6 +77,15 @@ function deleteTemplate(template) {
   }
   loading.value = true
   axios.delete(`/api/admin/webhook-templates/${template.id}`, apiConfig())
+    .then(fetchTemplates)
+    .finally(() => { loading.value = false })
+}
+
+function cloneTemplate(template) {
+  const newName = prompt(tr('enter_clone_name'), template.name + ' (Copy)')
+  if (!newName) return
+  loading.value = true
+  axios.post(`/api/admin/webhook-templates/${template.id}/clone`, { name: newName }, apiConfig())
     .then(fetchTemplates)
     .finally(() => { loading.value = false })
 }

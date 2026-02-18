@@ -136,6 +136,7 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/webhook-templates', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'store']);
     Route::put('/admin/webhook-templates/{id}', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'update']);
     Route::delete('/admin/webhook-templates/{id}', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'destroy']);
+    Route::post('/admin/webhook-templates/{id}/clone', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'clone']);
     Route::post('/admin/webhook-templates/{id}/test', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'test']);
 });
 

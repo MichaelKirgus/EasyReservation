@@ -54,6 +54,24 @@ class WebhookTemplateController extends Controller
     }
 
     /**
+     * Clone an existing webhook template under a new name.
+     */
+    public function clone(Request $request, $id)
+    {
+        $source = WebhookTemplate::findOrFail($id);
+
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $clone = $source->replicate();
+        $clone->name = $data['name'];
+        $clone->save();
+
+        return response()->json($clone, 201);
+    }
+
+    /**
      * Test-execute a webhook template (send a test webhook).
      */
     public function test($id)
