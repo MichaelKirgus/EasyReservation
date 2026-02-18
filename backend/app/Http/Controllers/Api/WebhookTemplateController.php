@@ -99,6 +99,7 @@ class WebhookTemplateController extends Controller
             \Log::debug('WebhookTemplateController: Original headers', ['headers' => $headers]);
             
             // Platzhalter ersetzen
+            $url = $placeholderService->replaceString($template->url);
             $payload = $placeholderService->replaceString($payload);
             $headersArr = [];
             if ($headers) {
@@ -116,13 +117,13 @@ class WebhookTemplateController extends Controller
             \Log::debug('WebhookTemplateController: Final headers', ['headers' => $headersArr]);
 
             // Send
-            $webhookService->send($template->url, $payloadArray, $headersArr);
+            $webhookService->send($url, $payloadArray, $headersArr);
             
             return response()->json([
                 'success' => true,
                 'message' => __('webhook_sent_successfully'),
                 'details' => [
-                    'url' => $template->url,
+                    'url' => $url,
                     'payload' => $payloadArray,
                     'headers' => $headersArr
                 ]
