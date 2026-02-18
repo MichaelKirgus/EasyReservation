@@ -201,19 +201,18 @@ onUnmounted(() => {
 .stack { display: flex; flex-direction: column; gap: 0.75rem; }
 .top-bar { display: flex; justify-content: space-between; align-items: center; }
 .left-actions { display: flex; gap: 0.5rem; }
-.card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.75rem; background: #fff; display: flex; flex-direction: column; gap: 0.75rem; }
+.card { border: 1px solid var(--border-strong); border-radius: 8px; padding: 0.75rem; background: var(--app-card-bg, var(--card)); color: var(--text); display: flex; flex-direction: column; gap: 0.75rem; }
 .card-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.5rem; align-items: center; }
-label { display: flex; flex-direction: column; gap: 0.25rem; font-weight: 600; }
+label { display: flex; flex-direction: column; gap: 0.25rem; font-weight: 600; color: var(--text); }
 label.inline { flex-direction: row; align-items: center; font-weight: 500; }
-input, textarea, button { font: inherit; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; }
-textarea { resize: vertical; }
-button { background: #2563eb; color: #fff; cursor: pointer; }
-button.danger { background: #dc2626; }
+input, textarea { font: inherit; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
+button { font: inherit; cursor: pointer; }
+button.danger { background: #dc2626; color: #fff; }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
-.message { color: #065f46; background: #ecfdf3; border: 1px solid #a7f3d0; padding: 0.5rem; border-radius: 6px; }
-.error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; padding: 0.5rem; border-radius: 6px; }
+.message { color: var(--success-text); background: var(--success-bg); border: 1px solid var(--success-border); padding: 0.5rem; border-radius: 6px; }
+.error { color: var(--error-text); background: var(--error-bg); border: 1px solid var(--error-border); padding: 0.5rem; border-radius: 6px; }
 .faq-list { display: flex; flex-direction: column; gap: 0.75rem; }
-.faq-item { border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.65rem; background: #f8fafc; display: flex; flex-direction: column; gap: 0.5rem; }
+.faq-item { border: 1px solid var(--border-strong); border-radius: 8px; padding: 0.65rem; background: var(--surface-muted); color: var(--text); display: flex; flex-direction: column; gap: 0.5rem; }
 .actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
 </style>
