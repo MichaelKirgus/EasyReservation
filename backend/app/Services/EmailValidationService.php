@@ -65,6 +65,50 @@ class EmailValidationService
         $this->rateLimitCache->put($key, $count + 1, now()->addHour());
     }
 
+    /**
+     * Check the separate rate limit for admin approval notification emails.
+     * Uses the setting 'email_validation_admin_rate_limit_per_hour' (default 10).
+     * If the limit is <= 0, rate limiting is disabled.
+     */
+    private function checkAdminApprovalRateLimit(): void
+    {
+        $limit = (int)($this->settings->get('email_validation_admin_rate_limit_per_hour', 10) ?? 10);
+        if ($limit <= 0) {
+            return; // No limit
+        }
+        $key = 'email_validation_admin_rate:global:' . now()->format('YmdH');
+        $count = $this->rateLimitCache->get($key, 0);
+        if ($count >= $limit) {
+            Log::warning('Admin approval email rate limit reached', ['count' => $count, 'limit' => $limit]);
+            return;
+        }
+        $this->rateLimitCache->put($key, $count + 1, now()->addHour());
+    }
+
+    /**
+     * Send admin approval notification email for a validation that is waiting for admin approval.
+     * Respects a separate rate limit for admin approval emails.
+     */
+    private function sendAdminApprovalNotification(EmailValidation $validation): void
+    {
+        try {
+            $this->checkAdminApprovalRateLimit();
+
+            $mailerConfig = $this->buildMailerConfig();
+            if (! $mailerConfig) {
+                Log::warning('EmailValidationService: Mail server not configured, cannot send admin approval email');
+                return;
+            }
+
+            $this->emailService->sendAdminApprovalEmail($mailerConfig, $validation);
+        } catch (\Throwable $e) {
+            Log::warning('Admin approval notification email failed', [
+                'error' => $e->getMessage(),
+                'validation_id' => $validation->id,
+            ]);
+        }
+    }
+
     public function createRequest(string $type, string $name, ?string $email, array $payload = [], ?string $siteToken = null): EmailValidation
     {
         $requiresEmail = $this->emailValidationEnabled();
@@ -150,6 +194,11 @@ class EmailValidationService
             $this->sendValidationEmail($validation);
         }
 
+        // Admin-only mode (no email validation): send admin approval notification immediately
+        if (! $requiresEmail && $requiresAdmin) {
+            $this->sendAdminApprovalNotification($validation);
+        }
+
         if (! $requiresEmail && ! $requiresAdmin) {
             $this->finalize($validation);
         }
@@ -190,6 +239,9 @@ class EmailValidationService
         if (! $validation->requires_admin_approval) {
             return $this->finalize($validation);
         }
+
+        // Email validated, now waiting for admin approval — send notification to admin
+        $this->sendAdminApprovalNotification($validation);
 
         return [
             'pending_admin' => true,

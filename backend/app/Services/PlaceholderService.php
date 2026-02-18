@@ -16,6 +16,7 @@ class PlaceholderService
         '{{email}}',
         '{{undo_link}}',
         '{{validation_link}}',
+        '{{admin_approval_link}}',
     ];
 
     private const SITE_TOKENS = [
@@ -108,6 +109,8 @@ class PlaceholderService
             '{{email}}' => $recipient['email'] ?? '',
             '{{undo_link}}' => $recipient['undo_link'] ?? '',
             '{{validation_link}}' => $recipient['validation_link'] ?? '',
+            '{{admin_approval_link}}' => $recipient['admin_approval_link'] ?? '',
+            '{{admin_approval_link_html}}' => $recipient['admin_approval_link_html'] ?? '',
         ];
         // Reihenfolge: custom < core < recipientTokens (Empfänger-spezifische überschreiben alles)
         return array_merge($custom, $core, $recipientTokens);

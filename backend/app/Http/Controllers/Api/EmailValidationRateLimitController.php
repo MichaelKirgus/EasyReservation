@@ -44,4 +44,33 @@ class EmailValidationRateLimitController extends Controller
         $this->rateLimitCache->forgetByPrefix('email_validation_rate:');
         return response()->noContent();
     }
+
+    // GET /admin/email-validation-admin-rate-limits
+    public function adminApprovalIndex()
+    {
+        $keys = $this->rateLimitCache->findKeys('email_validation_admin_rate:');
+        $result = [];
+        foreach ($keys as $logicalKey) {
+            $parts = explode(':', $logicalKey);
+            // logicalKey = email_validation_admin_rate:global:<hour>
+            $scope = $parts[1] ?? null;
+            $hour = $parts[2] ?? null;
+            $count = $this->rateLimitCache->get($logicalKey, 0);
+            if ($scope && $hour) {
+                $result[] = [
+                    'scope' => $scope,
+                    'count' => $count,
+                    'hour' => $hour,
+                ];
+            }
+        }
+        return response()->json($result);
+    }
+
+    // DELETE /admin/email-validation-admin-rate-limits
+    public function destroyAllAdminApproval()
+    {
+        $this->rateLimitCache->forgetByPrefix('email_validation_admin_rate:');
+        return response()->noContent();
+    }
 }

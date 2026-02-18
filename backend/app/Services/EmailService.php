@@ -100,6 +100,72 @@ class EmailService
     }
 
     /**
+     * Send an admin approval notification email to the configured admin email address.
+     * This is triggered when a user verifies their email and admin approval is required,
+     * or when admin-only approval is active (no email validation step).
+     */
+    public function sendAdminApprovalEmail(array $mailerConfig, EmailValidation $validation): void
+    {
+        $adminEmail = trim((string) ($this->settings->get('email_validation_admin_email', '') ?? ''));
+        if ($adminEmail === '' || !filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+            \Illuminate\Support\Facades\Log::warning('EmailService: No valid admin approval email address configured');
+            return;
+        }
+
+        // Check if email is blacklisted
+        if ($this->isDebugBlacklistedEmail($adminEmail)) {
+            return;
+        }
+
+        $templateId = (int) ($this->settings->get('email_validation_admin_template_id', 0) ?? 0);
+        if ($templateId <= 0) {
+            \Illuminate\Support\Facades\Log::warning('EmailService: No admin approval template configured');
+            return;
+        }
+
+        $template = $this->resolveTemplateById($templateId);
+        if (!$template) {
+            \Illuminate\Support\Facades\Log::error('EmailService: Admin approval template not found for ID ' . $templateId);
+            return;
+        }
+
+        $approvalLink = $this->linkBuilder->buildAdminApprovalLink($validation);
+
+        // The user who needs approval is available via {{name}} and {{email}} placeholders
+        $replacements = $this->placeholders->replacements([
+            'name' => $validation->display_name,
+            'email' => $validation->email ?? '',
+            'admin_approval_link' => $approvalLink,
+            'admin_approval_link_html' => '<a href="' . $approvalLink . '">' . $approvalLink . '</a>',
+            'validation_link' => '',
+            'validation_link_html' => '',
+            'undo_link' => '',
+            'undo_link_html' => '',
+            'attach_event_ical' => '',
+        ]);
+
+        $subject = $this->renderTemplate($template['subject'], $replacements);
+        $body = $this->renderTemplate($template['body'], $replacements);
+
+        $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
+        $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
+
+        // Use template-specific CC/BCC if set, otherwise use global
+        $templateCc = $template['cc'] ?? null;
+        $templateBcc = $template['bcc'] ?? null;
+
+        $globalCc = $this->settings->get('mail_global_cc');
+        $globalBcc = $this->settings->get('mail_global_bcc');
+
+        $cc = $templateCc ?: $globalCc;
+        $bcc = $templateBcc ?: $globalBcc;
+
+        $attachments = $this->attachmentsForTemplate($template);
+
+        SendMailJob::dispatch($mailerConfig, $adminEmail, 'Admin', $subject, $body, $fromAddress, $fromName, $attachments, $cc, $bcc);
+    }
+
+    /**
      * Send reservation notification email
      */
     public function sendReservationNotification(array $mailerConfig, Reservation $reservation, string $templateSettingKey, bool $includeUndoLink): void

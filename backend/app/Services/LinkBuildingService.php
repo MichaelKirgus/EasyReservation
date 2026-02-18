@@ -61,6 +61,17 @@ class LinkBuildingService
     }
 
     /**
+     * Build admin approval link for an email validation record.
+     * Points to the admin API endpoint that approves the validation.
+     */
+    public function buildAdminApprovalLink(EmailValidation $validation): string
+    {
+        $appUrl = rtrim(config('app.url'), '/');
+
+        return $appUrl . '/api/admin/email-validations/' . $validation->id . '/approve';
+    }
+
+    /**
      * Append query parameters to URL
      */
     private function appendQuery(string $base, array $params): string

@@ -176,10 +176,13 @@ const tabFieldMap = {
     'login_rate_limit_decay_minutes',
     'email_validation_rate_limit_per_hour',
     'email_validation_rate_limit_header',
+    'email_validation_admin_rate_limit_per_hour',
   ]),
   email: new Set([
     'email_validation_enabled',
     'email_validation_admin_enabled',
+    'email_validation_admin_template_id',
+    'email_validation_admin_email',
     'email_validation_template_id',
     'email_validation_ttl_minutes',
     'email_validation_base_url',
@@ -206,6 +209,7 @@ const tabFieldMap = {
 
 const templateFieldKeys = new Set([
   'email_validation_template_id',
+  'email_validation_admin_template_id',
   'email_reservation_success_template_id',
   'email_reservation_cancel_template_id',
   'email_waitlist_promoted_template_id',
