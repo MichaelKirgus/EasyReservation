@@ -38,7 +38,7 @@ import { ref, computed } from 'vue'
 import IconButton from './IconButton.vue'
 const props = defineProps({
   modelValue: {},
-  show: { type: Boolean, default: undefined },
+  show: { default: undefined },
 })
 const emit = defineEmits(['update:modelValue', 'update:show'])
 const localShow = ref(false)
