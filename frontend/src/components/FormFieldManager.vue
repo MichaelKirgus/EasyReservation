@@ -5,6 +5,21 @@ import AdminDataTable from './AdminDataTable.vue'
 import { buildAdminHeaders } from '../utils/adminApi'
 import { useTranslation } from '../composables/useTranslation'
 
+const placeholders = ref([])
+const loadingPlaceholders = ref(false)
+
+async function loadPlaceholders() {
+  loadingPlaceholders.value = true
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/placeholders`, { headers: buildAdminHeaders({ apiKeyRef: { value: localStorage.getItem('admin_api_key') || '' } }) })
+    if (res.ok) {
+      placeholders.value = await res.json()
+    }
+  } finally {
+    loadingPlaceholders.value = false
+  }
+}
+
 const props = defineProps({ langCode: { type: String, default: 'de' } })
 const { tr } = useTranslation()
 
@@ -172,7 +187,10 @@ function handleKeyUpdate(e) { apiKey.value = e.detail || '' }
 
 onMounted(() => {
   window.addEventListener('api-key-updated', handleKeyUpdate)
-  if (apiKey.value) load()
+  if (apiKey.value) {
+    load()
+    loadPlaceholders()
+  }
 })
 
 onUnmounted(() => {
@@ -184,6 +202,14 @@ onUnmounted(() => {
   <div class="stack">
     <div v-if="message" class="message">{{ message }}</div>
     <div v-if="error" class="error">{{ error }}</div>
+
+    <details v-if="placeholders.length" class="placeholder-info" aria-live="polite">
+      <summary>Platzhalter anzeigen</summary>
+      <p class="placeholder-hint-text">Verwendbar in <strong>Label</strong>, <strong>Placeholder</strong> und <strong>Hilfetext</strong>:</p>
+      <div class="placeholder-list">
+        <code v-for="token in placeholders" :key="token">{{ token }}</code>
+      </div>
+    </details>
 
     <section class="card">
       <h3>Neues Feld</h3>
@@ -294,4 +320,9 @@ button.danger { background: #dc2626; }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
 .message { color: #065f46; background: #ecfdf3; border: 1px solid #a7f3d0; padding: 0.5rem; border-radius: 6px; }
 .error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; padding: 0.5rem; border-radius: 6px; }
+.placeholder-info { font-size: 0.9rem; color: var(--text-muted); }
+.placeholder-info summary { cursor: pointer; color: var(--primary); font-weight: 600; }
+.placeholder-hint-text { margin: 0.35rem 0 0.5rem; font-size: 0.9rem; color: var(--text-muted); }
+.placeholder-list { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.35rem; }
+.placeholder-list code { background: var(--surface-muted); color: var(--text); padding: 0.2rem 0.35rem; border-radius: 4px; border: 1px solid var(--border); }
 </style>

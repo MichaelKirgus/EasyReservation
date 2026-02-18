@@ -44,7 +44,16 @@ class ConfigController extends Controller
             ->where('active', true)
             ->where('visible_public', true)
             ->orderBy('order')
-            ->get();
+            ->get()
+            ->map(function ($field) {
+                foreach (['label', 'placeholder', 'help_text'] as $attr) {
+                    if (!empty($field->{$attr})) {
+                        $field->{$attr} = $this->placeholders->replaceString($field->{$attr});
+                    }
+                }
+                return $field;
+            })
+            ->values();
 
         $attendees = [];
         if ((int) ($settings['reservation_show_attendees_enabled'] ?? 0) === 1) {
