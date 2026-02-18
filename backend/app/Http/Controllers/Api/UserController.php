@@ -26,6 +26,7 @@ class UserController extends Controller
                     'active' => (bool) $u->active,
                     'api_token_is_hashed' => (bool) $u->api_token_is_hashed,
                     'api_token' => $u->api_token_is_hashed ? null : $u->api_token,
+                    'two_factor_secret' => !is_null($u->two_factor_secret),
                     'created_at' => $u->created_at,
                 ];
             });
