@@ -16,19 +16,23 @@ function updateClientTime() {
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 
-// Worker-Status direkt aus diagnostics.queue.workers beziehen
-const workerStatus = computed(() => diagnostics.value?.queue?.workers || [])
-const workerLoading = ref(false) // bleibt für Kompatibilität, ist aber immer false
+// Worker-Status: dedicated endpoint for reliability
+const workerStatus = ref([])
+const workerLoading = ref(false)
+const workerDriver = ref('')
+const workerTtl = ref(0)
 const workerColumns = [
-  { key: 'worker_id', label: 'Worker-ID' },
-  { key: 'ip', label: 'IP' },
-  { key: 'timestamp', label: 'Letzter Heartbeat' },
-  { key: 'memory', label: 'Speicher (MB)' },
-  { key: 'redis_latency', label: 'Redis-Latenz (ms)' },
-  { key: 'total_jobs', label: 'Jobs gesamt' },
-  { key: 'last_job_time', label: 'Letzter Job (Zeitpunkt)' },
-  { key: 'last_job_duration', label: 'Letzter Job (Dauer, ms)' },
-  { key: 'jobs', label: 'Aktive Jobs' },
+  { key: 'worker_id', label: 'Worker-ID', sortable: true },
+  { key: 'status', label: 'Status', sortable: true },
+  { key: 'ip', label: 'IP', sortable: true },
+  { key: 'last_heartbeat_at', label: 'Letzter Heartbeat', sortable: true },
+  { key: 'memory_mb', label: 'Speicher (MB)', sortable: true },
+  { key: 'redis_latency_ms', label: 'Redis-Latenz (ms)', sortable: true },
+  { key: 'db_latency_ms', label: 'DB-Latenz (ms)', sortable: true },
+  { key: 'total_jobs', label: 'Jobs gesamt', sortable: true },
+  { key: 'last_job_at', label: 'Letzter Job', sortable: true },
+  { key: 'last_job_duration_ms', label: 'Dauer (ms)', sortable: true },
+  { key: 'active_jobs', label: 'Aktive Jobs' },
 ]
 
 
@@ -102,12 +106,29 @@ async function loadAuditLogCount() {
   }
 }
 
+async function loadWorkerStats(opts = {}) {
+  workerLoading.value = true
+  try {
+    const res = await fetchWithAuth('worker-stats')
+    if (!res.ok) throw new Error(await res.text())
+    const data = await res.json()
+    workerStatus.value = data.workers || []
+    workerDriver.value = data.driver || ''
+    workerTtl.value = data.ttl || 0
+  } catch (e) {
+    if (!opts.auto) setError('Worker-Stats: ' + e)
+  } finally {
+    workerLoading.value = false
+  }
+}
+
 function startAutoRefresh() {
   stopAutoRefresh()
   if (!autoRefreshEnabled.value) return
   timerId = setInterval(() => {
     loadDiagnostics({ auto: true })
     loadAuditLogCount()
+    loadWorkerStats({ auto: true })
   }, refreshMs)
 }
 
@@ -146,6 +167,7 @@ watch(autoRefreshEnabled, (val) => {
   if (val) {
     loadDiagnostics({ auto: true })
     loadAuditLogCount()
+    loadWorkerStats({ auto: true })
     startAutoRefresh()
   } else {
     stopAutoRefresh()
@@ -157,6 +179,7 @@ onMounted(() => {
   if (apiKey.value) {
     loadDiagnostics()
     loadAuditLogCount()
+    loadWorkerStats()
     if (autoRefreshEnabled.value) startAutoRefresh()
   }
 })
@@ -223,11 +246,11 @@ onUnmounted(() => {
         </div>
         <div class="info-item">
           <div class="label">Laufende Jobs</div>
-          <div class="value">{{ workerStatus.reduce((sum, w) => sum + (Array.isArray(w.jobs) ? w.jobs.length : (w.jobs && typeof w.jobs === 'object' ? Object.keys(w.jobs).length : 0)), 0) }}</div>
+          <div class="value">{{ workerStatus.reduce((sum, w) => sum + (Array.isArray(w.active_jobs) ? w.active_jobs.length : 0), 0) }}</div>
         </div>
         <div class="info-item">
           <div class="label">Aktive Worker</div>
-          <div class="value">{{ workerStatus.length }}</div>
+          <div class="value">{{ workerStatus.filter(w => w.status === 'online').length }} / {{ workerStatus.length }}</div>
         </div>
         <div class="info-item">
           <div class="label">Queue-Typ</div>
@@ -316,6 +339,7 @@ onUnmounted(() => {
     <div class="card">
 <div class="card-header">
   <h4>Worker-Status</h4>
+  <span class="muted" v-if="workerDriver">Treiber: {{ workerDriver }} · TTL: {{ workerTtl }}s</span>
 </div>
       <AdminDataTable
         :columns="workerColumns"
@@ -325,11 +349,17 @@ onUnmounted(() => {
         persist-key="admin-worker-status"
         empty-text="Keine aktiven Worker gefunden."
       >
-        <template #cell-timestamp="{ value }">{{ formatDateTime(value) }}</template>
-        <template #cell-last_job_time="{ value }">{{ formatDateTime(value) }}</template>
-        <template #cell-jobs="{ row }">
-          <ul v-if="row.jobs && row.jobs.length">
-            <li v-for="(job, idx) in row.jobs" :key="idx">
+        <template #cell-status="{ value }">
+          <span :class="['pill', value === 'online' ? 'pill-ok' : 'pill-failed']">{{ value }}</span>
+        </template>
+        <template #cell-last_heartbeat_at="{ value }">{{ formatDateTime(value) }}</template>
+        <template #cell-last_job_at="{ value }">{{ formatDateTime(value) }}</template>
+        <template #cell-redis_latency_ms="{ value }">{{ value != null ? value + ' ms' : '–' }}</template>
+        <template #cell-db_latency_ms="{ value }">{{ value != null ? value + ' ms' : '–' }}</template>
+        <template #cell-last_job_duration_ms="{ value }">{{ value != null ? value + ' ms' : '–' }}</template>
+        <template #cell-active_jobs="{ row }">
+          <ul v-if="row.active_jobs && row.active_jobs.length">
+            <li v-for="(job, idx) in row.active_jobs" :key="idx">
               {{ job.name || job.id || JSON.stringify(job) }}
             </li>
           </ul>

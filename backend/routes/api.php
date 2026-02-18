@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AdminReservationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConfigController;
 use App\Http\Controllers\Api\DiagnosticsController;
+use App\Http\Controllers\Api\WorkerStatsController;
 use App\Http\Controllers\Api\EmailBroadcastController;
 use App\Http\Controllers\Api\EmailValidationAdminController;
 use App\Http\Controllers\Api\EmailValidationController;
@@ -61,6 +62,8 @@ Route::middleware(['site-token'])->group(function () {
 
 Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::get('/diagnostics/workers', [DiagnosticsController::class, 'workers']);
+    Route::get('/admin/worker-stats', [WorkerStatsController::class, 'index']);
+    Route::delete('/admin/worker-stats/cleanup', [WorkerStatsController::class, 'cleanup']);
     Route::get('/admin/audit-log/count', [AuditLogController::class, 'count']);
     Route::get('/admin/reservations', [AdminReservationController::class, 'index']);
     Route::post('/admin/reservations', [AdminReservationController::class, 'store']);

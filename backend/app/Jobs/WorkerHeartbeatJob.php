@@ -8,6 +8,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class WorkerHeartbeatJob implements ShouldQueue
 {
@@ -18,46 +20,40 @@ class WorkerHeartbeatJob implements ShouldQueue
         $this->onQueue('heartbeat');
     }
 
-    public function handle()
+    public function handle(WorkerStatusService $service): void
     {
-        $workerId = gethostname() . ':' . getmypid();
-        $ip = gethostbyname(gethostname());
-        $memory = memory_get_usage(true);
-        $redisStart = microtime(true);
+        $hostname = gethostname();
+        $pid      = getmypid();
+        $workerId = $hostname . ':' . $pid;
+
+        // ── Measure Redis latency ──
+        $redisLatency = null;
         try {
-            \Illuminate\Support\Facades\Cache::store(config('workerstatus.store', config('cache.default')))->get('dummy');
-            $redisLatency = round((microtime(true) - $redisStart) * 1000, 2);
-        } catch (\Exception $e) {
-            $redisLatency = null;
+            $start = microtime(true);
+            \Illuminate\Support\Facades\Redis::ping();
+            $redisLatency = round((microtime(true) - $start) * 1000, 2);
+        } catch (\Throwable $e) {
+            Log::debug('[WorkerHeartbeat] Redis latency check failed: ' . $e->getMessage());
         }
-        $jobs = [];
-        $store = app(WorkerStatusService::class)->getStore();
-        $statsKey = "worker_stats:$workerId";
-        $stats = $store->get($statsKey) ?: [
-            'total_jobs' => 0,
-            'last_job_time' => null,
-            'last_job_duration' => null,
-        ];
-        // Store the stats data first
-        $store->put($statsKey, $stats, 1800); // 30 Minuten
-        
-        // Create a unified status object that includes both stats and current status info
-        $statusData = [
-            'ip' => $ip,
-            'timestamp' => now()->toIso8601String(),
-            'memory' => round($memory / 1024 / 1024, 2),
-            'redis_latency' => $redisLatency,
-            'jobs' => $jobs,
-            'total_jobs' => $stats['total_jobs'],
-            'last_job_time' => $stats['last_job_time'],
-            'last_job_duration' => $stats['last_job_duration'],
-        ];
-        
-        // Store the status data using the WorkerStatusService
+
+        // ── Measure DB latency ──
+        $dbLatency = null;
         try {
-            app(WorkerStatusService::class)->setStatus($workerId, $statusData);
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Failed to store worker status: ' . $e->getMessage());
+            $start = microtime(true);
+            DB::select('SELECT 1');
+            $dbLatency = round((microtime(true) - $start) * 1000, 2);
+        } catch (\Throwable $e) {
+            Log::debug('[WorkerHeartbeat] DB latency check failed: ' . $e->getMessage());
         }
+
+        $service->heartbeat($workerId, [
+            'hostname'         => $hostname,
+            'pid'              => $pid,
+            'ip'               => gethostbyname($hostname),
+            'memory_bytes'     => memory_get_usage(true),
+            'redis_latency_ms' => $redisLatency,
+            'db_latency_ms'    => $dbLatency,
+            'active_jobs'      => [],
+        ]);
     }
 }

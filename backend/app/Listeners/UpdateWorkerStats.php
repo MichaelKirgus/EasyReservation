@@ -7,45 +7,14 @@ use App\Services\WorkerStatusService;
 
 class UpdateWorkerStats
 {
-    public function handle(JobProcessed $event)
+    public function handle(JobProcessed $event): void
     {
         $workerId = gethostname() . ':' . getmypid();
-        $store = app(WorkerStatusService::class)->getStore();
-        $statsKey = "worker_stats:$workerId";
-        $stats = $store->get($statsKey) ?: [
-            'total_jobs' => 0,
-            'last_job_time' => null,
-            'last_job_duration' => null,
-        ];
 
-        $stats['total_jobs']++;
-        $stats['last_job_time'] = now()->timestamp;
-        // Versuche die Laufzeit zu bestimmen (optional, falls im Job-Objekt verfügbar)
-        $payload = $event->job->payload();
-        $stats['last_job_duration'] = isset($payload['runtime_ms']) ? $payload['runtime_ms'] : null;
+        // Try to extract runtime from the job payload (if the dispatching code sets it)
+        $payload    = $event->job->payload();
+        $durationMs = $payload['runtime_ms'] ?? null;
 
-        $store->put($statsKey, $stats, 3600 * 24 * 7);
-
-        // Heartbeat/Status schreiben
-        $ip = gethostbyname(gethostname());
-        $memory = memory_get_usage(true);
-        $redisStart = microtime(true);
-        try {
-            \Illuminate\Support\Facades\Cache::store(config('workerstatus.store', config('cache.default')))->get('dummy');
-            $redisLatency = round((microtime(true) - $redisStart) * 1000, 2);
-        } catch (\Exception $e) {
-            $redisLatency = null;
-        }
-        $jobs = [];
-        app(WorkerStatusService::class)->setStatus($workerId, [
-            'ip' => $ip,
-            'timestamp' => now()->timestamp,
-            'memory' => $memory,
-            'redis_latency' => $redisLatency,
-            'jobs' => json_encode($jobs),
-            'total_jobs' => $stats['total_jobs'],
-            'last_job_time' => $stats['last_job_time'],
-            'last_job_duration' => $stats['last_job_duration'],
-        ]);
+        app(WorkerStatusService::class)->recordJobCompleted($workerId, $durationMs);
     }
 }

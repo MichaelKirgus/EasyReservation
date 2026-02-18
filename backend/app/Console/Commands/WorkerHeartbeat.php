@@ -4,55 +4,50 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use App\Services\WorkerStatusService;
+use Illuminate\Support\Facades\DB;
 
 class WorkerHeartbeat extends Command
 {
     protected $signature = 'worker:heartbeat';
-    protected $description = 'Send worker diagnostics heartbeat to cache';
+    protected $description = 'Send worker/scheduler diagnostics heartbeat';
 
-    public function handle()
+    public function handle(WorkerStatusService $service): int
     {
-        \Log::info('HeartbeatJob ausgeführt.');
+        $hostname = gethostname();
+        $pid      = getmypid();
+        $workerId = $hostname . ':' . $pid;
 
-        $workerId = gethostname() . ':' . getmypid();
-        $ip = gethostbyname(gethostname());
-        $memory = memory_get_usage(true);
-        $redisStart = microtime(true);
+        // ── Redis latency ──
+        $redisLatency = null;
         try {
-            \Illuminate\Support\Facades\Cache::store(config('workerstatus.store', config('cache.default')))->get('dummy');
-            $redisLatency = round((microtime(true) - $redisStart) * 1000, 2);
-        } catch (\Exception $e) {
-            $redisLatency = null;
+            $start = microtime(true);
+            \Illuminate\Support\Facades\Redis::ping();
+            $redisLatency = round((microtime(true) - $start) * 1000, 2);
+        } catch (\Throwable $e) {
+            // Redis not available
         }
-        $jobs = []; // Optional: Fülle mit aktuellen Jobs
 
-        // --- Erweiterung: Gesamtzähler und letzte Jobdaten ---
-        $statsKey = "worker_stats:$workerId";
-        $store = app(WorkerStatusService::class)->getStore();
-        $stats = $store->get($statsKey) ?: [
-            'total_jobs' => 0,
-            'last_job_time' => null,
-            'last_job_duration' => null,
-        ];
+        // ── DB latency ──
+        $dbLatency = null;
+        try {
+            $start = microtime(true);
+            DB::select('SELECT 1');
+            $dbLatency = round((microtime(true) - $start) * 1000, 2);
+        } catch (\Throwable $e) {
+            // DB not available
+        }
 
-        // Simuliere: Wenn ein Job fertig ist, erhöhe Zähler und setze Zeit/Dauer (hier als Beispiel, in echt im Job-Worker setzen!)
-        // $stats['total_jobs']++;
-        // $stats['last_job_time'] = now()->timestamp;
-        // $stats['last_job_duration'] = 1234;
-
-        // Schreibe Stats zurück (hier nur Heartbeat, in echt im Job-Worker nach Job-Ende!)
-        $store->put($statsKey, $stats, 3600 * 24 * 7); // 7 Tage aufbewahren
-
-        app(WorkerStatusService::class)->setStatus($workerId, [
-            'ip' => $ip,
-            'timestamp' => now()->timestamp,
-            'memory' => $memory,
-            'redis_latency' => $redisLatency,
-            'jobs' => json_encode($jobs),
-            'total_jobs' => $stats['total_jobs'],
-            'last_job_time' => $stats['last_job_time'],
-            'last_job_duration' => $stats['last_job_duration'],
+        $service->heartbeat($workerId, [
+            'hostname'         => $hostname,
+            'pid'              => $pid,
+            'ip'               => gethostbyname($hostname),
+            'memory_bytes'     => memory_get_usage(true),
+            'redis_latency_ms' => $redisLatency,
+            'db_latency_ms'    => $dbLatency,
+            'active_jobs'      => [],
         ]);
-        $this->info("Heartbeat sent for $workerId");
+
+        $this->info("Heartbeat sent for {$workerId}");
+        return self::SUCCESS;
     }
 }

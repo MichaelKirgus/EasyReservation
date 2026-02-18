@@ -99,8 +99,6 @@ class DiagnosticsService
                 ->all();
             $processingJobs = JobLog::where('status', 'processing')->count();
             if (config('queue.default') === 'redis') {
-                // Delegate to WorkerStatusService which handles cache prefix and
-                // deserialization correctly.
                 $workerService = app(\App\Services\WorkerStatusService::class);
                 $workers = $workerService->getAllStatuses();
                 $workerCount = count($workers);

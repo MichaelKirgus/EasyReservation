@@ -40,19 +40,8 @@ class DiagnosticsController extends Controller
 
     public function workers(WorkerStatusService $service)
     {
-        $workers = $service->getAllStatuses();
-        // Aufbereitung: Speicher in MB, Zeitstempel als Datum
-        foreach ($workers as &$data) {
-            if (isset($data['memory'])) {
-                $data['memory'] = round($data['memory'] / 1024 / 1024, 2);
-            }
-            if (isset($data['timestamp'])) {
-                $data['timestamp'] = date('Y-m-d H:i:s', $data['timestamp']);
-            }
-            if (isset($data['jobs'])) {
-                $data['jobs'] = is_string($data['jobs']) ? json_decode($data['jobs'], true) : $data['jobs'];
-            }
-        }
-        return response()->json($workers);
+        // Legacy endpoint – delegates to the refactored WorkerStatusService.
+        // The new dedicated endpoint is GET /api/admin/worker-stats.
+        return response()->json($service->getAllStatuses());
     }
 }
