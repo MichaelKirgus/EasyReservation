@@ -178,13 +178,13 @@ class WaitlistService
                 'site_token' => $entry->site_token,
             ]);
 
-            // Trigger: waitlist_entry_removed (before entry status is changed)
-            app(\App\Services\EventTriggerService::class)->handle('waitlist_entry_removed', ['waitlist_entry' => $entry]);
-
             $entry->status = 'promoted';
             $entry->reservation_id = $reservation->id;
             $entry->promoted_at = now();
             $entry->save();
+
+            // Trigger: waitlist_entry_removed (after status change so placeholder values reflect current state)
+            app(\App\Services\EventTriggerService::class)->handle('waitlist_entry_removed', ['waitlist_entry' => $entry]);
 
             return $reservation;
         });

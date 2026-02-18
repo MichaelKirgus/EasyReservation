@@ -109,14 +109,14 @@ class AdminReservationController extends Controller
     {
         $shouldNotify = $this->shouldNotify($request, $request->input('notify'));
 
-        // Trigger: reservation_removed (before deletion)
-        $this->eventTriggers->handle('reservation_removed', ['reservation' => $reservation]);
-
         if ($shouldNotify) {
             $this->emailValidation->sendReservationNotification($reservation, 'email_reservation_cancel_template_id', false);
         }
 
         $reservation->delete();
+
+        // Trigger: reservation_removed (after deletion so placeholder values reflect current state)
+        $this->eventTriggers->handle('reservation_removed', ['reservation' => $reservation]);
 
         if ((int) ($this->settings->get('waitlist_auto_promote_enabled', 0) ?? 0) === 1) {
             try {

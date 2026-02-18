@@ -226,10 +226,10 @@ class ReservationController extends Controller
 
         $this->emailValidation->sendReservationNotification($candidate, 'email_reservation_cancel_template_id', false);
 
-        // Trigger: reservation_removed (before deletion)
-        $this->eventTriggers->handle('reservation_removed', ['reservation' => $candidate]);
-
         $candidate->delete();
+
+        // Trigger: reservation_removed (after deletion so placeholder values reflect current state)
+        $this->eventTriggers->handle('reservation_removed', ['reservation' => $candidate]);
 
         // Trigger: reservation_canceled (z.B. bei erfolgreichem Undo)
         $this->eventTriggers->handle('reservation_canceled', ['reservation' => $candidate]);
@@ -260,10 +260,10 @@ class ReservationController extends Controller
 
         $this->emailValidation->sendReservationNotification($reservation, 'email_reservation_cancel_template_id', false);
 
-        // Trigger: reservation_removed (before deletion)
-        $this->eventTriggers->handle('reservation_removed', ['reservation' => $reservation]);
-
         $reservation->delete();
+
+        // Trigger: reservation_removed (after deletion so placeholder values reflect current state)
+        $this->eventTriggers->handle('reservation_removed', ['reservation' => $reservation]);
 
         // Trigger: reservation_canceled (z.B. bei erfolgreichem Undo)
         $this->eventTriggers->handle('reservation_canceled', ['reservation' => $reservation]);

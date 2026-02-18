@@ -237,6 +237,10 @@ class EmailValidationService
                         $validation->reservation_id = $reservation->id;
                         $result = ['reservation' => $reservation];
                         $this->sendReservationNotification($reservation, 'email_reservation_success_template_id', true);
+
+                        // Trigger: reservation_added (after reservation is created via email validation)
+                        app(\App\Services\EventTriggerService::class)->handle('reservation_added', ['reservation' => $reservation]);
+                        app(\App\Services\EventTriggerService::class)->handle('reservation_enabled', ['reservation' => $reservation]);
                     }
                 }
 
