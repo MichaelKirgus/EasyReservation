@@ -8,7 +8,7 @@ import { useTranslation } from '../composables/useTranslation'
 const { tr } = useTranslation()
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
-const apiKey = ref(localStorage.getItem('admin_api_key') || '')
+const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
 const currentUser = ref(JSON.parse(localStorage.getItem('admin_user') || 'null'))
 const logs = ref([])
 const loading = ref(false)
