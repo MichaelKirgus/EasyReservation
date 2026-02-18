@@ -35,5 +35,15 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->reportable(function (\Throwable $e) {
+            try {
+                $service = app(\App\Services\EventTriggerService::class);
+                $service->handle('application_error', [
+                    'error_message' => $e->getMessage(),
+                ]);
+            } catch (\Throwable $inner) {
+                // Prevent infinite loops if the trigger itself fails
+                \Log::warning('EventTrigger for application_error failed: ' . $inner->getMessage());
+            }
+        });
     })->create();

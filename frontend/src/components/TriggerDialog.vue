@@ -92,7 +92,8 @@ const eventTypes = [
   { value: 'waitlist_enabled', label: 'Waitlist enabled' },
   { value: 'waitlist_disabled', label: 'Waitlist disabled' },
   { value: 'waitlist_entry_added', label: 'Waitlist entry added' },
-  { value: 'waitlist_entry_removed', label: 'Waitlist entry removed' }
+  { value: 'waitlist_entry_removed', label: 'Waitlist entry removed' },
+  { value: 'application_error', label: 'Application error' }
 ]
 
 

@@ -5,6 +5,7 @@ use App\Models\EventTrigger;
 use App\Models\Reservation;
 use App\Models\WaitlistEntry;
 use App\Services\SettingsService;
+use App\Services\PlaceholderService;
 use App\Jobs\SendEventTriggerJob;
 use Illuminate\Support\Carbon;
 
@@ -14,6 +15,7 @@ class EventTriggerService
         private readonly EmailBroadcastService $emailBroadcast,
         private readonly WebhookService $webhookService,
         private readonly SettingsService $settings,
+        private readonly PlaceholderService $placeholderService,
     ) {}
 
     /**
@@ -44,10 +46,13 @@ class EventTriggerService
                 continue;
             }
             try {
+                $this->applyContextPlaceholders($context);
                 $this->executeAction($trigger, $context);
             } catch (\Throwable $e) {
                 \Log::error('EventTriggerService: Trigger #' . $trigger->id . ' (' . $trigger->event_type . ') failed: ' . $e->getMessage());
                 continue;
+            } finally {
+                $this->placeholderService->clearContextPlaceholders();
             }
             $trigger->last_triggered_at = $now;
             $trigger->save();
@@ -85,6 +90,9 @@ class EventTriggerService
                 return true;
             case 'waitlist_entry_removed':
                 // Always fires when triggered - context contains the waitlist entry
+                return true;
+            case 'application_error':
+                // Always fires when triggered - context contains the error message
                 return true;
             default:
                 return true; // Für andere Events ggf. anpassen
@@ -145,6 +153,20 @@ class EventTriggerService
                 [$recipient],
                 true
             );
+        }
+    }
+
+    /**
+     * Apply context-specific placeholders to the PlaceholderService before executing an action.
+     */
+    private function applyContextPlaceholders(array $context): void
+    {
+        $map = [];
+        if (isset($context['error_message'])) {
+            $map['error_message'] = (string) $context['error_message'];
+        }
+        if (!empty($map)) {
+            $this->placeholderService->setContextPlaceholders($map);
         }
     }
 

@@ -19,6 +19,15 @@ class PlaceholderService
         '{{admin_approval_link}}',
     ];
 
+    private const CONTEXT_TOKENS = [
+        '{{error_message}}',
+    ];
+
+    /**
+     * Context-specific placeholders set externally (e.g. from EventTriggerService).
+     */
+    private array $contextPlaceholders = [];
+
     private const SITE_TOKENS = [
         '{{site_base_url}}',
         '{{site_guest_token}}',
@@ -112,14 +121,18 @@ class PlaceholderService
             '{{admin_approval_link}}' => $recipient['admin_approval_link'] ?? '',
             '{{admin_approval_link_html}}' => $recipient['admin_approval_link_html'] ?? '',
         ];
-        // Reihenfolge: custom < core < recipientTokens (Empfänger-spezifische überschreiben alles)
-        return array_merge($custom, $core, $recipientTokens);
+        // Context placeholders (e.g. error_message from event triggers)
+        $contextTokens = [
+            '{{error_message}}' => $this->contextPlaceholders['error_message'] ?? '',
+        ];
+        // Reihenfolge: custom < core < context < recipientTokens (Empfänger-spezifische überschreiben alles)
+        return array_merge($custom, $core, $contextTokens, $recipientTokens);
     }
 
     public function tokens(): array
     {
         $tokens = array_keys($this->replacements());
-        $tokens = array_merge($tokens, self::RECIPIENT_TOKENS, self::SITE_TOKENS);
+        $tokens = array_merge($tokens, self::RECIPIENT_TOKENS, self::SITE_TOKENS, self::CONTEXT_TOKENS);
         $tokens = array_values(array_unique($tokens));
         sort($tokens);
 
@@ -127,6 +140,24 @@ class PlaceholderService
     }
 
 
+
+    /**
+     * Set context-specific placeholders (e.g. error_message) for the current request/trigger.
+     */
+    public function setContextPlaceholders(array $context): self
+    {
+        $this->contextPlaceholders = array_merge($this->contextPlaceholders, $context);
+        return $this;
+    }
+
+    /**
+     * Clear context-specific placeholders.
+     */
+    public function clearContextPlaceholders(): self
+    {
+        $this->contextPlaceholders = [];
+        return $this;
+    }
 
     public function replaceString(?string $value): string
     {
