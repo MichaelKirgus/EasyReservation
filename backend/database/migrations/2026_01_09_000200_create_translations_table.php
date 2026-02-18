@@ -13,6 +13,7 @@ return new class extends Migration {
             $table->string('name');
             $table->string('value', 1024);
             $table->index('lang');
+            $table->unique(['lang', 'name']);
         });
     }
 
