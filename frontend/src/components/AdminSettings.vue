@@ -17,7 +17,7 @@ const props = defineProps({ langCode: { type: String, default: 'de' } })
 import { nextTick } from 'vue'
 const translations = ref({})
 const settings = reactive({})
-const apiKey = ref(localStorage.getItem('admin_api_key') || '')
+const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
 const loading = ref(false)
 const message = ref('')
 const error = ref('')
@@ -177,6 +177,7 @@ const tabFieldMap = {
     'email_validation_rate_limit_per_hour',
     'email_validation_rate_limit_header',
     'email_validation_admin_rate_limit_per_hour',
+    'session_lifetime_minutes',
   ]),
   email: new Set([
     'email_validation_enabled',
@@ -356,7 +357,6 @@ async function load() {
       if (settings[key] === '') settings[key] = null;
     });
     settings.apiLoadSuccess = apiLoadSuccess;
-    localStorage.setItem('admin_api_key', apiKey.value)
     console.debug('Einstellungen geladen.')
   } catch (e) { setError(`Fehler beim Laden: ${e}`) } finally { loading.value = false }
 }

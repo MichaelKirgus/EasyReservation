@@ -33,7 +33,7 @@ const workerColumns = [
 
 
 
-const apiKey = ref(localStorage.getItem('admin_api_key') || '')
+const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
 const routePrefix = ref('admin')
 const loading = ref(false)
 const message = ref('')
@@ -79,7 +79,6 @@ async function loadDiagnostics(opts = {}) {
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     diagnostics.value = JSON.parse(text)
-    localStorage.setItem('admin_api_key', apiKey.value)
     if (!opts.auto) setMessage(tr(''))
   } catch (e) {
     setError(tr('error_loading') + ': ' + e, opts)

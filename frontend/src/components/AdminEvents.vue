@@ -6,7 +6,7 @@ import { adminFetch } from '../utils/adminApi'
 import { useTranslation } from '../composables/useTranslation'
 
 const { tr } = useTranslation()
-const apiKey = ref(localStorage.getItem('admin_api_key') || '')
+const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const loading = ref(false)
 const error = ref('')

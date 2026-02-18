@@ -11,7 +11,7 @@ const columns = [
 const rows = ref([])
 const loading = ref(false)
 
-const apiKey = ref(localStorage.getItem('admin_api_key') || '')
+const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 
 const fetchWithAuth = (relative, opts = {}) => adminFetch(relative, opts, { apiKeyRef: apiKey, routePrefixRef: routePrefix })

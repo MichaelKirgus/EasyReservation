@@ -4,7 +4,7 @@ import IconButton from './IconButton.vue'
 import { adminFetch } from '../utils/adminApi'
 import { useTranslation } from '../composables/useTranslation'
 
-const apiKey = ref(localStorage.getItem('admin_api_key') || '')
+const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
 const { tr } = useTranslation()
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const faqs = ref([])

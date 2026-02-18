@@ -8,7 +8,7 @@ import { useTranslation } from '../composables/useTranslation'
 
 const props = defineProps({ defaultSubTab: { type: String, default: 'send' } })
 const { tr } = useTranslation()
-const apiKey = ref(localStorage.getItem('admin_api_key') || '')
+const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const currentUser = ref(JSON.parse(localStorage.getItem('admin_user') || sessionStorage.getItem('admin_user') || 'null'))
 const templates = ref([])

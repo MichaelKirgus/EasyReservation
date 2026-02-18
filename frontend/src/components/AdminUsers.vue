@@ -10,7 +10,7 @@ import ResetPasswordDialog from './ResetPasswordDialog.vue'
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const { tr } = useTranslation()
-const apiKey = ref(localStorage.getItem('admin_api_key') || '')
+const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
 const users = ref([])
 const loading = ref(false)
 const message = ref('')
@@ -113,7 +113,6 @@ async function fetchUsers(opts = {}) {
     const res = await fetch(`${apiBase}/admin/users`, { headers: authHeaders() })
     if (!res.ok) throw new Error(await res.text())
     users.value = await parseJsonSafe(res)
-    localStorage.setItem('admin_api_key', apiKey.value)
     if (!opts.auto) setMessage(tr('users_loaded'))
   } catch (e) {
     setError(tr('error_loading') + ': ' + e, opts)

@@ -139,4 +139,5 @@ export const settingsFields = [
     { key: 'clear_localstorage_on_logout', type: 'boolean', default: 0 },
     { key: 'login_rate_limit_attempts', type: 'number', default: 5 },
     { key: 'login_rate_limit_decay_minutes', type: 'number', default: 1 },
+    { key: 'session_lifetime_minutes', type: 'number', default: 43200 },
 ];

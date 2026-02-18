@@ -38,8 +38,9 @@ async function loadPreview() {
     const res = await fetch(`/api/admin/email-templates/${props.template.id}/preview`, {
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': localStorage.getItem('admin_api_key') || ''
-      }
+        Accept: 'application/json'
+      },
+      credentials: 'same-origin'
     })
     
     if (!res.ok) throw new Error(await res.text())

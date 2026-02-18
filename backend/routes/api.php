@@ -32,6 +32,7 @@ Route::options('/{any}', fn () => response()->noContent())->where('any', '.*');
 Route::get('/health', [HealthController::class, 'check']);
 
 Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/logout', [AuthController::class, 'logout']);
 Route::middleware(['role:superadmin,admin,moderator,user'])->group(function () {
     Route::post('/self-2fa/enable', [TwoFactorApiController::class, 'enable']);
     Route::delete('/self-2fa/disable', [TwoFactorApiController::class, 'disable']);

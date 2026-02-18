@@ -12,13 +12,13 @@ api.interceptors.request.use((config) => {
   if (siteToken) {
     config.headers['X-Site-Token'] = siteToken;
   }
-  // Optional: API-Key für Admin/User
-  const adminKey = localStorage.getItem('admin_api_key') || '';
+  // Admin auth is handled via httpOnly cookie — no X-Api-Key header needed
+  // Public API key (guest site token) is still sent explicitly
   const publicApiKey = localStorage.getItem('public_api_key') || '';
-  const apiKey = adminKey || publicApiKey;
-  if (apiKey) {
-    config.headers['X-Api-Key'] = apiKey;
+  if (publicApiKey) {
+    config.headers['X-Api-Key'] = publicApiKey;
   }
+  config.withCredentials = true;
   return config;
 }, (error) => Promise.reject(error));
 

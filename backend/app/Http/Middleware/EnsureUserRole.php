@@ -17,7 +17,9 @@ class EnsureUserRole
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
-        $apiKey = $request->header('X-Api-Key') ?? $request->query('api_key');
+        $apiKey = $request->header('X-Api-Key')
+            ?? $request->query('api_key')
+            ?? $request->cookie('api_session');
 
         if (! $apiKey) {
             return response()->json([

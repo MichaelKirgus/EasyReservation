@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\SettingsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
@@ -13,6 +15,10 @@ use Laravel\Fortify\Fortify;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private readonly SettingsService $settings,
+    ) {}
+
     public function login(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -70,6 +76,24 @@ class AuthController extends Controller
         }
         $user->save();
 
+        $remember = $request->boolean('remember', false);
+        $configuredMinutes = $this->settings->sessionLifetimeMinutes();
+        // 0 = session cookie (expires when browser closes), otherwise use configured value
+        $cookieMinutes = $remember ? ($configuredMinutes > 0 ? $configuredMinutes : 60 * 24 * 30) : 0;
+        $secure = $request->isSecure();
+
+        $cookie = Cookie::make(
+            'api_session',
+            $plainToken,
+            $cookieMinutes,
+            '/',
+            null,
+            $secure,
+            true, // httpOnly — not accessible via JavaScript
+            false,
+            'Lax'
+        );
+
         return response()->json([
             'api_token' => $plainToken,
             'user' => [
@@ -78,7 +102,17 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'role' => $user->role,
             ],
-        ]);
+        ])->cookie($cookie);
+    }
+
+    /**
+     * Log out the current user by clearing the auth cookie.
+     */
+    public function logout(Request $request): JsonResponse
+    {
+        $cookie = Cookie::forget('api_session', '/');
+
+        return response()->json(['message' => 'Logged out.'])->cookie($cookie);
     }
 
     /**

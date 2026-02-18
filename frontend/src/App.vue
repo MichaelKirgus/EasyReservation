@@ -271,11 +271,12 @@ function setAuthInfo(msg) { authInfo.value = msg; authError.value = ''; authMess
 async function login() {
   loadingAuth.value = true
   try {
-    const body = { ...loginForm };
+    const body = { ...loginForm, remember: rememberMe.value };
     if (!showOtp.value) delete body.otp;
     const res = await fetch(`${apiBase}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      credentials: 'same-origin',
       body: JSON.stringify(body),
     })
     const text = await res.text()
@@ -297,18 +298,22 @@ async function login() {
       throw new Error(errorData?.message || text)
     }
     const data = JSON.parse(text)
-    const token = data.api_token
-    if (!token) throw new Error('Kein Token erhalten.')
+    if (!data.api_token) throw new Error('Kein Token erhalten.')
+    // Store a non-sensitive session marker — the actual API key is in an httpOnly cookie
+    const sessionMarker = '1'
     const storage = rememberMe.value ? localStorage : sessionStorage
     const otherStorage = rememberMe.value ? sessionStorage : localStorage
-    storage.setItem('admin_api_key', token)
-    otherStorage.removeItem('admin_api_key')
+    storage.setItem('admin_auth_session', sessionMarker)
+    otherStorage.removeItem('admin_auth_session')
+    // Clean up any legacy plain-text API key from localStorage
+    localStorage.removeItem('admin_api_key')
+    sessionStorage.removeItem('admin_api_key')
     if (data.user) {
       Object.assign(currentUser, data.user)
       storage.setItem('admin_user', JSON.stringify(data.user))
       otherStorage.removeItem('admin_user')
     }
-    window.dispatchEvent(new CustomEvent('api-key-updated', { detail: token }))
+    window.dispatchEvent(new CustomEvent('api-key-updated', { detail: sessionMarker }))
     loginForm.identifier = ''
     loginForm.password = ''
     loginForm.otp = ''
@@ -321,13 +326,23 @@ async function login() {
   }
 }
 
-function logout() {
+async function logout() {
+  // Clear the httpOnly auth cookie via backend
+  try {
+    await fetch(`${apiBase}/auth/logout`, {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+      credentials: 'same-origin',
+    })
+  } catch (_) { /* best-effort */ }
   if (appSettings.clear_localstorage_on_logout) {
     localStorage.clear()
   } else {
+    localStorage.removeItem('admin_auth_session')
     localStorage.removeItem('admin_api_key')
     localStorage.removeItem('admin_user')
   }
+  sessionStorage.removeItem('admin_auth_session')
   sessionStorage.removeItem('admin_api_key')
   sessionStorage.removeItem('admin_user')
   Object.keys(currentUser).forEach(k => delete currentUser[k])

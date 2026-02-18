@@ -51,6 +51,16 @@ class SettingsService
         return (int) $this->get('login_rate_limit_decay_minutes', 1);
     }
 
+    /**
+     * Session lifetime in minutes.
+     * 0 = session cookie (expires when browser closes).
+     * Default: 43200 (30 days).
+     */
+    public function sessionLifetimeMinutes(): int
+    {
+        return max(0, (int) $this->get('session_lifetime_minutes', 43200));
+    }
+
     public function upcomingEvents(): array
     {
         $raw = (string) ($this->get('reservation_upcoming_events', '') ?? '');

@@ -4,16 +4,16 @@ export function buildAuthHeaders(tokens = {}) {
   const headers = { Accept: 'application/json' }
   const siteToken = tokens.siteToken ?? (localStorage.getItem('site_token') || '')
   if (siteToken) headers['X-Site-Token'] = siteToken
-  const adminKey = localStorage.getItem('admin_api_key') || ''
+  // Admin auth is handled via httpOnly cookie — no X-Api-Key header needed
+  // Public API key (guest token) can still be sent explicitly for public routes
   const publicApiKey = tokens.publicApiKey ?? (localStorage.getItem('public_api_key') || '')
-  const apiKey = adminKey || publicApiKey
-  if (apiKey) headers['X-Api-Key'] = apiKey
+  if (publicApiKey) headers['X-Api-Key'] = publicApiKey
   return headers
 }
 
 export async function fetchJsonWithAuth(url, opts = {}, tokens = {}) {
   const mergedHeaders = { ...buildAuthHeaders(tokens), ...(opts.headers || {}) }
-  const response = await fetch(url, { ...opts, headers: mergedHeaders })
+  const response = await fetch(url, { ...opts, headers: mergedHeaders, credentials: 'same-origin' })
   const text = await response.text()
 
   if (!response.ok) {

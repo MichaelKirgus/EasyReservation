@@ -21,7 +21,7 @@ class EnsureSiteToken
 
         $headerToken = $request->header('X-Site-Token');
         $queryToken = $request->query('t');
-        $apiKey = $request->header('X-Api-Key');
+        $apiKey = $request->header('X-Api-Key') ?? $request->cookie('api_session');
 
         // Allow valid user token (e.g., guest/admin/moderator) to bypass site token
         if ($apiKey && $this->isValidUserToken($apiKey)) {

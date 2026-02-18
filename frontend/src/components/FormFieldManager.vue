@@ -11,7 +11,7 @@ const loadingPlaceholders = ref(false)
 async function loadPlaceholders() {
   loadingPlaceholders.value = true
   try {
-    const res = await fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/placeholders`, { headers: buildAdminHeaders({ apiKeyRef: { value: localStorage.getItem('admin_api_key') || '' } }) })
+    const res = await fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/placeholders`, { headers: buildAdminHeaders(), credentials: 'same-origin' })
     if (res.ok) {
       placeholders.value = await res.json()
     }
@@ -24,7 +24,7 @@ const props = defineProps({ langCode: { type: String, default: 'de' } })
 const { tr } = useTranslation()
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
-const apiKey = ref(localStorage.getItem('admin_api_key') || '')
+const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
 const fields = ref([])
 const loading = ref(false)
 const message = ref('')
@@ -88,7 +88,6 @@ async function load(opts = {}) {
     const res = await fetch(`${apiBase}/admin/form-fields`, { headers: authHeaders() })
     if (!res.ok) throw new Error(await res.text())
     fields.value = await res.json()
-    localStorage.setItem('admin_api_key', apiKey.value)
     if (!opts.auto) setMessage(tr('fields_loaded'))
   } catch (e) { setError(tr('error_loading_preview') + ': ' + e, opts) } finally { loading.value = false }
 }

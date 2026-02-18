@@ -15,7 +15,11 @@ class AuditLogController extends Controller
             abort(403);
         }
         $logs = AuditLog::latest()->get()->map(function($log) {
-            $log->payload = Crypt::decryptString($log->payload);
+            try {
+                $log->payload = Crypt::decryptString($log->payload);
+            } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                // Payload is not encrypted or was encrypted with a different key; return as-is
+            }
             return $log;
         });
         return response()->json($logs);

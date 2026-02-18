@@ -7,7 +7,7 @@ import { useTranslation } from '../composables/useTranslation'
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const { tr } = useTranslation()
-const apiKey = ref(localStorage.getItem('admin_api_key') || '')
+const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const data = ref([])
 const waitlist = ref([])
@@ -133,7 +133,6 @@ async function load(opts = {}) {
     const res = await fetchWithAuth('reservations')
     if (!res.ok) throw new Error(await res.text())
     data.value = await res.json()
-    localStorage.setItem('admin_api_key', apiKey.value)
     localStorage.setItem('admin_notify_on_change', notifyOnChange.value ? '1' : '0')
     if (!opts.auto) setMessage(tr(''))
   } catch (e) {
