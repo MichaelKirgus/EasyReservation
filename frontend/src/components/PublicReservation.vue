@@ -501,8 +501,8 @@ function goToGDPR() {
         <img v-if="loadingImageUrl" :src="loadingImageUrl" alt="Loading" class="loader-image" />
         <div v-else class="loader-spinner" aria-hidden="true"></div>
       </div>
-      <div v-if="message" ref="messageRef" class="message" v-html="message"></div>
-      <div v-if="error" ref="errorRef" class="error">{{ error }}</div>
+      <div v-if="message && !modalMessageEnabled" ref="messageRef" class="message" v-html="message"></div>
+      <div v-if="error && !modalErrorEnabled" ref="errorRef" class="error">{{ error }}</div>
 
       <div v-if="(modalMessageEnabled && message) || (modalErrorEnabled && error)" class="modal-backdrop" @click.self="() => { message = ''; error = '' }">
         <div class="modal">
