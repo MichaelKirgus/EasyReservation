@@ -80,26 +80,27 @@ class TwoFactorApiController extends Controller
                 'errors' => $validator->errors(),
             ], 422);
         }
-        $result = app(ConfirmTwoFactorAuthentication::class)($user, $request->input('code'));
-        if ($result) {
+        try {
+            app(ConfirmTwoFactorAuthentication::class)($user, $request->input('code'));
             \Log::info('2FA confirm success', [
                 'user_id' => $user?->id,
                 'email' => $user?->email,
                 'ip' => $ip,
             ]);
             return response()->json(['confirmed' => true]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::warning('2FA confirm failed: invalid code', [
+                'user_id' => $user?->id,
+                'email' => $user?->email,
+                'ip' => $ip,
+                'input' => $request->all(),
+            ]);
+            return response()->json([
+                'confirmed' => false,
+                'message' => __('two_factor_invalid_code'),
+                'errors' => ['code' => ['The provided two factor authentication code was invalid.']],
+            ], 422);
         }
-        \Log::warning('2FA confirm failed: invalid code', [
-            'user_id' => $user?->id,
-            'email' => $user?->email,
-            'ip' => $ip,
-            'input' => $request->all(),
-        ]);
-        return response()->json([
-            'confirmed' => false,
-            'message' => __('two_factor_invalid_code'),
-            'errors' => ['code' => ['The provided two factor authentication code was invalid.']],
-        ], 422);
     }
 
     public function status(Request $request)
