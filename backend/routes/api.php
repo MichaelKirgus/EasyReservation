@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\EmailValidationController;
 use App\Http\Controllers\Api\EmailTemplateController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\FormFieldController;
+use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\ReservationController;
 use App\Http\Controllers\Api\SettingsController;
@@ -26,6 +27,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuditLogController;
 
 Route::options('/{any}', fn () => response()->noContent())->where('any', '.*');
+
+// Public health check endpoint (no authentication required)
+Route::get('/health', [HealthController::class, 'check']);
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::middleware(['role:superadmin,admin,moderator,user'])->group(function () {

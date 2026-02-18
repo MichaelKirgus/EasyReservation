@@ -39,8 +39,7 @@ COPY --from=vendor /app/vendor /var/www/vendor
 
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY entrypoint.sh /entrypoint.sh
-COPY entrypoint_worker.sh /entrypoint_worker.sh
-COPY entrypoint_scheduler.sh /entrypoint_scheduler.sh
+COPY health-check.php /var/www/health-check.php
 COPY prod.env /var/www/.env
 
 RUN php artisan storage:link
@@ -52,9 +51,8 @@ RUN mkdir -p /var/www/storage/app/private
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 RUN chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 RUN chmod +x /entrypoint.sh
-RUN chmod +x /entrypoint_worker.sh
-RUN chmod +x /entrypoint_scheduler.sh
 
 EXPOSE 8080
+EXPOSE 8081
 
 CMD ["/entrypoint.sh"]
