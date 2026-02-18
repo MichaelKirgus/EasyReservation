@@ -15,7 +15,9 @@ class PlaceholderService
         '{{name}}',
         '{{email}}',
         '{{undo_link}}',
+        '{{undo_link_html}}',
         '{{validation_link}}',
+        '{{validation_link_html}}',
         '{{admin_approval_link}}',
     ];
 
@@ -117,7 +119,9 @@ class PlaceholderService
             '{{name}}' => $recipient['name'] ?? '',
             '{{email}}' => $recipient['email'] ?? '',
             '{{undo_link}}' => $recipient['undo_link'] ?? '',
+            '{{undo_link_html}}' => $recipient['undo_link_html'] ?? '',
             '{{validation_link}}' => $recipient['validation_link'] ?? '',
+            '{{validation_link_html}}' => $recipient['validation_link_html'] ?? '',
             '{{admin_approval_link}}' => $recipient['admin_approval_link'] ?? '',
             '{{admin_approval_link_html}}' => $recipient['admin_approval_link_html'] ?? '',
         ];
