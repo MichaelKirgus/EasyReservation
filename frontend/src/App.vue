@@ -591,9 +591,10 @@ async function fetchPrivacyEnabled() {
   border: 1px solid var(--border-strong);
   background: var(--surface-strong);
   color: var(--text);
-  padding: 0.35rem 0.6rem;
+  padding: 0 0.6rem;
   border-radius: 8px;
-  min-height: 34px;
+  height: 34px;
+  box-sizing: border-box;
   cursor: pointer;
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
@@ -941,10 +942,11 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
   gap: 0.35rem;
   border: 1px solid var(--border-strong);
   background: var(--surface-strong);
-  padding: 0.35rem 0.55rem;
+  padding: 0 0.55rem;
   border-radius: 8px;
   cursor: pointer;
-  min-height: 34px;
+  height: 34px;
+  box-sizing: border-box;
 }
 .lang-icon { width: 20px; height: 20px; }
 .lang-icon { filter: var(--icon-filter); }
@@ -982,11 +984,13 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
 .user-pill {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
   background: var(--surface-strong);
   border: 1px solid var(--border-strong);
-  padding: 0.35rem 0.65rem;
-  border-radius: 999px;
+  padding: 0 0.55rem;
+  border-radius: 8px;
+  height: 34px;
+  box-sizing: border-box;
 }
 .user-name { font-weight: 600; color: var(--text); }
 .user-menu-item {
@@ -995,10 +999,6 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
   font-weight: 600;
   padding: 0.25rem 0.5rem;
   border-radius: 6px;
-  transition: background 0.15s;
-}
-.user-menu-item:hover {
-  background: var(--surface-muted);
 }
 .loading-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; z-index: 15; border-radius: 10px; }
 .loader-image { width: 64px; height: 64px; animation: spin 1s linear infinite; object-fit: contain; }
