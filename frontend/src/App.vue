@@ -201,6 +201,7 @@ const loginForm = reactive({ identifier: '', password: '', otp: '' })
 const showOtp = ref(false)
 const authMessage = ref('')
 const authError = ref('')
+const authInfo = ref('')
 let authMessageTimeout = null
 const loadingAuth = ref(false)
 const showLogin = ref(false)
@@ -264,7 +265,8 @@ function setAuthMessage(msg) {
     }, 3000);
   }
 }
-function setAuthError(msg) { authError.value = msg; authMessage.value = '' }
+function setAuthError(msg) { authError.value = msg; authMessage.value = ''; authInfo.value = '' }
+function setAuthInfo(msg) { authInfo.value = msg; authError.value = ''; authMessage.value = '' }
 
 async function login() {
   loadingAuth.value = true
@@ -278,12 +280,21 @@ async function login() {
     })
     const text = await res.text()
     if (!res.ok) {
-      if (text.includes('two factor') || text.includes('2FA') || text.toLowerCase().includes('otp')) {
+      let errorData = null;
+      try { errorData = JSON.parse(text); } catch (_) {}
+      if (errorData?.two_factor || text.includes('two_factor') || text.includes('2FA') || text.toLowerCase().includes('otp')) {
+        const wasAlreadyShowingOtp = showOtp.value;
         showOtp.value = true;
-        setAuthError('Bitte OTP-Code eingeben.');
+        if (wasAlreadyShowingOtp) {
+          // Invalid OTP code — show as error
+          setAuthError(errorData?.message || tr('two_factor_invalid_code', 'Ungültiger Code.'));
+        } else {
+          // First prompt for OTP — show as info
+          setAuthInfo(errorData?.message || tr('otp_code_required', 'Bitte OTP-Code eingeben.'));
+        }
         return;
       }
-      throw new Error(text)
+      throw new Error(errorData?.message || text)
     }
     const data = JSON.parse(text)
     const token = data.api_token
@@ -533,6 +544,7 @@ async function fetchPrivacyEnabled() {
       v-model="showLogin"
       :loading="loadingAuth"
       :error="authError"
+      :info="authInfo"
       :showOtp="showOtp"
       @login="(form) => { Object.assign(loginForm, form); login(); }"
     />

@@ -7,6 +7,7 @@ const props = defineProps({
   modelValue: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
   error: { type: String, default: '' },
+  info: { type: String, default: '' },
   showOtp: { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:modelValue', 'login'])
@@ -55,6 +56,7 @@ function handleLogin() {
       <div class="modal-actions">
         <IconButton icon="login" :label="tr('login', 'Login')" :disabled="loading" @click="handleLogin" class="btn-block" />
       </div>
+      <div v-if="info" class="info">{{ info }}</div>
       <div v-if="error" class="error">{{ error }}</div>
     </div>
   </div>
@@ -124,6 +126,13 @@ function handleLogin() {
   top: 0.5rem;
   right: 0.5rem;
   z-index: 2;
+}
+.info {
+  color: var(--info-text, #1e40af);
+  background: var(--info-bg, #eff6ff);
+  border: 1px solid var(--info-border, #93c5fd);
+  padding: 0.5rem;
+  border-radius: 6px;
 }
 .error {
   color: var(--error-text);

@@ -576,5 +576,8 @@
   "reservation_removed": "Reservation removed.",
   "privacy_policy_not_available": "Privacy policy not available.",
   "key_missing": "Key missing.",
-  "not_found": "Not found."
+  "not_found": "Not found.",
+  "two_factor_required": "Two-factor authentication required. Please enter your OTP code.",
+  "two_factor_invalid_code": "The provided code is invalid. Please try again.",
+  "otp_code_required": "Please enter the OTP code from your authenticator app."
 }
