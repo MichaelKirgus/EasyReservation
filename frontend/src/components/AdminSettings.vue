@@ -22,6 +22,7 @@ const loading = ref(false)
 const message = ref('')
 const error = ref('')
 const templates = ref([])
+const guestUsers = ref([])
 const placeholders = ref([])
 const imageFields = {
   reservation_top_image: 'top',
@@ -178,6 +179,7 @@ const tabFieldMap = {
     'email_validation_rate_limit_header',
     'email_validation_admin_rate_limit_per_hour',
     'session_lifetime_minutes',
+    'site_guest_user_id',
   ]),
   email: new Set([
     'email_validation_enabled',
@@ -216,6 +218,10 @@ const templateFieldKeys = new Set([
   'email_waitlist_promoted_template_id',
   'email_waitlist_validation_success_template_id',
   'email_waitlist_cancel_template_id',
+])
+
+const guestUserFieldKeys = new Set([
+  'site_guest_user_id',
 ])
 
 const selectedTab = ref('general')
@@ -319,15 +325,20 @@ async function load() {
   if (!apiKey.value) { setError(tr('please_login_api_key_missing')); return }
   loading.value = true
   try {
-    const [resSettings, resTemplates] = await Promise.all([
+    const [resSettings, resTemplates, resUsers] = await Promise.all([
       fetch(`${apiBase}/admin/settings`, { headers: authHeaders() }),
       fetch(`${apiBase}/admin/email-templates`, { headers: authHeaders() }),
+      fetch(`${apiBase}/admin/users`, { headers: authHeaders() }),
     ])
     if (!resSettings.ok) throw new Error(await resSettings.text())
     if (!resTemplates.ok) throw new Error(await resTemplates.text())
     await loadPlaceholders()
     const data = await resSettings.json()
     templates.value = await resTemplates.json()
+    if (resUsers.ok) {
+      const allUsers = await resUsers.json()
+      guestUsers.value = (Array.isArray(allUsers) ? allUsers : (allUsers.data || [])).filter(u => u.role === 'guest')
+    }
     let apiLoadSuccess = true;
     settingsFields.forEach(f => {
       if (data[f.key] !== undefined && data[f.key] !== null) {
@@ -354,6 +365,9 @@ async function load() {
       }
     });
     templateFieldKeys.forEach(key => {
+      if (settings[key] === '') settings[key] = null;
+    });
+    guestUserFieldKeys.forEach(key => {
       if (settings[key] === '') settings[key] = null;
     });
     settings.apiLoadSuccess = apiLoadSuccess;
@@ -429,6 +443,12 @@ watch(() => props.langCode, () => fetchTranslations())
             <select v-model="settings[field.key]">
               <option :value="null">Kein Template</option>
               <option v-for="tpl in templates" :key="tpl.id" :value="tpl.id">{{ tpl.name }} (ID: {{ tpl.id }})</option>
+            </select>
+          </template>
+          <template v-else-if="guestUserFieldKeys.has(field.key)">
+            <select v-model="settings[field.key]">
+              <option :value="null">{{ t('site_guest_user_auto') }}</option>
+              <option v-for="user in guestUsers" :key="user.id" :value="user.id">{{ user.name }} (ID: {{ user.id }})</option>
             </select>
           </template>
           <template v-else-if="field.type === 'number'">

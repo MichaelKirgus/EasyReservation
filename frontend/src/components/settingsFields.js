@@ -140,4 +140,5 @@ export const settingsFields = [
     { key: 'login_rate_limit_attempts', type: 'number', default: 5 },
     { key: 'login_rate_limit_decay_minutes', type: 'number', default: 1 },
     { key: 'session_lifetime_minutes', type: 'number', default: 43200 },
+    { key: 'site_guest_user_id', type: 'number' },
 ];

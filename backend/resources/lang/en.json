@@ -579,5 +579,7 @@
   "not_found": "Not found.",
   "two_factor_required": "Two-factor authentication required. Please enter your OTP code.",
   "two_factor_invalid_code": "The provided code is invalid. Please try again.",
-  "otp_code_required": "Please enter the OTP code from your authenticator app."
+  "otp_code_required": "Please enter the OTP code from your authenticator app.",
+  "admin_setting_site_guest_user_id": "Guest user for site token",
+  "admin_setting_site_guest_user_auto": "Automatic (first active guest)"
 }
