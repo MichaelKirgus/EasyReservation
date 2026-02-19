@@ -46,6 +46,7 @@ function handleLogin() {
       <label class="form-field">{{ tr('password', 'Password') }}
         <input v-model="loginForm.password" type="password" :placeholder="tr('password_placeholder', '••••••')" class="input-lg" />
       </label>
+      <div v-if="showOtp && info" class="info">{{ info }}</div>
       <label v-if="showOtp" class="form-field">{{ tr('otp_code', 'OTP Code') }}
         <input v-model="loginForm.otp" :placeholder="tr('otp_placeholder', '123456')" class="input-lg" />
       </label>
@@ -56,7 +57,6 @@ function handleLogin() {
       <div class="modal-actions">
         <IconButton icon="login" :label="tr('login', 'Login')" :disabled="loading" @click="handleLogin" class="btn-block" />
       </div>
-      <div v-if="info" class="info">{{ info }}</div>
       <div v-if="error" class="error">{{ error }}</div>
     </div>
   </div>

@@ -89,7 +89,7 @@ const errorRef = ref(null)
 function scrollToFeedback(el) {
   nextTick(() => {
     if (el.value) {
-      el.value.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      el.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   })
 }
@@ -504,12 +504,14 @@ function goToGDPR() {
       <div v-if="message && !modalMessageEnabled" ref="messageRef" class="message" v-html="message"></div>
       <div v-if="error && !modalErrorEnabled" ref="errorRef" class="error">{{ error }}</div>
 
-      <div v-if="(modalMessageEnabled && message) || (modalErrorEnabled && error)" class="modal-backdrop" @click.self="() => { message = ''; error = '' }">
-        <div class="modal">
-          <p class="modal-text" v-html="message || error"></p>
-          <button @click="() => { message = ''; error = '' }">{{ tr('modal_close', 'OK') }}</button>
+      <Teleport to="body">
+        <div v-if="(modalMessageEnabled && message) || (modalErrorEnabled && error)" class="reservation-modal-backdrop" @click.self="() => { message = ''; error = '' }">
+          <div class="reservation-modal">
+            <p class="reservation-modal-text" v-html="message || error"></p>
+            <button @click="() => { message = ''; error = '' }">{{ tr('modal_close', 'OK') }}</button>
+          </div>
         </div>
-      </div>
+      </Teleport>
       <section class="card" :style="cardStyle">
         <div class="button-row">
             <div v-if="Number(config.settings.show_faq_button_landing_enabled) === 1">
@@ -644,25 +646,8 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .details { margin: 0.5rem 0 1rem; }
 .details summary { cursor: pointer; font-weight: 600; }
 .details div { padding-top: 0.5rem; text-align: left; }
-.top-image { text-align: center; margin-bottom: 0.75rem; }
+.top-image { text-align: center; margin-bottom: 0.75rem; min-height: 60px; }
 .top-image img { max-width: 100%; max-height: 240px; object-fit: contain; }
-.modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.65); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem; overflow-y: auto; }
-.modal {
-  background: var(--app-card-bg, var(--surface));
-  color: var(--text);
-  border-radius: 10px;
-  padding: 1rem;
-  max-width: 420px;
-  width: 100%;
-  box-shadow: 0 20px 50px var(--shadow);
-  border: 1px solid var(--border-strong);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  max-height: min(80vh, calc(100dvh - 2rem));
-  overflow-y: auto;
-}
-.modal-text { margin: 0; font-size: 1rem; }
 .top-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
 button.ghost { background: var(--surface-strong); color: var(--primary); border-color: var(--border-strong); }
 .button-row { display: flex; justify-content: flex-end; gap: 5px; }
@@ -688,4 +673,45 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
 .loader-image { width: 64px; height: 64px; animation: spin 1s linear infinite; object-fit: contain; }
 .loader-spinner { width: 48px; height: 48px; border: 4px solid var(--border-strong); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+
+<style>
+/* Teleported reservation modal styles (must be unscoped to apply inside body) */
+.reservation-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1rem;
+  overflow-y: auto;
+}
+.reservation-modal-backdrop .reservation-modal {
+  background: var(--app-card-bg, var(--surface));
+  color: var(--text);
+  border-radius: 10px;
+  padding: 1rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 20px 50px var(--shadow);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: min(80vh, calc(100dvh - 2rem));
+  overflow-y: auto;
+}
+.reservation-modal-backdrop .reservation-modal-text { margin: 0; font-size: 1rem; }
+.reservation-modal-backdrop .reservation-modal button {
+  font: inherit;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--primary);
+  color: var(--primary-contrast);
+  cursor: pointer;
+  width: auto;
+}
 </style>
