@@ -29,9 +29,31 @@ class SendEventTriggerJob implements ShouldQueue, ShouldBeUnique
     {
         $trigger = EventTrigger::find($this->triggerId);
         if (!$trigger || !$trigger->active) return;
+
+        // Cooldown re-check: another trigger may have fired during the delay
+        if ($trigger->cooldown_seconds > 0 && $trigger->last_triggered_at) {
+            $secondsSinceLastTrigger = now()->diffInSeconds($trigger->last_triggered_at);
+            // Only skip if cooldown hasn't elapsed AND this isn't the delayed execution
+            // from the original dispatch (last_triggered_at was set at dispatch time,
+            // so if delay_seconds has passed, the cooldown from that dispatch has been served)
+            if ($secondsSinceLastTrigger < $trigger->cooldown_seconds && $secondsSinceLastTrigger < $trigger->delay_seconds) {
+                return;
+            }
+        }
+
         // Re-Evaluation: Prüfe, ob das Event noch zutrifft
         if (!$service->shouldFireTrigger($trigger, $this->context)) return;
-        $service->executeAction($trigger, $this->context);
+
+        try {
+            $service->applyContextPlaceholders($this->context);
+            $service->executeAction($trigger, $this->context);
+        } catch (\Throwable $e) {
+            \Log::error('SendEventTriggerJob: Trigger #' . $trigger->id . ' (' . $trigger->event_type . ') failed: ' . $e->getMessage());
+            throw $e;
+        } finally {
+            app(\App\Services\PlaceholderService::class)->clearContextPlaceholders();
+        }
+
         $trigger->last_triggered_at = now();
         $trigger->save();
     }

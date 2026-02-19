@@ -33,12 +33,16 @@ class EventTriggerService
 
         foreach ($triggers as $trigger) {
             // Cooldown check
-            if ($trigger->last_triggered_at && $now->diffInSeconds($trigger->last_triggered_at) < $trigger->cooldown_seconds) {
+            if ($trigger->cooldown_seconds > 0 && $trigger->last_triggered_at && $now->diffInSeconds($trigger->last_triggered_at) < $trigger->cooldown_seconds) {
                 continue;
             }
             // Delay: schedule for later if needed
             if ($trigger->delay_seconds > 0) {
                 SendEventTriggerJob::dispatch($trigger->id, $eventType, $context)->delay($trigger->delay_seconds);
+                // Update last_triggered_at immediately so cooldown window starts now,
+                // preventing duplicate dispatches during the delay period
+                $trigger->last_triggered_at = $now;
+                $trigger->save();
                 continue;
             }
             // Re-Evaluation: sofort prüfen
@@ -159,7 +163,7 @@ class EventTriggerService
     /**
      * Apply context-specific placeholders to the PlaceholderService before executing an action.
      */
-    private function applyContextPlaceholders(array $context): void
+    public function applyContextPlaceholders(array $context): void
     {
         $map = [];
         if (isset($context['error_message'])) {
