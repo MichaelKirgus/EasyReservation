@@ -143,6 +143,18 @@
         <label>Bereits ausgeführt:</label>
         <input v-model="form.executed" type="checkbox" />
       </div>
+      <div>
+        <label>Einmalig ausführen (danach deaktivieren):
+          <span class="help-inline">Wenn aktiviert, wird die Aufgabe nach der ersten Ausführung automatisch deaktiviert.</span>
+        </label>
+        <input v-model="form.run_once" type="checkbox" />
+      </div>
+      <div>
+        <label>Überfällige Ausführung überspringen:
+          <span class="help-inline">Wenn aktiviert, wird die Aufgabe nicht ausgeführt, wenn der geplante Zeitpunkt bereits überschritten ist (z.B. nach einem Serverausfall).</span>
+        </label>
+        <input v-model="form.skip_if_overdue" type="checkbox" />
+      </div>
       <div style="margin-top:1em; display:flex; gap:0.5em; justify-content:flex-end;">
         <IconButton icon="check" label="Speichern" type="submit" />
         <IconButton icon="close" label="Abbrechen" variant="danger" type="button" @click="$emit('close')" />
@@ -197,6 +209,8 @@ const form = ref({
   relative_offset_minutes: null,
   options: {},
   executed: false,
+  run_once: false,
+  skip_if_overdue: false,
 })
 
 const referenceObjects = ref([])
@@ -406,6 +420,8 @@ watch(() => props.task, (task) => {
       relative_offset_minutes: null,
       options: {},
       executed: false,
+      run_once: false,
+      skip_if_overdue: false,
     }
     selectedTemplateId.value = ''
     selectedWebhookTemplateId.value = ''

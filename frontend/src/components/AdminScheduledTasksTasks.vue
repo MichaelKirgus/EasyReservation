@@ -33,6 +33,14 @@
       <template #cell-active="{ row }">
         <input type="checkbox" :checked="row.active" @change="toggleActive(row)" :disabled="loading" />
       </template>
+      <template #cell-run_once="{ value }">
+        <span v-if="value">✅</span>
+        <span v-else>❌</span>
+      </template>
+      <template #cell-skip_if_overdue="{ value }">
+        <span v-if="value">✅</span>
+        <span v-else>❌</span>
+      </template>
       <template #row-actions="{ row }">
         <IconButton icon="play" label="Sofort ausführen" class="ghost" @click.stop="runNow(row)" :disabled="loading" />
         <IconButton icon="pencil" label="Bearbeiten" class="ghost" @click.stop="editTask(row)" :disabled="loading" />
@@ -121,7 +129,9 @@ const columns = [
   { key: 'relative_offset_minutes', label: 'Offset (Minuten)' },
   { key: 'executed', label: 'Ausgeführt' },
   { key: 'executed_at', label: 'Ausgeführt am' },
-  { key: 'active', label: 'Aktiv' }
+  { key: 'active', label: 'Aktiv' },
+  { key: 'run_once', label: 'Einmalig' },
+  { key: 'skip_if_overdue', label: 'Überfällig überspringen' }
 ]
 
 function fetchTasks() {

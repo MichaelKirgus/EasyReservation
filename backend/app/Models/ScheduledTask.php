@@ -20,6 +20,8 @@ class ScheduledTask extends Model
         'executed',
         'executed_at',
         'active',
+        'run_once',
+        'skip_if_overdue',
         'reference_type',
         'reference_id',
         'relative_to',
@@ -34,6 +36,8 @@ class ScheduledTask extends Model
         'options' => 'array',
         'executed' => 'boolean',
         'active' => 'boolean',
+        'run_once' => 'boolean',
+        'skip_if_overdue' => 'boolean',
         'reference_id' => 'integer',
         'relative_offset_minutes' => 'integer',
     ];

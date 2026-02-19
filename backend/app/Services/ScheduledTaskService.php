@@ -72,6 +72,26 @@ class ScheduledTaskService
         \Log::info('ScheduledTaskService: Found ' . $dueTasks->count() . ' due tasks to execute');
         
         foreach ($dueTasks as $task) {
+            // Skip overdue tasks if skip_if_overdue is enabled
+            if ($task->skip_if_overdue) {
+                $scheduledTime = !empty($task->cron_expression) ? $task->next_run_at : $task->run_at;
+                if ($scheduledTime && $scheduledTime->copy()->addMinutes(5)->lt(now())) {
+                    \Log::info('ScheduledTaskService: Skipping overdue task ' . $task->id . ' (scheduled: ' . $scheduledTime->toIso8601String() . ', skip_if_overdue is enabled)');
+                    // For non-cron tasks, mark as executed so they don't keep being picked up
+                    if (empty($task->cron_expression)) {
+                        $task->executed = true;
+                        $task->executed_at = now();
+                        $task->save();
+                    } else {
+                        // For cron tasks, advance to next run
+                        $task->last_run_at = now();
+                        $task->save();
+                        $this->updateCronRunTime($task);
+                    }
+                    continue;
+                }
+            }
+
             \Log::info('ScheduledTaskService: Executing task ' . $task->id);
             try {
                 $this->executeTask($task);
@@ -84,6 +104,13 @@ class ScheduledTaskService
                     
                     // Recalculate next_run_at after execution
                     $this->updateCronRunTime($task);
+                    
+                    // If run_once is enabled, deactivate the task after first cron execution
+                    if ($task->run_once) {
+                        $task->active = false;
+                        $task->save();
+                        \Log::info('ScheduledTaskService: Task ' . $task->id . ' deactivated (run_once)');
+                    }
                 }
                 
                 \Log::info('ScheduledTaskService: Task ' . $task->id . ' executed successfully');
@@ -185,7 +212,18 @@ class ScheduledTaskService
                     $value = $task->options['setting_value'] ?? null;
                     \Log::debug('change_setting params:', ['key' => $key, 'value' => $value]);
                     if ($key !== null) {
-                        \App\Models\Setting::updateOrCreate(['key' => $key], ['value' => $value]);
+                        // Normalize value types (bool to '1'/'0', null to '', else string)
+                        if (is_bool($value)) {
+                            $value = $value ? '1' : '0';
+                        } elseif (is_null($value)) {
+                            $value = '';
+                        } else {
+                            $value = (string)$value;
+                        }
+                        // Use firstOrNew + save to trigger setValueAttribute mutator for encryption
+                        $setting = \App\Models\Setting::firstOrNew(['name' => $key]);
+                        $setting->value = $value;
+                        $setting->save();
                         \Log::info('Setting updated successfully: ' . $key);
                     } else {
                         \Log::warning('change_setting called without setting_key for task ' . $task->id);
@@ -242,6 +280,13 @@ class ScheduledTaskService
                 $task->executed = true;
                 $task->executed_at = now();
                 $task->save();
+                
+                // If run_once is enabled, deactivate the task after execution
+                if ($task->run_once) {
+                    $task->active = false;
+                    $task->save();
+                    \Log::info('ScheduledTaskService: Task ' . $task->id . ' deactivated (run_once)');
+                }
             }
             \Log::info('ScheduledTaskService: Task ' . $task->id . ' completed successfully');
             
