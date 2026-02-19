@@ -118,6 +118,7 @@ const columns = [
   { key: 'reference_type', label: 'Referenztyp',
     formatter: (type) => {
       if (type === 'cron') return 'Cron';
+      if (type === 'fixed') return 'Einmalig';
       if (type === 'event') return 'Event';
       if (type === 'reservation') return 'Reservierung';
       if (type === 'user') return 'Benutzer';

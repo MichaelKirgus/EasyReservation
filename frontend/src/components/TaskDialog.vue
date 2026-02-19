@@ -187,6 +187,8 @@ watch(schedulingMode, (newMode) => {
     form.value.reference_type = 'cron'
   } else if (newMode === 'relative') {
     form.value.reference_type = 'event'
+  } else if (newMode === 'absolute') {
+    form.value.reference_type = 'fixed'
   }
 })
 
@@ -203,7 +205,7 @@ const form = ref({
   type: '',
   run_at: '',
   cron_expression: '',
-  reference_type: 'event',
+  reference_type: 'fixed',
   reference_id: null,
   relative_to: '',
   relative_offset_minutes: null,
@@ -364,7 +366,7 @@ watch(() => props.task, (task) => {
       finalTaskData.reference_type = 'cron'
     } else if (!finalTaskData.reference_type) {
       // Fallback für alte Tasks ohne reference_type
-      finalTaskData.reference_type = 'event'
+      finalTaskData.reference_type = 'fixed'
     }
     
     form.value = finalTaskData
@@ -414,7 +416,7 @@ watch(() => props.task, (task) => {
       type: '',
       run_at: '',
       cron_expression: '',
-      reference_type: 'event',
+      reference_type: 'fixed',
       reference_id: null,
       relative_to: '',
       relative_offset_minutes: null,
@@ -474,6 +476,14 @@ function toUtcIsoString(localDateTimeStr) {
 function submit() {
   // Dynamisch options bauen je nach Typ
   const payload = { ...form.value };
+  
+  // Enforce reference_type based on scheduling mode
+  if (schedulingMode.value === 'absolute') {
+    payload.reference_type = 'fixed';
+  } else if (schedulingMode.value === 'cron') {
+    payload.reference_type = 'cron';
+  }
+  // For 'relative', keep the user-selected reference_type (event/reservation/user)
   
   // Setze run_at basierend auf Scheduling Mode
   if (schedulingMode.value === 'absolute') {
