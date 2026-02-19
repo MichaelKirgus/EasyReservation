@@ -3,7 +3,7 @@
 return [
     'blacklist' => [
         ['path' => 'api/languages',   'methods' => ['GET']],
-        ['path' => 'api/languages-names',   'methods' => ['GET']],
+        ['path' => 'api/language-names',   'methods' => ['GET']],
         ['path' => 'api/languages/*', 'methods' => ['*']],
         ['path' => 'api/flags', 'methods' => ['GET']],
         ['path' => 'api/flags/*', 'methods' => ['*']],
