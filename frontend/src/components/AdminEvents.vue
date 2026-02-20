@@ -16,13 +16,13 @@ const selectedEvents = ref([])
 const lastAutoErrorAt = ref(0)
 
 const eventColumns = [
-  { key: 'id', label: 'ID', sortable: true },
-  { key: 'title', label: 'Titel', sortable: true },
-  { key: 'start_at', label: 'Start', sortable: true },
-  { key: 'city', label: 'Ort', sortable: true },
-  { key: 'url', label: 'URL', sortable: false },
-  { key: 'public_transport_url', label: 'ÖPNV', sortable: false },
-  { key: 'active', label: 'Aktiv', sortable: true },
+  { key: 'id', label: tr('admin_events_columns_id'), sortable: true },
+  { key: 'title', label: tr('admin_events_columns_title'), sortable: true },
+  { key: 'start_at', label: tr('admin_events_columns_start'), sortable: true },
+  { key: 'city', label: tr('admin_events_columns_city'), sortable: true },
+  { key: 'url', label: tr('admin_events_columns_url'), sortable: false },
+  { key: 'public_transport_url', label: tr('admin_events_columns_public_transport_url'), sortable: false },
+  { key: 'active', label: tr('admin_events_columns_active'), sortable: true },
 ]
 
 function formatDateTime(val) {
@@ -195,15 +195,15 @@ onMounted(() => {
     <div v-if="message" class="message">{{ message }}</div>
 
     <div class="form-grid">
-      <label> Titel <input v-model="form.title" /></label>
+      <label> {{ tr('admin_events_columns_title') }} <input v-model="form.title" /></label>
       <label> Stadt <input v-model="form.city" /></label>
       <label> URL (optional) <input v-model="form.url" placeholder="https://..." /></label>
-      <label> ÖPNV / Haltestellen (Text) <input v-model="form.public_transport_url" placeholder="z.B. Haltestellen, Linien" /></label>
+      <label> {{ tr('admin_events_columns_public_transport_url') }} / Haltestellen (Text) <input v-model="form.public_transport_url" placeholder="z.B. Haltestellen, Linien" /></label>
       <label> Start (Datum/Zeit) <input v-model="form.start_at" type="datetime-local" /></label>
       <label> Ende (optional) <input v-model="form.end_at" type="datetime-local" /></label>
       <label> Ort <input v-model="form.location" /></label>
-      <label> Kapazität (optional) <input v-model.number="form.capacity_override" type="number" min="0" /></label>
-      <label class="checkbox-row"><input type="checkbox" v-model="form.active" /> Aktiv</label>
+      <label> {{ tr('admin_events_columns_capacity_override') }} (optional) <input v-model.number="form.capacity_override" type="number" min="0" /></label>
+      <label class="checkbox-row"><input type="checkbox" v-model="form.active" /> {{ tr('admin_events_columns_active') }}</label>
       <label> Notizen <textarea v-model="form.notes" rows="3"></textarea></label>
     </div>
 

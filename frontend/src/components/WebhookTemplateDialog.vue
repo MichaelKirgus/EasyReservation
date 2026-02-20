@@ -1,37 +1,37 @@
 
 <template>
   <div class="webhook-template-form">
-    <h3>{{ template && template.id ? 'Webhook-Vorlage bearbeiten' : 'Neue Webhook-Vorlage' }}</h3>
+    <h3>{{ template && template.id ? tr('webhook_template_dialog_title_edit') : tr('webhook_template_dialog_title_new') }}</h3>
     <form @submit.prevent="submit">
       <div class="form-group">
-        <label>Name</label>
+        <label>{{ tr('webhook_template_dialog_label_name') }}</label>
         <input v-model="form.name" required maxlength="255" />
       </div>
       <div class="form-group">
-        <label>Beschreibung</label>
+        <label>{{ tr('webhook_template_dialog_label_description') }}</label>
         <input v-model="form.description" maxlength="255" />
       </div>
       <div class="form-group">
-        <label>Webhook-URL</label>
+        <label>{{ tr('webhook_template_dialog_label_url') }}</label>
         <input v-model="form.url" required type="url" maxlength="500" placeholder="https://example.com/webhook" />
       </div>
       <div class="form-group">
-        <label>Payload-Template <small>(Platzhalter unterstützt)</small></label>
+        <label>{{ tr('webhook_template_dialog_label_payload_template') }} <small>{{ tr('webhook_template_dialog_placeholder_supported') }}</small></label>
         <textarea v-model="form.payload_template" required rows="6" style="font-family:monospace;width:100%"></textarea>
       </div>
       <div class="form-group">
-        <label>Header-Template <small>(optional, JSON, Platzhalter unterstützt)</small></label>
+        <label>{{ tr('webhook_template_dialog_label_headers_template') }} <small>{{ tr('webhook_template_dialog_optional_json') }}</small></label>
         <textarea v-model="form.headers_template" rows="3" style="font-family:monospace;width:100%"></textarea>
       </div>
       <div class="form-actions" style="display:flex;gap:0.5em;justify-content:flex-end;">
-        <IconButton icon="close" label="Abbrechen" variant="danger" type="button" @click="$emit('close')" />
-        <IconButton icon="check" label="Speichern" type="submit" />
+        <IconButton icon="close" :label="tr('webhook_template_dialog_button_cancel')" variant="danger" type="button" @click="$emit('close')" />
+        <IconButton icon="check" :label="tr('webhook_template_dialog_button_save')" type="submit" />
       </div>
     </form>
     <div class="info-box" style="margin-top:1em;">
-      <strong>Platzhalter:</strong>
-      <span v-if="loadingPlaceholders">Lade Platzhalter ...</span>
-      <span v-else-if="placeholders.length === 0">Keine Platzhalter verfügbar.</span>
+      <strong>{{ tr('webhook_template_dialog_label_placeholders') }}</strong>
+      <span v-if="loadingPlaceholders">{{ tr('webhook_template_dialog_loading_placeholders') }}</span>
+      <span v-else-if="placeholders.length === 0">{{ tr('webhook_template_dialog_no_placeholders') }}</span>
       <span v-else class="placeholder-list">
         <template v-for="ph in placeholders" :key="ph">
           <code>{{ ph }}</code>
@@ -46,6 +46,9 @@
 import { reactive, watch, ref, onMounted } from 'vue'
 import IconButton from './IconButton.vue'
 import { buildAdminHeaders } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
+
+const { tr } = useTranslation()
 const props = defineProps({
   template: { type: Object, default: null }
 })

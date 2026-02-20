@@ -1,8 +1,8 @@
 <template>
   <div>
     <h2 style="display:flex;align-items:center;justify-content:space-between;">
-      <span>Ereignis-Trigger</span>
-      <IconButton icon="plus" label="Neuer Trigger" class="primary" variant="success" @click="createTrigger" />
+      <span>{{ tr('admin_event_triggers_title') }}</span>
+      <IconButton icon="plus" :label="tr('admin_event_triggers_button_new_trigger')" class="primary" variant="success" @click="createTrigger" />
     </h2>
     <AdminDataTable
       :columns="columns"
@@ -13,7 +13,7 @@
         <span>{{ eventTypeLabel(value) }}</span>
       </template>
       <template #cell-action_type="{ value }">
-        <span>{{ value === 'email' ? 'E-Mail' : 'Webhook' }}</span>
+        <span>{{ value === 'email' ? tr('trigger_dialog_option_email') : tr('trigger_dialog_option_webhook') }}</span>
       </template>
       <template #cell-template_id="{ value }">
         <span>{{ templateName(value) }}</span>
@@ -32,9 +32,9 @@
         <input type="checkbox" :checked="row.active" @change="toggleActive(row)" :disabled="loading" />
       </template>
       <template #row-actions="{ row }">
-        <IconButton icon="play" label="Simulieren" class="ghost" @click.stop="simulate(row)" :disabled="loading || !row.active" />
-        <IconButton icon="pencil" label="Bearbeiten" class="ghost" @click.stop="editTrigger(row)" :disabled="loading" />
-        <IconButton icon="trash" label="Löschen" class="ghost" variant="danger" @click.stop="deleteTrigger(row)" :disabled="loading" />
+        <IconButton :icon="'play'" :label="tr('admin_event_triggers_button_simulate')" class="ghost" @click.stop="simulate(row)" :disabled="loading || !row.active" />
+        <IconButton :icon="'pencil'" :label="tr('admin_event_triggers_button_edit')" class="ghost" @click.stop="editTrigger(row)" :disabled="loading" />
+        <IconButton :icon="'trash'" :label="tr('admin_event_triggers_button_delete')" class="ghost" variant="danger" @click.stop="deleteTrigger(row)" :disabled="loading" />
       </template>
     </AdminDataTable>
     <TriggerDialog
@@ -74,28 +74,28 @@ function templateName(id) {
 }
 
 const columns = [
-  { key: 'id', label: 'ID' },
-  { key: 'event_type', label: 'Ereignis' },
-  { key: 'action_type', label: 'Aktion' },
-  { key: 'template_id', label: 'E-Mail-Vorlage' },
-  { key: 'webhook_url', label: 'Webhook-URL' },
-  { key: 'delay_seconds', label: 'Verzögerung (Sek.)' },
-  { key: 'cooldown_seconds', label: 'Cooldown (Sek.)' },
-  { key: 'active', label: 'Aktiv' }
+  { key: 'id', label: tr('admin_event_triggers_column_id') },
+  { key: 'event_type', label: tr('admin_event_triggers_column_event_type') },
+  { key: 'action_type', label: tr('admin_event_triggers_column_action_type') },
+  { key: 'template_id', label: tr('admin_event_triggers_column_template_id') },
+  { key: 'webhook_url', label: tr('admin_event_triggers_column_webhook_url') },
+  { key: 'delay_seconds', label: tr('admin_event_triggers_column_delay_seconds') },
+  { key: 'cooldown_seconds', label: tr('admin_event_triggers_column_cooldown_seconds') },
+  { key: 'active', label: tr('admin_event_triggers_column_active') }
 ]
 
 const eventTypes = [
-  { value: 'reservation_full', label: 'Reservation list full' },
-  { value: 'reservation_disabled', label: 'Reservation disabled' },
-  { value: 'reservation_enabled', label: 'Reservation enabled' },
-  { value: 'reservation_added', label: 'Reservation entry added' },
-  { value: 'reservation_removed', label: 'Reservation entry removed' },
-  { value: 'reservation_canceled', label: 'Reservation canceled' },
-  { value: 'waitlist_enabled', label: 'Waitlist enabled' },
-  { value: 'waitlist_disabled', label: 'Waitlist disabled' },
-  { value: 'waitlist_entry_added', label: 'Waitlist entry added' },
-  { value: 'waitlist_entry_removed', label: 'Waitlist entry removed' },
-  { value: 'application_error', label: 'Application error' }
+  { value: 'reservation_full', label: tr('event_type_reservation_full') },
+  { value: 'reservation_disabled', label: tr('event_type_reservation_disabled') },
+  { value: 'reservation_enabled', label: tr('event_type_reservation_enabled') },
+  { value: 'reservation_added', label: tr('event_type_reservation_added') },
+  { value: 'reservation_removed', label: tr('event_type_reservation_removed') },
+  { value: 'reservation_canceled', label: tr('event_type_reservation_canceled') },
+  { value: 'waitlist_enabled', label: tr('event_type_waitlist_enabled') },
+  { value: 'waitlist_disabled', label: tr('event_type_waitlist_disabled') },
+  { value: 'waitlist_entry_added', label: tr('event_type_waitlist_entry_added') },
+  { value: 'waitlist_entry_removed', label: tr('event_type_waitlist_entry_removed') },
+  { value: 'application_error', label: tr('event_type_application_error') }
 ]
 
 function eventTypeLabel(val) {
@@ -145,7 +145,7 @@ function saveTrigger(trigger) {
 }
 
 function deleteTrigger(trigger) {
-  if (!confirm(tr('really_delete_event_trigger'))) {
+  if (!confirm(tr('admin_event_triggers_really_delete'))) {
     return
   }
   loading.value = true

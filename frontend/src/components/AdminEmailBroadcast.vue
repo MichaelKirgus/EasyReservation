@@ -38,17 +38,17 @@ const canManageTemplates = computed(() =>
 )
 
 const templateColumns = [
-  { key: 'id', label: 'ID', sortable: true },
-  { key: 'name', label: 'Bezeichnung', sortable: true },
-  { key: 'subject', label: 'Betreff', sortable: true },
-  { key: 'cc', label: 'CC', sortable: false },
-  { key: 'bcc', label: 'BCC', sortable: false },
-  { key: 'body', label: 'Inhalt', sortable: false },
+  { key: 'id', label: tr('admin_email_broadcast_columns_id'), sortable: true },
+  { key: 'name', label: tr('admin_email_broadcast_columns_name'), sortable: true },
+  { key: 'subject', label: tr('admin_email_broadcast_columns_subject'), sortable: true },
+  { key: 'cc', label: tr('admin_email_broadcast_columns_cc'), sortable: false },
+  { key: 'bcc', label: tr('admin_email_broadcast_columns_bcc'), sortable: false },
+  { key: 'body', label: tr('admin_email_broadcast_columns_body'), sortable: false },
 ]
 
 const reservationsWithEmail = computed(() => reservations.value.filter(r => !!r.email))
 const waitlistWithEmail = computed(() => waitlist.value.filter(w => !!w.email))
-const placeholderText = computed(() => placeholders.value.length ? `Platzhalter: ${placeholders.value.join(', ')}` : '')
+const placeholderText = computed(() => placeholders.value.length ? `${tr('admin_email_broadcast_columns_placeholder')}: ${placeholders.value.join(', ')}` : '')
 
 // Preview state
 const previewTemplate = ref(null)
@@ -220,7 +220,7 @@ async function createTemplate() {
     templateForm.type = 'generic'
     await loadTemplates()
   } catch (e) {
-    setError(`Erstellen fehlgeschlagen: ${e}`)
+    setError(tr('creating_failed') + ': ' + e)
   }
 }
 
@@ -257,13 +257,13 @@ watch(() => props.defaultSubTab, (val) => {
   <div class="stack">
     <div class="top-bar">
       <div class="left-actions">
-        <IconButton icon="refresh" label="Aktualisieren" @click="loadAll" :disabled="loading" />
+        <IconButton icon="refresh" :label="tr('admin_email_broadcast_refresh_label')" @click="loadAll" :disabled="loading" />
       </div>
     </div>
 
     <div class="subtabs">
-      <button :class="['subtab', { active: activeSubTab === 'send' }]" @click="activeSubTab = 'send'">E-Mail-Versand</button>
-      <button :class="['subtab', { active: activeSubTab === 'templates' }]" @click="activeSubTab = 'templates'">Vorlagenverwaltung</button>
+      <button :class="['subtab', { active: activeSubTab === 'send' }]" @click="activeSubTab = 'send'">{{ tr('admin_email_broadcast_send_tab') }}</button>
+      <button :class="['subtab', { active: activeSubTab === 'templates' }]" @click="activeSubTab = 'templates'">{{ tr('admin_email_broadcast_templates_tab') }}</button>
     </div>
 
     <div v-if="message" class="message">{{ message }}</div>
@@ -272,29 +272,29 @@ watch(() => props.defaultSubTab, (val) => {
     <template v-if="activeSubTab === 'send'">
       <div class="card">
         <div class="card-header">
-          <h3>E-Mail-Versand</h3>
+          <h3>{{ tr('admin_email_broadcast_send_tab') }}</h3>
         </div>
         <div class="grid">
           <label>
-            Vorlage
+            {{ tr('admin_email_broadcast_columns_name') }}
             <select v-model.number="form.templateId">
-              <option value="" disabled>Bitte auswählen</option>
+              <option value="" disabled>{{ tr('admin_email_broadcast_select_template_placeholder') }}</option>
               <option v-for="tpl in templates" :key="tpl.id" :value="tpl.id">
                 {{ tpl.name }} – {{ tpl.subject }}
               </option>
             </select>
           </label>
           <label class="inline">
-            <input type="checkbox" v-model="form.deduplicate" /> Duplikate anhand der E-Mail-Adresse vermeiden
+            <input type="checkbox" v-model="form.deduplicate" /> {{ tr('admin_email_broadcast_deduplicate_label') }}
           </label>
         </div>
         <div class="modes">
           <label v-for="mode in [
-            { value: 'both', label: 'Alle (Reservierungen + Warteliste)' },
-            { value: 'reservations', label: 'Alle Reservierungen' },
-            { value: 'waitlist', label: 'Alle Warteliste' },
-            { value: 'internal_users', label: 'Interne Benutzer (Admins, Moderatoren, Nutzer)' },
-            { value: 'selection', label: 'Auswahl treffen' },
+            { value: 'both', label: tr('admin_email_broadcast_mode_labels_both') },
+            { value: 'reservations', label: tr('admin_email_broadcast_mode_labels_reservations') },
+            { value: 'waitlist', label: tr('admin_email_broadcast_mode_labels_waitlist') },
+            { value: 'internal_users', label: tr('admin_email_broadcast_mode_labels_internal_users') },
+            { value: 'selection', label: tr('admin_email_broadcast_mode_labels_selection') },
           ]" :key="mode.value" class="mode-option">
             <input type="radio" :value="mode.value" v-model="form.mode" />
             <span>{{ mode.label }}</span>
@@ -304,41 +304,41 @@ watch(() => props.defaultSubTab, (val) => {
 
       <div v-if="form.mode === 'selection'" class="card">
         <div class="card-header">
-          <h4>Empfänger auswählen</h4>
+          <h4>{{ tr('admin_email_broadcast_recipients_title') }}</h4>
         </div>
         <div class="two-col">
           <div>
-            <h5>Reservierungen (mit E-Mail)</h5>
+            <h5>{{ tr('admin_email_broadcast_reservations_with_email') }}</h5>
             <div v-if="reservationsWithEmail.length" class="list">
               <label v-for="r in reservationsWithEmail" :key="r.id" class="row">
                 <input type="checkbox" :value="r.id" v-model="form.selectedReservations" />
                 <span>{{ r.display_name }} <{{ r.email }}></span>
               </label>
             </div>
-            <p v-else>Keine passenden Reservierungen.</p>
+            <p v-else>{{ tr('admin_email_broadcast_no_matching_reservations') }}</p>
           </div>
           <div>
-            <h5>Warteliste (mit E-Mail)</h5>
+            <h5>{{ tr('admin_email_broadcast_waitlist_with_email') }}</h5>
             <div v-if="waitlistWithEmail.length" class="list">
               <label v-for="w in waitlistWithEmail" :key="w.id" class="row">
                 <input type="checkbox" :value="w.id" v-model="form.selectedWaitlist" />
                 <span>{{ w.display_name }} <{{ w.email }}></span>
               </label>
             </div>
-            <p v-else>Keine passenden Wartelisten-Einträge.</p>
+            <p v-else>{{ tr('admin_email_broadcast_no_matching_waitlist_entries') }}</p>
           </div>
         </div>
       </div>
 
       <div v-if="form.mode === 'internal_users'" class="card">
         <div class="card-header">
-          <h4>Interne Benutzerrollen auswählen</h4>
+          <h4>{{ tr('admin_email_broadcast_internal_roles_title') }}</h4>
         </div>
         <div class="modes">
           <label v-for="role in [
-            { value: 'admin', label: 'Admins (Superadmins und Admins)' },
-            { value: 'moderator', label: 'Moderatoren' },
-            { value: 'user', label: 'Registrierte Nutzer' },
+            { value: 'admin', label: tr('admin_email_broadcast_role_admins_superadmins_admins') },
+            { value: 'moderator', label: tr('admin_email_broadcast_role_moderator') },
+            { value: 'user', label: tr('admin_email_broadcast_role_registered_users') },
           ]" :key="role.value" class="mode-option">
             <input type="checkbox" :value="role.value" v-model="form.userRoles" />
             <span>{{ role.label }}</span>
@@ -348,30 +348,30 @@ watch(() => props.defaultSubTab, (val) => {
 
       <div class="card">
         <div class="card-header">
-          <h4>Zusätzliche Empfänger (optional)</h4>
-          <IconButton class="ghost" variant="success" type="button" icon="plus" label="Empfänger hinzufügen" @click="addCustomRecipient" />
+          <h4>{{ tr('admin_email_broadcast_additional_recipients_title') }}</h4>
+          <IconButton class="ghost" variant="success" type="button" icon="plus" :label="tr('admin_email_broadcast_add_recipient_button')" @click="addCustomRecipient" />
         </div>
         <div class="inline-fields">
           <div v-for="(r, idx) in form.customRecipients" :key="idx" class="inline-row">
-            <input v-model="r.name" placeholder="Name (optional)" />
-            <input v-model="r.email" placeholder="E-Mail" />
-            <IconButton class="ghost" variant="danger" type="button" icon="trash" label="Entfernen" @click="removeCustomRecipient(idx)" />
+            <input v-model="r.name" :placeholder="tr('admin_email_broadcast_name_placeholder')" />
+            <input v-model="r.email" :placeholder="tr('admin_email_broadcast_email_placeholder')" />
+            <IconButton class="ghost" variant="danger" type="button" icon="trash" :label="tr('admin_email_broadcast_remove_recipient_button')" @click="removeCustomRecipient(idx)" />
           </div>
         </div>
       </div>
 
       <div class="actions">
-        <IconButton icon="send" label="Senden" @click="sendBroadcast" :disabled="loading || !form.templateId" />
+        <IconButton icon="send" :label="tr('admin_email_broadcast_send_button')" @click="sendBroadcast" :disabled="loading || !form.templateId" />
       </div>
 
       <div v-if="stats" class="card">
-        <h4>Ergebnis</h4>
+        <h4>{{ tr('admin_email_broadcast_result_title') }}</h4>
         <ul class="stats">
-          <li>Vorlage: #{{ stats.template_id }}</li>
-          <li>Geplante E-Mails: {{ stats.queued }}</li>
-          <li>Übersprungen (keine E-Mail): {{ stats.skipped_no_email }}</li>
-          <li>Duplikate entfernt: {{ stats.duplicates_removed }}</li>
-          <li>Kandidaten gesamt: {{ stats.candidates }}</li>
+          <li>{{ tr('admin_email_broadcast_stats_template') }}</li>
+          <li>{{ tr('admin_email_broadcast_stats_queued') }}</li>
+          <li>{{ tr('admin_email_broadcast_stats_skipped_no_email') }}</li>
+          <li>{{ tr('admin_email_broadcast_stats_duplicates_removed') }}</li>
+          <li>{{ tr('admin_email_broadcast_stats_candidates') }}</li>
         </ul>
       </div>
     </template>
@@ -379,9 +379,9 @@ watch(() => props.defaultSubTab, (val) => {
     <template v-else>
       <div class="card">
         <div class="card-header">
-          <h3>Vorlagen</h3>
+          <h3>{{ tr('admin_email_broadcast_templates_tab') }}</h3>
           <details v-if="placeholders.length" class="placeholder-info">
-            <summary>Platzhalter anzeigen</summary>
+            <summary>{{ tr('admin_email_broadcast_placeholder_info_title') }}</summary>
             <div class="placeholder-list">
               <code v-for="token in placeholders" :key="token">{{ token }}</code>
             </div>
@@ -396,7 +396,7 @@ watch(() => props.defaultSubTab, (val) => {
           enable-search
           :page-size="10"
           persist-key="admin-email-templates"
-          empty-text="Keine Vorlagen vorhanden."
+          :empty-text="tr('admin_email_broadcast_empty_templates_text')"
           @refresh="loadTemplates"
         >
           <template #cell-name="{ row }">
@@ -404,8 +404,8 @@ watch(() => props.defaultSubTab, (val) => {
           </template>
           <template #cell-subject="{ row }">
             <div class="with-placeholder-icon">
-              <input v-model="row.subject" :disabled="!canManageTemplates" @change="saveTemplate(row)" :title="placeholderText || 'Unterstützt Platzhalter'" />
-              <span class="placeholder-indicator" :title="placeholderText || 'Unterstützt Platzhalter'" aria-hidden="true">⧉</span>
+              <input v-model="row.subject" :disabled="!canManageTemplates" @change="saveTemplate(row)" :title="placeholderText || tr('admin_email_broadcast_columns_placeholder')" />
+              <span class="placeholder-indicator" :title="placeholderText || tr('admin_email_broadcast_columns_placeholder')" aria-hidden="true">⧉</span>
             </div>
           </template>
           <template #cell-cc="{ row }">
@@ -416,48 +416,48 @@ watch(() => props.defaultSubTab, (val) => {
           </template>
           <template #cell-body="{ row }">
             <div class="with-placeholder-icon">
-              <textarea v-model="row.body" rows="4" class="body-input" :disabled="!canManageTemplates" @change="saveTemplate(row)" :title="placeholderText || 'Unterstützt Platzhalter'"></textarea>
-              <span class="placeholder-indicator" :title="placeholderText || 'Unterstützt Platzhalter'" aria-hidden="true">⧉</span>
+              <textarea v-model="row.body" rows="4" class="body-input" :disabled="!canManageTemplates" @change="saveTemplate(row)" :title="placeholderText || tr('admin_email_broadcast_columns_placeholder')"></textarea>
+              <span class="placeholder-indicator" :title="placeholderText || tr('admin_email_broadcast_columns_placeholder')" aria-hidden="true">⧉</span>
             </div>
           </template>
           <template #row-actions="{ row }">
             <IconButton variant="primary" icon="eye" v-if="canManageTemplates" label="Vorschau" @click="openPreview(row)" />
-            <IconButton variant="danger" icon="trash" v-if="canManageTemplates" label="Löschen" @click="deleteTemplate(row.id)" />
+            <IconButton variant="danger" icon="trash" v-if="canManageTemplates" :label="tr('admin_email_broadcast_columns_delete')" @click="deleteTemplate(row.id)" />
           </template>
         </AdminDataTable>
 
         <div v-if="canManageTemplates" class="template-card">
-          <h4>Neue Vorlage</h4>
-          <label>Name <input v-model="templateForm.name" /></label>
-          <label class="with-placeholder-icon">Betreff
+          <h4>{{ tr('admin_email_broadcast_new_template_section') }}</h4>
+          <label>{{ tr('admin_email_broadcast_name_label') }} <input v-model="templateForm.name" /></label>
+          <label class="with-placeholder-icon">{{ tr('admin_email_broadcast_subject_label') }}
             <div class="input-wrap">
-              <input v-model="templateForm.subject" :title="placeholderText || 'Unterstützt Platzhalter'" />
-              <span class="placeholder-indicator" :title="placeholderText || 'Unterstützt Platzhalter'" aria-hidden="true">⧉</span>
+              <input v-model="templateForm.subject" :title="placeholderText || tr('admin_email_broadcast_columns_placeholder')" />
+              <span class="placeholder-indicator" :title="placeholderText || tr('admin_email_broadcast_columns_placeholder')" aria-hidden="true">⧉</span>
             </div>
           </label>
-          <label class="with-placeholder-icon">CC (kommagetrennt)
+          <label class="with-placeholder-icon">{{ tr('admin_email_broadcast_cc_label') }}
             <div class="input-wrap">
-              <input v-model="templateForm.cc" :title="'Kopie an (optional, mehrere Adressen durch Komma getrennt)'" />
-              <span class="placeholder-indicator" :title="'Kopie an (optional, mehrere Adressen durch Komma getrennt)'" aria-hidden="true">⧉</span>
+              <input v-model="templateForm.cc" :title="tr('admin_email_broadcast_cc_title_hint')" />
+              <span class="placeholder-indicator" :title="tr('admin_email_broadcast_cc_title_hint')" aria-hidden="true">⧉</span>
             </div>
           </label>
-          <label class="with-placeholder-icon">BCC (kommagetrennt)
+          <label class="with-placeholder-icon">{{ tr('admin_email_broadcast_bcc_label') }}
             <div class="input-wrap">
-              <input v-model="templateForm.bcc" :title="'Blindkopie an (optional, mehrere Adressen durch Komma getrennt)'" />
-              <span class="placeholder-indicator" :title="'Blindkopie an (optional, mehrere Adressen durch Komma getrennt)'" aria-hidden="true">⧉</span>
+              <input v-model="templateForm.bcc" :title="tr('admin_email_broadcast_bcc_title_hint')" />
+              <span class="placeholder-indicator" :title="tr('admin_email_broadcast_bcc_title_hint')" aria-hidden="true">⧉</span>
             </div>
           </label>
-          <label class="with-placeholder-icon">Inhalt
+          <label class="with-placeholder-icon">{{ tr('admin_email_broadcast_body_label') }}
             <div class="input-wrap">
-              <textarea v-model="templateForm.body" rows="4" :title="placeholderText || 'Unterstützt Platzhalter'"></textarea>
-              <span class="placeholder-indicator" :title="placeholderText || 'Unterstützt Platzhalter'" aria-hidden="true">⧉</span>
+              <textarea v-model="templateForm.body" rows="4" :title="placeholderText || tr('admin_email_broadcast_columns_placeholder')"></textarea>
+              <span class="placeholder-indicator" :title="placeholderText || tr('admin_email_broadcast_columns_placeholder')" aria-hidden="true">⧉</span>
             </div>
           </label>
           <div class="template-actions">
-            <IconButton icon="plus" label="Anlegen" @click="createTemplate" />
+            <IconButton icon="plus" :label="tr('admin_email_broadcast_create_button')" @click="createTemplate" />
           </div>
         </div>
-        <p v-else class="hint">Vorlagen können nur von Admins bearbeitet oder angelegt werden.</p>
+        <p v-else class="hint">{{ tr('admin_email_broadcast_templates_hint') }}</p>
       </div>
     </template>
     

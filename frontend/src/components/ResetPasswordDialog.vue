@@ -1,18 +1,18 @@
 <template>
   <div class="modal-backdrop" @click.self="$emit('close')">
     <div class="modal">
-      <h3>Neues Kennwort für {{ user?.name || user?.email }}</h3>
+      <h3>{{ tr('reset_password_title', 'New password for {{ name }}', { name: user?.name || user?.email }) }}</h3>
       <form @submit.prevent="submit">
-        <label>Neues Kennwort:
+        <label>{{ tr('reset_password_new_label', 'New password:') }}
           <input v-model="password" type="password" required autocomplete="new-password" />
         </label>
-        <label>Wiederholen:
+        <label>{{ tr('reset_password_repeat_label', 'Repeat:') }}
           <input v-model="passwordRepeat" type="password" required autocomplete="new-password" />
         </label>
         <div v-if="error" class="error">{{ error }}</div>
         <div class="actions">
-          <IconButton icon="check" label="Speichern" type="submit" />
-          <IconButton icon="close" label="Abbrechen" variant="danger" type="button" @click="$emit('close')" />
+          <IconButton icon="check" :label="tr('reset_password_save', 'Save')" type="submit" />
+          <IconButton icon="close" :label="tr('reset_password_cancel', 'Cancel')" variant="danger" type="button" @click="$emit('close')" />
         </div>
       </form>
     </div>
@@ -22,6 +22,8 @@
 <script setup>
 import { ref, watch } from 'vue'
 import IconButton from './IconButton.vue'
+import { useTranslation } from '../composables/useTranslation'
+
 const props = defineProps({
   user: { type: Object, required: true },
   loading: Boolean
@@ -30,15 +32,16 @@ const emit = defineEmits(['submit', 'close'])
 const password = ref('')
 const passwordRepeat = ref('')
 const error = ref('')
+const { tr } = useTranslation()
 
 function submit() {
   error.value = ''
   if (!password.value || password.value.length < 6) {
-    error.value = 'Kennwort zu kurz.'
+    error.value = tr('reset_password_too_short', 'Password too short.')
     return
   }
   if (password.value !== passwordRepeat.value) {
-    error.value = 'Kennwörter stimmen nicht überein.'
+    error.value = tr('reset_password_mismatch', 'Passwords do not match.')
     return
   }
   emit('submit', password.value)

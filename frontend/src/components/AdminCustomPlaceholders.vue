@@ -1,7 +1,7 @@
 
 <template>
   <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-    <IconButton icon="plus" label="Platzhalter hinzufügen" variant="success" @click="openAddDialog" />
+    <IconButton icon="plus" :label="tr('admin_custom_placeholders_button_add')" variant="success" @click="openAddDialog" />
   </div>
   <AdminDataTable
     :columns="columns"
@@ -12,29 +12,29 @@
     :creatable="false"
     @update="openEditDialog"
     @delete="onDelete"
-    title="Benutzerdefinierte Platzhalter"
+    :title="tr('admin_custom_placeholders_title')"
   >
     <template #row-actions="{ row }">
-      <IconButton icon="pencil" label="Bearbeiten" size="sm" variant="ghost" @click="openEditDialog(row)" />
-      <IconButton icon="trash" label="Löschen" size="sm" variant="ghost" @click="onDelete(row)" />
+      <IconButton icon="pencil" :label="tr('icon_buttons_edit')" size="sm" variant="ghost" @click="openEditDialog(row)" />
+      <IconButton icon="trash" :label="tr('icon_buttons_delete')" size="sm" variant="ghost" @click="onDelete(row)" />
     </template>
   </AdminDataTable>
 
   <div v-if="showDialog" class="modal-backdrop" @click.self="closeDialog">
     <div class="modal">
-      <h3>{{ dialogMode === 'add' ? 'Platzhalter hinzufügen' : 'Platzhalter bearbeiten' }}</h3>
-      <label class="form-field">Platzhalter-Key
+      <h3>{{ dialogMode === 'add' ? tr('admin_custom_placeholders_dialog_title_add') : tr('admin_custom_placeholders_dialog_title_edit') }}</h3>
+      <label class="form-field">{{ tr('admin_custom_placeholders_key_label') }}
         <input v-model="dialogData.key" :disabled="dialogMode === 'edit'" required />
       </label>
-      <label class="form-field">Wert
+      <label class="form-field">{{ tr('admin_custom_placeholders_value_label') }}
         <textarea v-model="dialogData.value" rows="6" style="resize:vertical;width:100%" required></textarea>
       </label>
-      <label class="form-field">Beschreibung
+      <label class="form-field">{{ tr('admin_custom_placeholders_description_label') }}
         <input v-model="dialogData.description" />
       </label>
       <div class="modal-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-        <IconButton icon="check" label="Speichern" @click="saveDialog" :disabled="!dialogData.key || !dialogData.value" />
-        <IconButton icon="close" label="Abbrechen" variant="danger" @click="closeDialog" />
+        <IconButton icon="check" :label="tr('icon_buttons_save')" @click="saveDialog" :disabled="!dialogData.key || !dialogData.value" />
+        <IconButton icon="close" :label="tr('icon_buttons_cancel')" variant="danger" @click="closeDialog" />
       </div>
     </div>
   </div>
@@ -47,11 +47,14 @@ import AdminDataTable from './AdminDataTable.vue';
 import IconButton from './IconButton.vue';
 import axios from 'axios';
 import { buildAdminHeaders } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
+
+const { tr } = useTranslation()
 
 const columns = [
-  { key: 'key', label: 'Platzhalter', required: true },
-  { key: 'value', label: 'Wert', required: true },
-  { key: 'description', label: 'Beschreibung' },
+  { key: 'key', label: tr('admin_custom_placeholders_columns_key'), required: true },
+  { key: 'value', label: tr('admin_custom_placesholders_columns_value'), required: true },
+  { key: 'description', label: tr('admin_custom_placeholders_columns_description') },
 ];
 
 const rows = ref([]);

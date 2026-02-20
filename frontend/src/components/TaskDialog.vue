@@ -1,80 +1,80 @@
 <template>
   <div class="task-dialog">
-    <h3>{{ task && task.id ? 'Aufgabe bearbeiten' : 'Neue Aufgabe' }}</h3>
+    <h3>{{ task && task.id ? tr('scheduled_tasks_task_dialog_edit_title') : tr('scheduled_tasks_task_dialog_new_title') }}</h3>
     <form @submit.prevent="submit">
       <div>
-        <label>Typ:
-          <span class="help-inline">Wählen Sie die Art der geplanten Aufgabe.</span>
+        <label>{{ tr('scheduled_tasks_column_type') }}:
+          <span class="help-inline">{{ tr('scheduled_tasks_help_inline_absolute') }}</span>
         </label>
         <select v-model="form.type" required>
-          <option value="">Bitte wählen…</option>
-          <option value="attendees_email_broadcast">E-Mail an Teilnehmer</option>
-          <option value="waitlist_email_broadcast">E-Mail an Warteliste</option>
-          <option value="custom_email_broadcast">E-Mail an benutzerdefinierte Adressen</option>
-          <option value="change_setting">Einstellung ändern</option>
-          <option value="webhook">Webhook</option>
+          <option value="">{{ tr('scheduled_tasks_select_placeholder') }}</option>
+          <option value="attendees_email_broadcast">{{ tr('scheduled_tasks_type_attendees_email_broadcast') }}</option>
+          <option value="waitlist_email_broadcast">{{ tr('scheduled_tasks_type_waitlist_email_broadcast') }}</option>
+          <option value="custom_email_broadcast">{{ tr('scheduled_tasks_type_custom_email_broadcast') }}</option>
+          <option value="change_setting">{{ tr('scheduled_tasks_type_change_setting') }}</option>
+          <option value="webhook">{{ tr('scheduled_tasks_type_webhook') }}</option>
         </select>
       </div>
       <!-- Scheduling Mode Selection -->
       <div>
-        <label>Zeitplanung:</label>
+        <label>{{ tr('scheduled_tasks_scheduling_mode_absolute') }}:</label>
         <select v-model="schedulingMode">
-          <option value="absolute">Einmalig (festes Datum/Uhrzeit)</option>
-          <option value="relative">Relativ zu Event/Reservierung</option>
-          <option value="cron">Cron-basiert (wiederholend)</option>
+          <option value="absolute">{{ tr('scheduled_tasks_scheduling_mode_absolute') }}</option>
+          <option value="relative">{{ tr('scheduled_tasks_scheduling_mode_relative') }}</option>
+          <option value="cron">{{ tr('scheduled_tasks_scheduling_mode_cron') }}</option>
         </select>
       </div>
 
       <!-- Absolute scheduling -->
       <div v-if="schedulingMode === 'absolute'">
-        <label>Ausführungszeit (run_at):</label>
+        <label>{{ tr('scheduled_tasks_label_run_at') }}:</label>
         <input v-model="form.run_at" type="datetime-local" />
-        <span class="help-inline">Die Aufgabe wird genau einmal zu diesem Zeitpunkt ausgeführt.</span>
+        <span class="help-inline">{{ tr('scheduled_tasks_help_inline_absolute') }}</span>
       </div>
 
       <!-- Relative scheduling -->
       <div v-if="schedulingMode === 'relative'">
-        <label>Referenz-Typ:</label>
+        <label>{{ tr('scheduled_tasks_label_reference_type') }}:</label>
         <select v-model="form.reference_type">
-          <option value="event">Event</option>
-          <option value="reservation">Reservierung</option>
-          <option value="user">Benutzer</option>
+          <option value="event">{{ tr('scheduled_tasks_reference_type_event') }}</option>
+          <option value="reservation">{{ tr('scheduled_tasks_reference_type_reservation') }}</option>
+          <option value="user">{{ tr('scheduled_tasks_reference_type_user') }}</option>
         </select>
 
         <div v-if="referenceObjects.length" style="margin-top:0.5em;">
-          <label>Referenz-Objekt:</label>
+          <label>{{ tr('scheduled_tasks_label_reference_object') }}:</label>
           <select v-model="form.reference_id">
-            <option :value="null">Alle Objekte</option>
+            <option :value="null">{{ tr('scheduled_tasks_all_objects') }}</option>
             <option v-for="obj in referenceObjects" :key="obj.id" :value="obj.id">
               {{ objDisplay(obj) }}
             </option>
           </select>
         </div>
 
-        <label style="margin-top:0.5em;">Relativ zu:</label>
+        <label style="margin-top:0.5em;">{{ tr('scheduled_tasks_label_relative_to') }}:</label>
         <select v-model="form.relative_to">
-          <option value="">Bitte wählen…</option>
+          <option value="">{{ tr('scheduled_tasks_select_placeholder') }}</option>
           <option v-for="field in relativeFields" :key="field" :value="field">
             {{ field }}
           </option>
         </select>
 
-        <label style="margin-top:0.5em;">Offset (Minuten):</label>
+        <label style="margin-top:0.5em;">{{ tr('scheduled_tasks_label_offset_minutes') }}:</label>
         <input v-model.number="form.relative_offset_minutes" type="number" />
-        <span class="help-inline">Zeitverschiebung in Minuten (z.B. <code>-180</code> für 3 Stunden vor dem Ereignis).</span>
+        <span class="help-inline">{{ tr('scheduled_tasks_help_inline_offset') }}</span>
       </div>
 
       <!-- Cron scheduling -->
       <div v-if="schedulingMode === 'cron'">
-        <label>Cron-Ausdruck:</label>
+        <label>{{ tr('scheduled_tasks_label_cron_expression') }}:</label>
         <input v-model="form.cron_expression" type="text" placeholder="* * * * *" />
-        <span class="help-inline">Cron-Syntax (5 Felder: Minute Stunde Tag Monat Wochentag). Beispiel: <code>0 * * * *</code> für jede Stunde.</span>
+        <span class="help-inline">{{ tr('scheduled_tasks_help_inline_cron_syntax') }}</span>
         
         <!-- Cron Examples Dropdown -->
         <div style="margin-top:0.5em;">
-          <label>Cron-Beispiele:</label>
+          <label>{{ tr('scheduled_tasks_label_cron_examples') }}:</label>
           <select @change="selectCronExample($event)" style="width:100%;">
-            <option value="">Bitte wählen…</option>
+            <option value="">{{ tr('scheduled_tasks_select_placeholder') }}</option>
             <option v-for="example in cronExamples" :key="example.label" :value="example.value">
               {{ example.label }}
             </option>
@@ -82,19 +82,19 @@
         </div>
         
         <div v-if="form.cron_expression" style="margin-top:0.5em;">
-          <label>Nächste Ausführung:</label>
+          <label>{{ tr('scheduled_tasks_label_next_run') }}:</label>
           <input :value="nextCronRunAt" type="text" readonly />
-          <button type="button" @click="calculateNextCronRuns" class="secondary">Berechnen</button>
+          <button type="button" @click="calculateNextCronRuns" class="secondary">{{ tr('calculate') }}</button>
         </div>
       </div>
 
       <div v-if="form.type === 'change_setting'">
-        <label>Einstellungsschlüssel:</label>
+        <label>{{ tr('admin_settings_key') }}:</label>
         <select v-model="selectedSettingKey" required>
-          <option value="">Bitte wählen…</option>
+          <option value="">{{ tr('scheduled_tasks_select_placeholder') }}</option>
           <option v-for="key in settingKeys" :key="key" :value="key">{{ key }}</option>
         </select>
-        <label>Neuer Wert:</label>
+        <label>{{ tr('new_value') }}:</label>
         <template v-if="currentSettingField.type === 'boolean'">
           <input v-model="settingValue" type="checkbox" :true-value="true" :false-value="false" />
         </template>
@@ -118,46 +118,46 @@
         </template>
       </div>
       <div v-if="form.type === 'attendees_email_broadcast' || form.type === 'waitlist_email_broadcast' || form.type === 'custom_email_broadcast'">
-        <label>E-Mail-Vorlage:</label>
+        <label>{{ tr('email_template_name') }}:</label>
         <select v-model.number="selectedTemplateId" required>
-          <option value="">Bitte wählen…</option>
+          <option value="">{{ tr('scheduled_tasks_select_placeholder') }}</option>
           <option v-for="tpl in emailTemplates" :key="tpl.id" :value="tpl.id">
-            {{ tpl.name || tpl.subject || ('Vorlage #' + tpl.id) }} (ID: {{ tpl.id }})
+            {{ tpl.name || tpl.subject || (tr('email_template_name') + ' #' + tpl.id) }} (ID: {{ tpl.id }})
           </option>
         </select>
       </div>
       <div v-if="form.type === 'custom_email_broadcast'">
-        <label>Empfänger (eine Adresse pro Zeile, optional mit Name):</label>
+        <label>{{ tr('scheduled_tasks_label_reference_object') }} (eine Adresse pro Zeile, optional mit Name):</label>
         <textarea v-model="customEmails" placeholder="max@example.com\nAnna <anna@example.com>\n..."></textarea>
       </div>
       <div v-if="form.type === 'webhook'">
-        <label>Webhook-Vorlage:</label>
+        <label>{{ tr('admin_webhook_templates_title') }}:</label>
         <select v-model.number="selectedWebhookTemplateId" required>
-          <option value="">Bitte wählen…</option>
+          <option value="">{{ tr('scheduled_tasks_select_placeholder') }}</option>
           <option v-for="tpl in webhookTemplates" :key="tpl.id" :value="tpl.id">
-            {{ tpl.name || ('Webhook #' + tpl.id) }} (ID: {{ tpl.id }})
+            {{ tpl.name || (tr('admin_webhook_templates_title') + ' #' + tpl.id) }} (ID: {{ tpl.id }})
           </option>
         </select>
       </div>
       <div>
-        <label>Bereits ausgeführt:</label>
+        <label>{{ tr('scheduled_tasks_label_executed') }}:</label>
         <input v-model="form.executed" type="checkbox" />
       </div>
       <div>
-        <label>Einmalig ausführen (danach deaktivieren):
-          <span class="help-inline">Wenn aktiviert, wird die Aufgabe nach der ersten Ausführung automatisch deaktiviert.</span>
+        <label>{{ tr('scheduled_tasks_label_run_once') }}:
+          <span class="help-inline">{{ tr('scheduled_tasks_help_inline_run_once') }}</span>
         </label>
         <input v-model="form.run_once" type="checkbox" />
       </div>
       <div>
-        <label>Überfällige Ausführung überspringen:
-          <span class="help-inline">Wenn aktiviert, wird die Aufgabe nicht ausgeführt, wenn der geplante Zeitpunkt bereits überschritten ist (z.B. nach einem Serverausfall).</span>
+        <label>{{ tr('scheduled_tasks_label_skip_if_overdue') }}:
+          <span class="help-inline">{{ tr('scheduled_tasks_help_inline_skip_if_overdue') }}</span>
         </label>
         <input v-model="form.skip_if_overdue" type="checkbox" />
       </div>
       <div style="margin-top:1em; display:flex; gap:0.5em; justify-content:flex-end;">
-        <IconButton icon="check" label="Speichern" type="submit" />
-        <IconButton icon="close" label="Abbrechen" variant="danger" type="button" @click="$emit('close')" />
+        <IconButton icon="check" label="{{ tr('admin_setting_submit_button_text') }}" type="submit" />
+        <IconButton icon="close" label="{{ tr('cancel') }}" variant="danger" type="button" @click="$emit('close')" />
       </div>
     </form>
   </div>
@@ -170,6 +170,7 @@ import IconButton from './IconButton.vue'
 import axios from 'axios'
 import { settingsFields } from './settingsFields.js'
 import { buildAdminHeaders } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
 
 function apiConfig() {
   return { headers: buildAdminHeaders() };
@@ -177,6 +178,7 @@ function apiConfig() {
 const props = defineProps({ task: Object })
 const emit = defineEmits(['save', 'close'])
 
+const { tr } = useTranslation()
 const schedulingMode = ref('absolute')
 const nextCronRunAt = ref('')
 const cronRuns = ref([])
@@ -194,11 +196,11 @@ watch(schedulingMode, (newMode) => {
 
 // Cron expression examples
 const cronExamples = [
-  { label: 'Jede Minute', value: '* * * * *' },
-  { label: 'Jede Stunde (zur vollen Stunde)', value: '0 * * * *' },
-  { label: 'Täglich um 08:00 Uhr', value: '0 8 * * *' },
-  { label: 'Wöchentlich am Montag um 14:30', value: '30 14 * * 1' },
-  { label: 'Monatlich am 1. um 00:00', value: '0 0 1 * *' },
+  { label: tr('scheduled_tasks_cron_example_minute'), value: '* * * * *' },
+  { label: tr('scheduled_tasks_cron_example_hourly'), value: '0 * * * *' },
+  { label: tr('scheduled_tasks_cron_example_daily'), value: '0 8 * * *' },
+  { label: tr('scheduled_tasks_cron_example_weekly'), value: '30 14 * * 1' },
+  { label: tr('scheduled_tasks_cron_example_monthly'), value: '0 0 1 * *' },
 ]
 
 const form = ref({
@@ -293,7 +295,7 @@ function calculateNextCronRuns() {
       })
       .catch(() => {
         // Fallback: Zeige die Cron-Expression an
-        nextCronRunAt.value = form.value.cron_expression + ' (Berechnung fehlgeschlagen)'
+        nextCronRunAt.value = form.value.cron_expression + tr('scheduled_tasks_calculation_failed_fallback')
       })
   } catch (e) {
     console.error('Error calculating cron runs:', e)
@@ -495,7 +497,7 @@ function submit() {
   } else if (schedulingMode.value === 'cron') {
     // Cron Expression direkt übertragen
     if (!payload.cron_expression) {
-      alert('Bitte geben Sie einen gültigen Cron-Ausdruck ein.')
+      alert(tr('scheduled_tasks_cron_expression_required'))
       return
     }
   } else {

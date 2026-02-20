@@ -1,6 +1,9 @@
 <script setup>
 import { computed, onMounted, ref, watch, onUnmounted } from 'vue'
 import IconButton from './IconButton.vue'
+import { useTranslation } from '../composables/useTranslation'
+
+const { tr } = useTranslation()
 
 const props = defineProps({
   columns: { type: Array, default: () => [] },
@@ -14,7 +17,7 @@ const props = defineProps({
   clientSort: { type: Boolean, default: true },
   initialHiddenColumns: { type: Array, default: () => [] },
   persistKey: { type: String, default: null },
-  emptyText: { type: String, default: 'Keine Einträge vorhanden.' },
+  emptyText: { type: String, default: tr('admin_data_table_empty_text') },
   rowDraggable: { type: Boolean, default: false },
   autoRefreshDefaultEnabled: { type: Boolean, default: false },
   autoRefreshDefaultIntervalMs: { type: Number, default: 10000 },
@@ -223,7 +226,7 @@ function onDrop(globalIndex) {
       </div>
       <div class="toolbar-right">
         <div v-if="enableSearch" class="search">
-          <input v-model="search" placeholder="Suchen..." />
+          <input v-model="search" :placeholder="tr('admin_data_table_search_placeholder')" />
         </div>
         <div class="toolbar-icons">
           <div class="auto-refresh">
@@ -233,16 +236,16 @@ function onDrop(globalIndex) {
               variant="ghost"
               :aria-pressed="autoRefreshEnabled"
               :class="{ active: autoRefreshEnabled }"
-              label="Auto-Refresh umschalten"
+              :label="tr('admin_data_table_auto_refresh_toggle')"
               @click="autoRefreshEnabled = !autoRefreshEnabled"
             />
             <details class="dropdown interval-picker">
               <summary>
-                <IconButton as="span" icon="clock" size="sm" variant="ghost" label="Intervall wählen" />
+                <IconButton as="span" icon="clock" size="sm" variant="ghost" :label="tr('admin_data_table_interval_select')" />
               </summary>
               <div class="dropdown-panel">
                 <label>
-                  Intervall
+                  {{ tr('admin_data_table_interval_label') }}
                   <select v-model.number="autoRefreshInterval" :disabled="!autoRefreshEnabled">
                     <option v-for="ms in autoRefreshIntervals" :key="ms" :value="ms">{{ Math.round(ms/1000) }}s</option>
                   </select>
@@ -252,7 +255,7 @@ function onDrop(globalIndex) {
           </div>
           <details class="column-toggle" v-if="columns.length">
             <summary>
-              <IconButton as="span" icon="columns" size="sm" variant="ghost" label="Spalten ein-/ausblenden" />
+              <IconButton as="span" icon="columns" size="sm" variant="ghost" :label="tr('admin_data_table_columns_toggle')" />
             </summary>
             <div class="column-list">
               <label v-for="col in columns" :key="col.key">
@@ -260,7 +263,7 @@ function onDrop(globalIndex) {
               </label>
             </div>
           </details>
-          <IconButton icon="refresh" size="sm" label="Neu laden" variant="ghost" @click="triggerRefresh(false)" :disabled="loading" />
+          <IconButton icon="refresh" size="sm" :label="tr('admin_data_table_loading')" variant="ghost" @click="triggerRefresh(false)" :disabled="loading" />
         </div>
       </div>
     </div>
@@ -280,7 +283,7 @@ function onDrop(globalIndex) {
         </thead>
         <tbody>
           <tr v-if="loading">
-            <td :colspan="displayColumns.length + (selectable ? 1 : 0) + ($slots['row-actions'] ? 1 : 0) + (rowDraggable ? 1 : 0)">Lade...</td>
+            <td :colspan="displayColumns.length + (selectable ? 1 : 0) + ($slots['row-actions'] ? 1 : 0) + (rowDraggable ? 1 : 0)">{{ tr('admin_data_table_loading') }}</td>
           </tr>
           <tr v-else-if="!pagedRows.length">
             <td :colspan="displayColumns.length + (selectable ? 1 : 0) + ($slots['row-actions'] ? 1 : 0) + (rowDraggable ? 1 : 0)">{{ emptyText }}</td>
@@ -295,7 +298,7 @@ function onDrop(globalIndex) {
             @drop.prevent="onDrop((page - 1) * pageSize + idx)"
             :class="{ draggable: rowDraggable }"
           >
-            <td v-if="rowDraggable" class="drag-col" title="Zum Verschieben ziehen">⋮⋮</td>
+            <td v-if="rowDraggable" class="drag-col" :title="tr('admin_data_table_drag_hint')">⋮⋮</td>
             <td v-if="selectable"><input type="checkbox" :checked="selected.includes(row[rowKey])" @change="toggleRow(row[rowKey])" /></td>
             <td v-for="col in displayColumns" :key="col.key">
               <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
@@ -311,10 +314,10 @@ function onDrop(globalIndex) {
     </div>
 
     <div class="table-footer" v-if="pageCount > 1">
-      <div>Seite {{ page }} / {{ pageCount }}</div>
+      <div>{{ tr('admin_data_table_page_info', { page, pageCount }) }}</div>
       <div class="pager">
-        <IconButton icon="chevronLeft" size="sm" variant="ghost" label="Zurück" @click="page = Math.max(1, page - 1)" :disabled="page === 1" />
-        <IconButton icon="chevronRight" size="sm" variant="ghost" label="Weiter" @click="page = Math.min(pageCount, page + 1)" :disabled="page === pageCount" />
+        <IconButton icon="chevronLeft" size="sm" variant="ghost" :label="tr('admin_data_table_pagination_prev')" @click="page = Math.max(1, page - 1)" :disabled="page === 1" />
+        <IconButton icon="chevronRight" size="sm" variant="ghost" :label="tr('admin_data_table_pagination_next')" @click="page = Math.min(pageCount, page + 1)" :disabled="page === pageCount" />
       </div>
     </div>
   </div>

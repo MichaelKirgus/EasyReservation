@@ -22,17 +22,17 @@ const workerLoading = ref(false)
 const workerDriver = ref('')
 const workerTtl = ref(0)
 const workerColumns = [
-  { key: 'worker_id', label: 'Worker-ID', sortable: true },
-  { key: 'status', label: 'Status', sortable: true },
-  { key: 'ip', label: 'IP', sortable: true },
-  { key: 'last_heartbeat_at', label: 'Letzter Heartbeat', sortable: true },
-  { key: 'memory_mb', label: 'Speicher (MB)', sortable: true },
-  { key: 'redis_latency_ms', label: 'Redis-Latenz (ms)', sortable: true },
-  { key: 'db_latency_ms', label: 'DB-Latenz (ms)', sortable: true },
-  { key: 'total_jobs', label: 'Jobs gesamt', sortable: true },
-  { key: 'last_job_at', label: 'Letzter Job', sortable: true },
-  { key: 'last_job_duration_ms', label: 'Dauer (ms)', sortable: true },
-  { key: 'active_jobs', label: 'Aktive Jobs' },
+  { key: 'worker_id', label: tr('form_field_manager_column_key'), sortable: true },
+  { key: 'status', label: tr('diagnostics_status'), sortable: true },
+  { key: 'ip', label: tr('ip'), sortable: true },
+  { key: 'last_heartbeat_at', label: tr('diagnostics_last_heartbeat'), sortable: true },
+  { key: 'memory_mb', label: tr('diagnostics_memory_mb'), sortable: true },
+  { key: 'redis_latency_ms', label: tr('diagnostics_redis_latency_ms'), sortable: true },
+  { key: 'db_latency_ms', label: tr('diagnostics_db_latency_ms'), sortable: true },
+  { key: 'total_jobs', label: tr('diagnostics_total_jobs'), sortable: true },
+  { key: 'last_job_at', label: tr('diagnostics_last_job_at'), sortable: true },
+  { key: 'last_job_duration_ms', label: tr('diagnostics_last_job_duration_ms'), sortable: true },
+  { key: 'active_jobs', label: tr('diagnostics_active_jobs') },
 ]
 
 
@@ -43,7 +43,7 @@ const loading = ref(false)
 const message = ref('')
 const error = ref('')
 const diagnostics = ref(null)
-const frontendVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unbekannt'
+const frontendVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : tr('unknown')
 const autoRefreshEnabled = ref(Boolean(localStorage.getItem('admin_diag_autorefresh') === '1'));
 const refreshMs = 2000
 let timerId = null
@@ -55,12 +55,12 @@ const auditLogLoading = ref(false)
 const auditLogError = ref('')
 
 const jobColumns = [
-  { key: 'finished_at', label: 'Fertig', sortable: true },
-  { key: 'job', label: 'Job', sortable: true },
-  { key: 'queue', label: 'Queue', sortable: true },
-  { key: 'status', label: 'Status', sortable: true },
-  { key: 'runtime_ms', label: 'Dauer', sortable: true },
-  { key: 'message', label: 'Nachricht', sortable: false },
+  { key: 'finished_at', label: tr('diagnostics_finished'), sortable: true },
+  { key: 'job', label: tr('job'), sortable: true },
+  { key: 'queue', label: tr('queue'), sortable: true },
+  { key: 'status', label: tr('diagnostics_status'), sortable: true },
+  { key: 'runtime_ms', label: tr('diagnostics_runtime_ms'), sortable: true },
+  { key: 'message', label: tr('diagnostics_message'), sortable: false },
 ]
 
 function setMessage(msg) { message.value = msg; error.value = '' }
@@ -96,7 +96,7 @@ async function loadAuditLogCount() {
   auditLogError.value = ''
   try {
     const res = await fetchWithAuth('audit-log/count')
-    if (!res.ok) throw new Error('Fehler beim Laden der Audit-Log-Anzahl')
+    if (!res.ok) throw new Error(tr('diagnostics_error_loading_audit_log_count'))
     const data = await res.json()
     auditLogCount.value = data.count
   } catch (e) {
@@ -116,7 +116,7 @@ async function loadWorkerStats(opts = {}) {
     workerDriver.value = data.driver || ''
     workerTtl.value = data.ttl || 0
   } catch (e) {
-    if (!opts.auto) setError('Worker-Stats: ' + e)
+    if (!opts.auto) setError(tr('diagnostics_worker_stats_error') + ' ' + e)
   } finally {
     workerLoading.value = false
   }
@@ -193,17 +193,17 @@ onUnmounted(() => {
 <template>
   <div class="stack">
     <div class="top-bar">
-      <h3>Diagnose</h3>
+      <h3>{{ tr('admin_diagnostics_title') }}</h3>
       <div class="actions">
         <IconButton
           icon="repeat"
           size="sm"
           :variant="autoRefreshEnabled ? 'primary' : 'ghost'"
           :aria-pressed="autoRefreshEnabled"
-          label="Automatisch aktualisieren (2s)"
+          :label="tr('diagnostics_auto_refresh')"
           @click="autoRefreshEnabled = !autoRefreshEnabled"
         />
-        <IconButton icon="refresh" size="sm" label="Aktualisieren" @click="loadDiagnostics" :disabled="loading" />
+        <IconButton icon="refresh" size="sm" :label="tr('diagnostics_refresh')" @click="loadDiagnostics" :disabled="loading" />
       </div>
     </div>
 
@@ -212,102 +212,102 @@ onUnmounted(() => {
 
     <div class="card">
       <div class="card-header">
-        <h4>System</h4>
-        <span class="muted" v-if="diagnostics?.timestamp">Stand: {{ formatDateTime(diagnostics.timestamp) }}</span>
+        <h4>{{ tr('diagnostics_system') }}</h4>
+        <span class="muted" v-if="diagnostics?.timestamp">{{ tr('diagnostics_timestamp') }}: {{ formatDateTime(diagnostics.timestamp) }}</span>
       </div>
       <div class="info-grid" v-if="diagnostics?.app">
         <div class="info-item">
-          <div class="label">App</div>
+          <div class="label">{{ tr('diagnostics_app_name') }}</div>
           <div class="value">{{ diagnostics.app.name }} ({{ diagnostics.app.environment }})</div>
         </div>
         <div class="info-item">
-          <div class="label">Frontend-Version</div>
+          <div class="label">{{ tr('diagnostics_frontend_version') }}</div>
           <div class="value">{{ frontendVersion }}</div>
         </div>
         <div class="info-item">
-          <div class="label">Backend-Version</div>
+          <div class="label">{{ tr('diagnostics_backend_version') }}</div>
           <div class="value">{{ diagnostics.app.app_version }}</div>
         </div>
         <div class="info-item">
-          <div class="label">PHP</div>
+          <div class="label">{{ tr('diagnostics_php_version') }}</div>
           <div class="value">{{ diagnostics.app.php_version }}</div>
         </div>
         <div class="info-item">
-          <div class="label">Laravel</div>
+          <div class="label">{{ tr('diagnostics_laravel_version') }}</div>
           <div class="value">{{ diagnostics.app.laravel_version }}</div>
         </div>
         <div class="info-item">
-          <div class="label">Queue</div>
+          <div class="label">{{ tr('diagnostics_queue_connection') }}</div>
           <div class="value">{{ diagnostics.app.queue_connection }}</div>
         </div>
         <div class="info-item">
-          <div class="label">Cache</div>
+          <div class="label">{{ tr('diagnostics_cache_store') }}</div>
           <div class="value">{{ diagnostics.app.cache_store }}</div>
         </div>
         <div class="info-item">
-          <div class="label">Laufende Jobs</div>
+          <div class="label">{{ tr('diagnostics_active_jobs') }}</div>
           <div class="value">{{ workerStatus.reduce((sum, w) => sum + (Array.isArray(w.active_jobs) ? w.active_jobs.length : 0), 0) }}</div>
         </div>
         <div class="info-item">
-          <div class="label">Aktive Worker</div>
+          <div class="label">{{ tr('diagnostics_active_workers') }}</div>
           <div class="value">{{ workerStatus.filter(w => w.status === 'online').length }} / {{ workerStatus.length }}</div>
         </div>
         <div class="info-item">
-          <div class="label">Queue-Typ</div>
+          <div class="label">{{ tr('diagnostics_queue_type') }}</div>
           <div class="value">{{ diagnostics.queue.connection }}</div>
         </div>
         <div class="info-item">
-          <div class="label">Serverzeit</div>
+          <div class="label">{{ tr('diagnostics_server_time') }}</div>
           <div class="value">{{ formatDateTime(diagnostics?.server_time) }}</div>
         </div>
         <div class="info-item">
-          <div class="label">Server-Zeitzone</div>
+          <div class="label">{{ tr('diagnostics_server_timezone') }}</div>
           <div class="value">{{ diagnostics?.server_timezone }}</div>
         </div>
         <div class="info-item">
-          <div class="label">Lokale Zeit (Client)</div>
+          <div class="label">{{ tr('diagnostics_client_time') }}</div>
           <div class="value">{{ formatDateTime(clientTime) }}</div>
         </div>
         <div class="info-item">
-          <div class="label">Lokale Zeitzone (Client)</div>
+          <div class="label">{{ tr('diagnostics_client_timezone') }}</div>
           <div class="value">{{ clientTimezone }}</div>
         </div>
        </div>
-      <p v-else class="muted">Keine Daten geladen.</p>
+      <p v-else class="muted">{{ tr('diagnostics_no_data_loaded') }}</p>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <h4>Scheduler</h4>
+        <h4>{{ tr('diagnostics_scheduler') }}</h4>
       </div>
       <div class="info-grid" v-if="diagnostics?.scheduler">
         <div class="info-item">
-          <div class="label">Letzte Ausführung</div>
+          <div class="label">{{ tr('diagnostics_last_execution') }}</div>
           <div class="value">{{ formatDateTime(diagnostics.scheduler.last_executed_at) }}</div>
         </div>
         <div class="info-item">
-          <div class="label">Nächste geplante Ausführung</div>
+          <div class="label">{{ tr('diagnostics_next_scheduled_execution') }}</div>
           <div class="value">{{ formatDateTime(diagnostics.scheduler.next_run_at) }}</div>
         </div>
         <div class="info-item">
-          <div class="label">Status</div>
+          <div class="label">{{ tr('diagnostics_status') }}</div>
           <div class="value">
             <span :class="['pill', diagnostics.scheduler.active ? 'pill-ok' : 'pill-failed']">
-              {{ diagnostics.scheduler.active ? 'aktiv' : 'inaktiv' }}
+              {{ diagnostics.scheduler.active ? tr('diagnostics_active') : tr('diagnostics_inactive') }}
             </span>
           </div>
         </div>
       </div>
-      <p v-else class="muted">Keine Scheduler-Daten vorhanden.</p>
+      <p v-else class="muted">{{ tr('diagnostics_no_scheduler_data') }}</p>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <h4>Latenz</h4>
+        <h4>{{ tr('diagnostics_latency') }}</h4>
       </div>
       <div class="latency-grid">
         <div class="latency-item" v-for="(entry, key) in diagnostics?.latency || {}" :key="key" :class="statusClass(entry.status)">
-          <div class="label">{{ key.toUpperCase() }}</div>
+          <div class="label">{{ tr('diagnostics_latency_' + key.toLowerCase()) || key.toUpperCase() }}</div>
           <div class="value">{{ latencyLabel(entry) }}</div>
           <div class="muted" v-if="entry?.error">{{ entry.error }}</div>
         </div>
@@ -316,19 +316,19 @@ onUnmounted(() => {
 
     <div class="card">
       <div class="card-header">
-        <h4>Audit-Log</h4>
+        <h4>{{ tr('diagnostics_audit_log') }}</h4>
       </div>
       <div class="info-grid">
         <div class="info-item">
-          <div class="label">Aktiviert</div>
+          <div class="label">{{ tr('diagnostics_enabled') }}</div>
           <div class="value" :style="{ color: auditLogEnabled ? '#15803d' : '#b91c1c' }">
-            {{ auditLogEnabled ? 'Ja' : 'Nein' }}
+            {{ auditLogEnabled ? tr('diagnostics_yes') : tr('diagnostics_no') }}
           </div>
         </div>
         <div class="info-item">
-          <div class="label">Einträge</div>
+          <div class="label">{{ tr('diagnostics_entries') }}</div>
           <div class="value">
-            <template v-if="auditLogLoading">Lade...</template>
+            <template v-if="auditLogLoading">{{ tr('diagnostics_loading') }}</template>
             <template v-else-if="auditLogError">{{ auditLogError }}</template>
             <template v-else>{{ auditLogCount }}</template>
           </div>
@@ -338,8 +338,8 @@ onUnmounted(() => {
 
     <div class="card">
 <div class="card-header">
-  <h4>Worker-Status</h4>
-  <span class="muted" v-if="workerDriver">Treiber: {{ workerDriver }} · TTL: {{ workerTtl }}s</span>
+  <h4>{{ tr('diagnostics_worker_status') }}</h4>
+  <span class="muted" v-if="workerDriver">{{ tr('diagnostics_driver') }}: {{ workerDriver }} · {{ tr('diagnostics_ttl') }}: {{ workerTtl }}s</span>
 </div>
       <AdminDataTable
         :columns="workerColumns"
@@ -347,7 +347,7 @@ onUnmounted(() => {
         :loading="workerLoading"
         :page-size="20"
         persist-key="admin-worker-status"
-        empty-text="Keine aktiven Worker gefunden."
+        :empty-text="tr('diagnostics_no_active_workers_found')"
       >
         <template #cell-status="{ value }">
           <span :class="['pill', value === 'online' ? 'pill-ok' : 'pill-failed']">{{ value }}</span>
@@ -370,8 +370,8 @@ onUnmounted(() => {
 
     <div class="card">
       <div class="card-header">
-        <h4>Letzte Worker-Aktionen</h4>
-        <span class="muted">Quelle: job_logs</span>
+        <h4>{{ tr('diagnostics_last_worker_actions') }}</h4>
+        <span class="muted">{{ tr('diagnostics_source_job_logs') }}</span>
       </div>
       <p v-if="diagnostics?.queue?.error" class="error">{{ diagnostics.queue.error }}</p>
       <AdminDataTable
@@ -381,7 +381,7 @@ onUnmounted(() => {
         :loading="loading"
         :page-size="20"
         persist-key="admin-diagnostics"
-        empty-text="Noch keine Einträge vorhanden."
+        :empty-text="tr('diagnostics_no_entries_yet')"
         @refresh="loadDiagnostics"
         @auto-refresh="loadDiagnostics({ auto: true })"
       >

@@ -2,8 +2,8 @@
 <template>
   <div>
     <h2 style="display:flex;align-items:center;justify-content:space-between;">
-      <span>Webhook-Vorlagen</span>
-      <IconButton icon="plus" label="Neue Vorlage" class="primary" variant="success" @click="createTemplate" />
+      <span>{{ tr('webhook_templates_title', 'Webhook Templates') }}</span>
+      <IconButton icon="plus" :label="tr('webhook_templates_button_new', 'New template')" class="primary" variant="success" @click="createTemplate" />
     </h2>
     <AdminDataTable
       :columns="columns"
@@ -11,10 +11,10 @@
       :loading="loading"
     >
       <template #row-actions="{ row }">
-        <IconButton icon="play" label="Testen" class="ghost" @click.stop="testTemplate(row)" :disabled="loading" />
-        <IconButton icon="copy" label="Klonen" class="ghost" @click.stop="cloneTemplate(row)" :disabled="loading" />
-        <IconButton icon="pencil" label="Bearbeiten" class="ghost" @click.stop="editTemplate(row)" :disabled="loading" />
-        <IconButton icon="trash" label="Löschen" class="ghost" variant="danger" @click.stop="deleteTemplate(row)" :disabled="loading" />
+        <IconButton icon="play" :label="tr('webhook_templates_test', 'Test')" class="ghost" @click.stop="testTemplate(row)" :disabled="loading" />
+        <IconButton icon="copy" :label="tr('webhook_templates_clone', 'Clone')" class="ghost" @click.stop="cloneTemplate(row)" :disabled="loading" />
+        <IconButton icon="pencil" :label="tr('webhook_templates_edit', 'Edit')" class="ghost" @click.stop="editTemplate(row)" :disabled="loading" />
+        <IconButton icon="trash" :label="tr('webhook_templates_delete', 'Delete')" class="ghost" variant="danger" @click.stop="deleteTemplate(row)" :disabled="loading" />
       </template>
     </AdminDataTable>
     <div v-if="showDialog">
@@ -48,10 +48,10 @@ const showDialog = ref(false)
 const selectedTemplate = ref(null)
 
 const columns = [
-  { key: 'id', label: 'ID' },
-  { key: 'name', label: 'Name' },
-  { key: 'url', label: 'Webhook-URL' },
-  { key: 'description', label: 'Beschreibung' }
+  { key: 'id', label: tr('webhook_templates_id', 'ID') },
+  { key: 'name', label: tr('webhook_templates_name', 'Name') },
+  { key: 'url', label: tr('webhook_templates_webhook_url', 'Webhook URL') },
+  { key: 'description', label: tr('webhook_templates_description', 'Description') }
 ]
 
 function fetchTemplates() {
@@ -82,7 +82,7 @@ function deleteTemplate(template) {
 }
 
 function cloneTemplate(template) {
-  const newName = prompt(tr('enter_clone_name'), template.name + ' (Copy)')
+  const newName = prompt(tr('webhook_templates_enter_clone_name', 'Enter a new name for the copy:'), template.name + ' (Copy)')
   if (!newName) return
   loading.value = true
   axios.post(`/api/admin/webhook-templates/${template.id}/clone`, { name: newName }, apiConfig())
@@ -94,10 +94,10 @@ function testTemplate(row) {
   loading.value = true
   axios.post(`/api/admin/webhook-templates/${row.id}/test`, {}, apiConfig())
     .then(res => {
-      alert(res.data.message || 'Webhook wurde gesendet.')
+      alert(res.data.message || tr('webhook_templates_test_success', 'Webhook sent successfully.'))
     })
     .catch(err => {
-      alert(err.response?.data?.message || 'Fehler beim Senden des Webhooks.')
+      alert(err.response?.data?.message || tr('webhook_templates_test_error', 'Error sending webhook.'))
     })
     .finally(() => { loading.value = false })
 }

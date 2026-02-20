@@ -62,24 +62,24 @@ function close() {
 <template>
   <div v-if="show" class="modal-overlay">
     <div class="modal-content">
-      <IconButton icon="cancel" label="Schließen" variant="danger" class="close-btn" @click="close" />
+      <IconButton icon="cancel" :label="tr('email_template_preview_close')" variant="danger" class="close-btn" @click="close" />
       
       <div class="modal-body">
-        <h3>Vorlagen-Vorschau: {{ template?.name }}</h3>
+        <h3>{{ tr('email_template_preview_title') }}: {{ template?.name }}</h3>
         
         <div v-if="previewData">
           <div class="preview-section">
-            <label>Betreff</label>
+            <label>{{ tr('email_template_preview_subject') }}</label>
             <div class="preview-value">{{ previewData.subject }}</div>
           </div>
           
           <div class="preview-section">
-            <label>Inhalt (HTML-Vorschau)</label>
+            <label>{{ tr('email_template_preview_body') }}</label>
             <div class="preview-body" v-html="renderMarkdown(previewData.body)"></div>
           </div>
         </div>
         
-        <div v-else class="loading">Lade Vorschau...</div>
+        <div v-else class="loading">{{ tr('email_template_preview_loading') }}</div>
       </div>
     </div>
   </div>

@@ -142,7 +142,7 @@ async function confirmTwoFactor() {
             // Redirect to login if not authenticated
             router.push('/');
         } else {
-            confirmError.value = 'Ungültiger Code. Bitte versuchen Sie es erneut.'
+            confirmError.value = tr('two_factor_settings_invalid_code_message', 'Invalid code. Please try again.')
             console.error('Error confirming 2FA:', error)
         }
     } finally {

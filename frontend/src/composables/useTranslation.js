@@ -38,14 +38,23 @@ async function fetchTranslations(lang) {
 /**
  * Get translated text for a key
  * @param {string} key - Translation key
- * @param {string} fallback - Fallback text if key not found
+ * @param {string} [fallback=''] - Fallback text if key not found
+ * @param {Object} [params={}] - Parameters to substitute in the translation
  * @returns {string} Translated text or fallback
  */
-function tr(key, fallback = '') {
+function tr(key, fallback = '', params = {}) {
   if (!key) return fallback
   
-  // Return translation if exists, otherwise fallback to provided fallback or key itself
-  return translations.value[key] || fallback || key
+  // Get translation or fallback
+  let text = translations.value[key] || fallback || key
+  
+  // Substitute parameters (e.g., {{ name }} -> value)
+  Object.keys(params).forEach(param => {
+    const regex = new RegExp(`\\{\\{\\s*${param}\\s*\\}\\}`, 'g')
+    text = text.replace(regex, params[param])
+  })
+  
+  return text
 }
 
 /**

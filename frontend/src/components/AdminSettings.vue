@@ -45,15 +45,15 @@ settingsFields.forEach(f => {
   }
 })
 
-const placeholderHint = computed(() => placeholders.value.length ? `Platzhalter: ${placeholders.value.join(', ')}` : '')
-const markdownHintText = computed(() => hint('admin_setting_markdown_hint') || 'Unterstützt Markdown')
+const placeholderHint = computed(() => placeholders.value.length ? tr('admin_settings_placeholder_hint', 'Placeholders supported') + ': ' + placeholders.value.join(', ') : '')
+const markdownHintText = computed(() => hint('admin_setting_markdown_hint') || tr('admin_settings_markdown_fallback', 'Unterstützt Markdown'))
 
 const tabs = [
-  { id: 'general', labelKey: 'admin_settings_tab_general', fallback: 'Allgemein' },
-  { id: 'text', labelKey: 'admin_settings_tab_text', fallback: 'Texte' },
+  { id: 'general', labelKey: 'admin_settings_tab_general', fallback: 'General' },
+  { id: 'text', labelKey: 'admin_settings_tab_text', fallback: 'Texts' },
   { id: 'design', labelKey: 'admin_settings_tab_design', fallback: 'Design / CSS' },
   { id: 'security', labelKey: 'admin_settings_tab_security', fallback: 'Security' },
-  { id: 'email', labelKey: 'admin_settings_tab_email', fallback: 'E-Mail' },
+  { id: 'email', labelKey: 'admin_settings_tab_email', fallback: 'Email' },
 ]
 
 const tabFieldMap = {
@@ -232,7 +232,7 @@ const visibleFields = computed(() => {
 })
 
 function tabLabel(tab) {
-  return translations.value[tab.labelKey] || tab.fallback
+  return tr(tab.labelKey, tab.fallback)
 }
 
 function ensureDefaults(obj) {
@@ -276,7 +276,7 @@ async function loadImages(category) {
     if (!res.ok) throw new Error(await res.text())
     imageOptions[category] = await res.json()
   } catch (e) {
-    setError(`Bilder konnten nicht geladen werden: ${e}`)
+    setError(tr('admin_settings_error_loading_images', 'Images could not be loaded: ') + e)
   } finally {
     picker.loading = false
   }
@@ -311,14 +311,18 @@ async function loadTemplates() {
     if (!res.ok) throw new Error(await res.text())
     templates.value = await res.json()
   } catch (e) {
-    setError(`Vorlagen konnten nicht geladen werden: ${e}`)
+    setError(tr('admin_settings_error_loading_templates', 'Templates could not be loaded: ') + e)
   }
 }
 
 async function loadPlaceholders() {
-  const res = await fetch(`${apiBase}/admin/placeholders`, { headers: authHeaders() })
-  if (!res.ok) throw new Error(await res.text())
-  placeholders.value = await res.json()
+  try {
+    const res = await fetch(`${apiBase}/admin/placeholders`, { headers: authHeaders() })
+    if (!res.ok) throw new Error(await res.text())
+    placeholders.value = await res.json()
+  } catch (e) {
+    setError(tr('admin_settings_error_loading_placeholders', 'Placeholders could not be loaded: ') + e)
+  }
 }
 
 async function load() {
@@ -371,8 +375,8 @@ async function load() {
       if (settings[key] === '') settings[key] = null;
     });
     settings.apiLoadSuccess = apiLoadSuccess;
-    console.debug('Einstellungen geladen.')
-  } catch (e) { setError(`Fehler beim Laden: ${e}`) } finally { loading.value = false }
+    console.debug(tr('admin_settings_loaded', 'Settings loaded.'))
+  } catch (e) { setError(tr('admin_settings_error_loading', 'Error loading: ') + e) } finally { loading.value = false }
 }
 
 async function save() {
@@ -393,8 +397,8 @@ async function save() {
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     window.dispatchEvent(new CustomEvent('settings-updated'))
-    console.debug('Einstellungen gespeichert.')
-  } catch (e) { setError(`Speichern fehlgeschlagen: ${e}`) } finally { loading.value = false }
+    console.debug(tr('admin_settings_saved', 'Settings saved.'))
+  } catch (e) { setError(tr('admin_settings_save_failed', 'Save failed: ') + e) } finally { loading.value = false }
 }
 
 function handleKeyUpdate(e) { apiKey.value = e.detail || '' }
@@ -416,8 +420,8 @@ watch(() => props.langCode, () => fetchTranslations())
 <template>
   <div class="stack">
     <div class="controls">
-      <IconButton icon="refresh" label="Laden" @click="load" :disabled="loading" />
-      <IconButton icon="save" label="Speichern" @click="save" :disabled="loading" />
+      <IconButton icon="refresh" :label="tr('admin_settings_loading', 'Loading...')" @click="load" :disabled="loading" />
+      <IconButton icon="save" :label="tr('admin_settings_save', 'Save')" @click="save" :disabled="loading" />
     </div>
     <div v-if="error" class="error">{{ error }}</div>
     <div v-if="message" class="message">{{ message }}</div>
@@ -434,14 +438,14 @@ watch(() => props.langCode, () => fetchTranslations())
           <div class="field-header">
             <span>{{ t(field.key) }}</span>
             <span v-if="isMarkdown(field)" class="markdown-indicator" :title="markdownHintText" aria-hidden="true">MD</span>
-            <span v-if="field.placeholders" class="placeholder-indicator" :title="placeholderHint || 'Unterstützt Platzhalter'" aria-hidden="true">⧉</span>
+            <span v-if="field.placeholders" class="placeholder-indicator" :title="tr('admin_settings_placeholder_hint', 'Placeholders supported')" aria-hidden="true">⧉</span>
           </div>
           <template v-if="field.type === 'boolean'">
             <input type="checkbox" v-model="settings[field.key]" />
           </template>
           <template v-else-if="templateFieldKeys.has(field.key)">
             <select v-model="settings[field.key]">
-              <option :value="null">Kein Template</option>
+              <option :value="null">{{ tr('admin_settings_no_template', 'No template') }}</option>
               <option v-for="tpl in templates" :key="tpl.id" :value="tpl.id">{{ tpl.name }} (ID: {{ tpl.id }})</option>
             </select>
           </template>
@@ -468,8 +472,8 @@ watch(() => props.langCode, () => fetchTranslations())
                 <span class="filename">{{ settings[field.key].split('/').pop() }}</span>
               </div>
               <div class="image-actions">
-                <IconButton type="button" icon="image" label="Bild wählen" @click="openPicker(field.key)" />
-                <IconButton type="button" variant="ghost" icon="trash" label="Entfernen" @click="settings[field.key] = ''" />
+                <IconButton type="button" icon="image" :label="tr('admin_settings_select_image', 'Select image')" @click="openPicker(field.key)" />
+                <IconButton type="button" variant="ghost" icon="trash" :label="tr('admin_settings_remove_image', 'Remove')" @click="settings[field.key] = ''" />
               </div>
             </div>
           </template>
@@ -488,7 +492,7 @@ watch(() => props.langCode, () => fetchTranslations())
     </div>
 
     <details v-if="placeholders.length" class="group info placeholder-info" aria-live="polite">
-      <summary>Platzhalter anzeigen</summary>
+      <summary>{{ tr('admin_settings_show_placeholders', 'Show placeholders') }}</summary>
       <div class="placeholder-list">
         <code v-for="token in placeholders" :key="token">{{ token }}</code>
       </div>
@@ -496,25 +500,25 @@ watch(() => props.langCode, () => fetchTranslations())
 
     <div v-if="selectedTab === 'email'" class="group">
       <h3>{{ t('email_templates_title') }}</h3>
-      <p class="hint">E-Mail-Vorlagen findest du jetzt im Tab "Moderation > E-Mail > Vorlagenverwaltung".</p>
+      <p class="hint">{{ tr('admin_settings_email_templates_info', 'Email templates are now in the "Moderation > Email > Template Management" tab.') }}</p>
     </div>
 
     <div v-if="picker.open" class="modal-backdrop" @click.self="picker.open = false">
       <div class="modal">
-        <h3>Bild auswählen</h3>
-        <div v-if="picker.loading">Lade Bilder...</div>
+        <h3>{{ tr('admin_settings_select_image_title', 'Select image') }}</h3>
+        <div v-if="picker.loading">{{ tr('admin_settings_loading_images', 'Loading images...') }}</div>
         <div v-else class="thumb-grid">
           <button v-for="item in imageOptions[picker.category]" :key="item.path" class="thumb" @click="chooseImage(item)">
             <img :src="mediaUrl(item.path || item.url)" :alt="item.filename" />
             <span>{{ item.filename }}</span>
           </button>
           <button class="thumb" @click="chooseImage({ path: '' })">
-            <div class="no-image">Kein Bild</div>
-            <span>Kein Bild</span>
+            <div class="no-image">{{ tr('admin_settings_no_image', 'No image') }}</div>
+            <span>{{ tr('admin_settings_no_image', 'No image') }}</span>
           </button>
         </div>
         <div class="modal-actions">
-          <IconButton class="ghost" variant="ghost" @click="picker.open = false" icon="close" label="Abbrechen" />
+          <IconButton class="ghost" variant="ghost" @click="picker.open = false" icon="close" :label="tr('admin_settings_cancel', 'Cancel')" />
         </div>
       </div>
     </div>

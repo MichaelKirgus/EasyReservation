@@ -25,12 +25,12 @@ const resetUser = ref(null)
 const resetLoading = ref(false)
 
 const userColumns = [
-  { key: 'id', label: 'ID', sortable: true },
-  { key: 'name', label: 'Name', sortable: true },
-  { key: 'email', label: 'Email', sortable: true },
-  { key: 'role', label: 'Rolle', sortable: true },
-  { key: 'active', label: 'Aktiv', sortable: true },
-  { key: 'api_token', label: 'Token', sortable: false },
+  { key: 'id', label: tr('admin_users_column_id'), sortable: true },
+  { key: 'name', label: tr('admin_users_column_name'), sortable: true },
+  { key: 'email', label: tr('admin_users_column_email'), sortable: true },
+  { key: 'role', label: tr('admin_users_column_role'), sortable: true },
+  { key: 'active', label: tr('admin_users_column_active'), sortable: true },
+  { key: 'api_token', label: tr('admin_users_column_api_token'), sortable: false },
 ]
 
 const form = reactive({
@@ -188,7 +188,7 @@ async function rotateToken(user, hash = false) {
 }
 
 async function deleteUser(user) {
-  if (!confirm(`Benutzer "${user.name}" löschen?`)) return
+  if (!confirm(tr('admin_users_delete_user_confirm', { name: user.name }))) return
   try {
     const res = await fetch(`${apiBase}/admin/users/${user.id}`, {
       method: 'DELETE',
@@ -386,30 +386,30 @@ onUnmounted(() => {
 
 
     <section class="card">
-      <h3>Neuen Benutzer anlegen</h3>
+      <h3>{{ tr('admin_users_form_title') }}</h3>
       <div class="grid">
-        <label>Name<input v-model="form.name" /></label>
-        <label>E-Mail<input v-model="form.email" /></label>
-        <label>Rolle
+        <label>{{ tr('admin_users_label_name') }}<input v-model="form.name" /></label>
+        <label>{{ tr('admin_users_label_email') }}<input v-model="form.email" /></label>
+        <label>{{ tr('admin_users_label_role') }}
           <select v-model="form.role">
-            <option value="superadmin">SuperAdmin</option>
-            <option value="admin">Admin</option>
-            <option value="moderator">Moderator</option>
-            <option value="user">User</option>
-            <option value="guest">Gast</option>
+            <option value="superadmin">{{ tr('admin_users_option_superadmin') }}</option>
+            <option value="admin">{{ tr('admin_users_option_admin') }}</option>
+            <option value="moderator">{{ tr('admin_users_option_moderator') }}</option>
+            <option value="user">{{ tr('admin_users_option_user') }}</option>
+            <option value="guest">{{ tr('admin_users_option_guest') }}</option>
           </select>
         </label>
-        <label class="inline">Aktiv<input type="checkbox" v-model="form.active" /></label>
-        <label class="full">Passwort (optional)<input v-model="form.password" type="password" /></label>
-        <label class="full">API-Token (optional)
+        <label class="inline">{{ tr('admin_users_label_active') }}<input type="checkbox" v-model="form.active" /></label>
+        <label class="full">{{ tr('admin_users_label_password') }}<input v-model="form.password" type="password" /></label>
+        <label class="full">{{ tr('admin_users_label_api_token') }}
           <SecretField v-model="form.api_token" />
         </label>
       </div>
-      <IconButton icon="plus" label="Anlegen" @click="createUser" :disabled="loading" />
+      <IconButton icon="plus" label="{{ tr('admin_users_button_create') }}" @click="createUser" :disabled="loading" />
     </section>
 
     <section class="card">
-      <h3>Benutzer</h3>
+      <h3>{{ tr('admin_users_title') }}</h3>
       <AdminDataTable
         :columns="userColumns"
         :rows="users"
@@ -418,12 +418,12 @@ onUnmounted(() => {
         :loading="loading"
         :page-size="20"
         persist-key="admin-users"
-        empty-text="Keine Benutzer."
+        empty-text="{{ tr('admin_users_empty_text') }}"
         @refresh="fetchUsers"
         @auto-refresh="fetchUsers({ auto: true })"
       >
         <template #actions>
-          <IconButton icon="trash" variant="danger" label="Auswahl löschen" @click="bulkDeleteUsers" :disabled="loading || !selectedUsers.length" />
+          <IconButton icon="trash" variant="danger" label="{{ tr('admin_users_button_delete_selection') }}" @click="bulkDeleteUsers" :disabled="loading || !selectedUsers.length" />
         </template>
         <template #cell-name="{ row }">
           <input v-model="row.name" @change="updateUser(row)" />
@@ -433,11 +433,11 @@ onUnmounted(() => {
         </template>
         <template #cell-role="{ row }">
           <select v-model="row.role" @change="updateUser(row)">
-            <option value="superadmin">SuperAdmin</option>
-            <option value="admin">Admin</option>
-            <option value="moderator">Moderator</option>
-            <option value="user">User</option>
-            <option value="guest">Gast</option>
+            <option value="superadmin">{{ tr('admin_users_option_superadmin') }}</option>
+            <option value="admin">{{ tr('admin_users_option_admin') }}</option>
+            <option value="moderator">{{ tr('admin_users_option_moderator') }}</option>
+            <option value="user">{{ tr('admin_users_option_user') }}</option>
+            <option value="guest">{{ tr('admin_users_option_guest') }}</option>
           </select>
         </template>
         <template #cell-active="{ row }">
@@ -453,17 +453,17 @@ onUnmounted(() => {
               @change="updateUser(row)"
               placeholder="Token"
             />
-            <span v-else>{{ row.api_token_is_hashed ? 'gehasht' : '–' }}</span>
+            <span v-else>{{ row.api_token_is_hashed ? tr('admin_users_hashed') : '–' }}</span>
           </div>
         </template>
         <template #row-actions="{ row }">
-          <IconButton icon="key" label="Token neu" @click="rotateToken(row, false)" :disabled="loading" />
-          <IconButton icon="key" label="Token neu (gehasht)" @click="rotateToken(row, true)" :disabled="loading" />
-          <IconButton icon="shield" label="2FA aktivieren" @click="enable2FA(row)" :disabled="loading || row.two_factor_secret || row.role === 'guest'" />
-          <IconButton icon="lock" label="Kennwort setzen" @click="openResetPasswordDialog(row)" :disabled="loading || row.role === 'guest'" />
-          <IconButton icon="close" label="2FA deaktivieren" @click="disable2FA(row)" :disabled="loading || !row.two_factor_secret || row.role === 'guest'" />
-          <IconButton icon="refresh" label="2FA zurücksetzen" @click="reset2FA(row)" :disabled="loading || !row.two_factor_secret || row.role === 'guest'" />
-          <IconButton variant="danger" icon="trash" label="Löschen" @click="deleteUser(row)" :disabled="loading" />
+          <IconButton icon="key" label="{{ tr('admin_users_button_rotate_token') }}" @click="rotateToken(row, false)" :disabled="loading" />
+          <IconButton icon="key" label="{{ tr('admin_users_button_rotate_token_hashed') }}" @click="rotateToken(row, true)" :disabled="loading" />
+          <IconButton icon="shield" label="{{ tr('admin_users_button_enable_2fa') }}" @click="enable2FA(row)" :disabled="loading || row.two_factor_secret || row.role === 'guest'" />
+          <IconButton icon="lock" label="{{ tr('admin_users_button_set_password') }}" @click="openResetPasswordDialog(row)" :disabled="loading || row.role === 'guest'" />
+          <IconButton icon="close" label="{{ tr('admin_users_button_disable_2fa') }}" @click="disable2FA(row)" :disabled="loading || !row.two_factor_secret || row.role === 'guest'" />
+          <IconButton icon="refresh" label="{{ tr('admin_users_button_reset_2fa') }}" @click="reset2FA(row)" :disabled="loading || !row.two_factor_secret || row.role === 'guest'" />
+          <IconButton variant="danger" icon="trash" label="{{ tr('admin_users_button_delete') }}" @click="deleteUser(row)" :disabled="loading" />
         </template>
       </AdminDataTable>
 

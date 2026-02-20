@@ -1,9 +1,9 @@
 <template>
   <div>
     <div class="tabs">
-      <button :class="['tab', { active: activeTab === 'tasks' } ]" @click="activeTab = 'tasks'">Geplante Aufgaben</button>
-      <button :class="['tab', { active: activeTab === 'triggers' } ]" @click="activeTab = 'triggers'">Ereignis-Trigger</button>
-      <button :class="['tab', { active: activeTab === 'webhook-templates' } ]" @click="activeTab = 'webhook-templates'">Webhook-Vorlagen</button>
+      <button :class="['tab', { active: activeTab === 'tasks' } ]" @click="activeTab = 'tasks'">{{ tr('scheduled_tasks_title') }}</button>
+      <button :class="['tab', { active: activeTab === 'triggers' } ]" @click="activeTab = 'triggers'">{{ tr('admin_event_triggers_title') }}</button>
+      <button :class="['tab', { active: activeTab === 'webhook-templates' } ]" @click="activeTab = 'webhook-templates'">{{ tr('admin_webhook_templates_title') }}</button>
     </div>
     <div v-if="activeTab==='tasks'">
       <AdminScheduledTasksTasks />
@@ -22,7 +22,9 @@ import { ref } from 'vue'
 import AdminScheduledTasksTasks from './AdminScheduledTasksTasks.vue'
 import AdminEventTriggers from './AdminEventTriggers.vue'
 import AdminWebhookTemplates from './AdminWebhookTemplates.vue'
+import { useTranslation } from '../composables/useTranslation'
 
+const { tr } = useTranslation()
 const activeTab = ref('tasks')
 </script>
 

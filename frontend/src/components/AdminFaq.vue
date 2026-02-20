@@ -131,7 +131,7 @@ onUnmounted(() => {
   <div class="stack">
     <div class="top-bar">
       <div class="left-actions">
-        <IconButton icon="refresh" label="Aktualisieren" @click="loadFaqs" :disabled="loading" />
+        <IconButton icon="refresh" :label="tr('faq_refresh', 'Refresh')" @click="loadFaqs" :disabled="loading" />
       </div>
     </div>
 
@@ -140,56 +140,56 @@ onUnmounted(() => {
 
     <div class="card">
       <div class="card-header">
-        <h3>Neue FAQ</h3>
+        <h3>{{ tr('faq_new_title', 'New FAQ') }}</h3>
       </div>
       <div class="grid">
         <label>
-          Frage
-          <input v-model="newFaq.question" placeholder="Frage" />
+          {{ tr('faq_question_label', 'Question') }}
+          <input v-model="newFaq.question" :placeholder="tr('faq_question_label', 'Question')" />
         </label>
         <label>
-          Position (optional)
-          <input v-model.number="newFaq.position" type="number" min="0" placeholder="Automatisch" />
+          {{ tr('faq_position_label', 'Position') }} ({{ tr('faq_position_auto', 'Automatic') }})
+          <input v-model.number="newFaq.position" type="number" min="0" :placeholder="tr('faq_position_auto', 'Automatic')" />
         </label>
         <label class="inline">
-          <input type="checkbox" v-model="newFaq.is_published" /> Veröffentlicht
+          <input type="checkbox" v-model="newFaq.is_published" /> {{ tr('faq_published_label', 'Published') }}
         </label>
       </div>
       <label>
-        Antwort
-        <textarea v-model="newFaq.answer" rows="3" placeholder="Antwort"></textarea>
+        {{ tr('faq_answer_label', 'Answer') }}
+        <textarea v-model="newFaq.answer" rows="3" :placeholder="tr('faq_answer_label', 'Answer')"></textarea>
       </label>
       <div class="actions">
-        <IconButton icon="plus" label="Anlegen" variant="success" @click="createFaq" :disabled="loading" />
+        <IconButton icon="plus" :label="tr('faq_create_button', 'Create')" variant="success" @click="createFaq" :disabled="loading" />
       </div>
     </div>
 
     <div class="card">
       <div class="card-header">
-        <h3>FAQ-Liste</h3>
+        <h3>{{ tr('faq_list_title', 'FAQ List') }}</h3>
       </div>
-      <p v-if="!faqs.length">Keine Einträge vorhanden.</p>
+      <p v-if="!faqs.length">{{ tr('faq_no_entries', 'No entries available.') }}</p>
       <div v-else class="faq-list">
         <div v-for="faq in faqs" :key="faq.id" class="faq-item">
           <div class="grid">
             <label>
-              Frage
+              {{ tr('faq_question_label', 'Question') }}
               <input v-model="faq.question" @change="updateFaq(faq)" />
             </label>
             <label>
-              Position
+              {{ tr('faq_position_label', 'Position') }}
               <input v-model.number="faq.position" type="number" min="0" @change="updateFaq(faq)" />
             </label>
             <label class="inline">
-              <input type="checkbox" v-model="faq.is_published" @change="updateFaq(faq)" /> Veröffentlicht
+              <input type="checkbox" v-model="faq.is_published" @change="updateFaq(faq)" /> {{ tr('faq_published_label', 'Published') }}
             </label>
           </div>
           <label>
-            Antwort
+            {{ tr('faq_answer_label', 'Answer') }}
             <textarea v-model="faq.answer" rows="3" @change="updateFaq(faq)"></textarea>
           </label>
           <div class="actions">
-            <IconButton variant="danger" icon="trash" label="Löschen" @click="deleteFaq(faq.id)" :disabled="loading" />
+            <IconButton variant="danger" icon="trash" :label="tr('faq_delete_button', 'Delete')" @click="deleteFaq(faq.id)" :disabled="loading" />
           </div>
         </div>
       </div>

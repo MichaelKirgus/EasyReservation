@@ -2,10 +2,13 @@
 import { ref, onMounted } from 'vue'
 import AdminDataTable from './AdminDataTable.vue'
 import { adminFetch } from '../utils/adminApi'
+import { useTranslation } from '../composables/useTranslation'
+
+const { tr } = useTranslation()
 
 const columns = [
-  { key: 'key', label: 'Platzhalter', sortable: true },
-  { key: 'value', label: 'Wert', sortable: false },
+  { key: 'key', label: tr('admin_placeholder_values_columns_key'), sortable: true },
+  { key: 'value', label: tr('admin_placeholder_values_columns_value'), sortable: false },
 ]
 
 const rows = ref([])
@@ -48,6 +51,6 @@ onMounted(() => {
     :editable="false"
     :deletable="false"
     :creatable="false"
-    title="Platzhalter"
+    :title="tr('admin_placeholder_values_title')"
   />
 </template>

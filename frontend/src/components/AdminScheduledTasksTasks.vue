@@ -2,11 +2,11 @@
   <div>
     <!-- Ausgelagerter Inhalt aus AdminScheduledTasks.vue für geplante Aufgaben -->
     <h2 style="display:flex;align-items:center;justify-content:space-between;">
-      <span>Geplante Aufgaben</span>
-      <IconButton icon="plus" label="Neue Aufgabe" class="primary" variant="success" @click="createTask" />
+      <span>{{ tr('scheduled_tasks_title') }}</span>
+      <IconButton icon="plus" label="{{ tr('scheduled_tasks_button_new_task') }}" class="primary" variant="success" @click="createTask" />
     </h2>
     <div v-if="nextRunAt" class="info-box" style="margin-bottom:0.5em;">
-      <strong>Nächste geplante Ausführung:</strong>
+      <strong>{{ tr('scheduled_tasks_next_run_at') }}</strong>
       <span>{{ formatDateTime(nextRunAt) }}</span>
     </div>
     <AdminDataTable
@@ -42,9 +42,9 @@
         <span v-else>❌</span>
       </template>
       <template #row-actions="{ row }">
-        <IconButton icon="play" label="Sofort ausführen" class="ghost" @click.stop="runNow(row)" :disabled="loading" />
-        <IconButton icon="pencil" label="Bearbeiten" class="ghost" @click.stop="editTask(row)" :disabled="loading" />
-        <IconButton icon="trash" label="Löschen" class="ghost" variant="danger" @click.stop="deleteTask(row)" :disabled="loading" />
+        <IconButton icon="play" label="{{ tr('scheduled_tasks_button_run_now') }}" class="ghost" @click.stop="runNow(row)" :disabled="loading" />
+        <IconButton icon="pencil" label="{{ tr('scheduled_tasks_button_edit') }}" class="ghost" @click.stop="editTask(row)" :disabled="loading" />
+        <IconButton icon="trash" label="{{ tr('scheduled_tasks_button_delete') }}" class="ghost" variant="danger" @click.stop="deleteTask(row)" :disabled="loading" />
       </template>
     </AdminDataTable>
     <TaskDialog
@@ -101,38 +101,38 @@ const showDialog = ref(false)
 const selectedTask = ref(null)
 
 const columns = [
-  { key: 'id', label: 'ID' },
-  { key: 'type', label: 'Typ',
+  { key: 'id', label: tr('scheduled_tasks_column_id') },
+  { key: 'type', label: tr('scheduled_tasks_column_type'),
     formatter: (type) => {
       switch (type) {
-        case 'attendees_email_broadcast': return 'E-Mail an Teilnehmer';
-        case 'waitlist_email_broadcast': return 'E-Mail an Warteliste';
-        case 'custom_email_broadcast': return 'E-Mail an benutzerdefinierte Adressen';
-        case 'change_setting': return 'Einstellung ändern';
-        case 'webhook': return 'Webhook';
+        case 'attendees_email_broadcast': return tr('scheduled_tasks_type_attendees_email_broadcast');
+        case 'waitlist_email_broadcast': return tr('scheduled_tasks_type_waitlist_email_broadcast');
+        case 'custom_email_broadcast': return tr('scheduled_tasks_type_custom_email_broadcast');
+        case 'change_setting': return tr('scheduled_tasks_type_change_setting');
+        case 'webhook': return tr('scheduled_tasks_type_webhook');
         default: return type;
       }
     }
   },
-  { key: 'planned_run_at', label: 'Geplante Ausführung' },
-  { key: 'reference_type', label: 'Referenztyp',
+  { key: 'planned_run_at', label: tr('scheduled_tasks_column_planned_run_at') },
+  { key: 'reference_type', label: tr('scheduled_tasks_column_reference_type'),
     formatter: (type) => {
-      if (type === 'cron') return 'Cron';
-      if (type === 'fixed') return 'Einmalig';
-      if (type === 'event') return 'Event';
-      if (type === 'reservation') return 'Reservierung';
-      if (type === 'user') return 'Benutzer';
+      if (type === 'cron') return tr('scheduled_tasks_reference_type_cron');
+      if (type === 'fixed') return tr('scheduled_tasks_reference_type_fixed');
+      if (type === 'event') return tr('scheduled_tasks_reference_type_event');
+      if (type === 'reservation') return tr('scheduled_tasks_reference_type_reservation');
+      if (type === 'user') return tr('scheduled_tasks_reference_type_user');
       return type;
     }
   },
-  { key: 'reference_id', label: 'Referenz-ID' },
-  { key: 'relative_to', label: 'Relativ zu' },
-  { key: 'relative_offset_minutes', label: 'Offset (Minuten)' },
-  { key: 'executed', label: 'Ausgeführt' },
-  { key: 'executed_at', label: 'Ausgeführt am' },
-  { key: 'active', label: 'Aktiv' },
-  { key: 'run_once', label: 'Einmalig' },
-  { key: 'skip_if_overdue', label: 'Überfällig überspringen' }
+  { key: 'reference_id', label: tr('scheduled_tasks_column_reference_id') },
+  { key: 'relative_to', label: tr('scheduled_tasks_column_relative_to') },
+  { key: 'relative_offset_minutes', label: tr('scheduled_tasks_column_offset_minutes') },
+  { key: 'executed', label: tr('scheduled_tasks_column_executed') },
+  { key: 'executed_at', label: tr('scheduled_tasks_column_executed_at') },
+  { key: 'active', label: tr('scheduled_tasks_column_active') },
+  { key: 'run_once', label: tr('scheduled_tasks_column_run_once') },
+  { key: 'skip_if_overdue', label: tr('scheduled_tasks_column_skip_if_overdue') }
 ]
 
 function fetchTasks() {

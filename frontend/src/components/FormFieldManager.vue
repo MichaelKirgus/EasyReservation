@@ -35,19 +35,19 @@ const protectedKeys = ['name', 'email']
 const selectedFields = ref([])
 
 const fieldColumns = [
-  { key: 'id', label: 'ID', sortable: true },
-  { key: 'key', label: 'Key', sortable: true },
-  { key: 'label', label: 'Label', sortable: true },
-  { key: 'placeholder', label: 'Placeholder', sortable: true },
-  { key: 'help_text', label: 'Hilfetext', sortable: true },
-  { key: 'text_align', label: 'Ausrichtung', sortable: true },
-  { key: 'type', label: 'Typ', sortable: true },
-  { key: 'required', label: 'Pflicht', sortable: true },
-  { key: 'visible_public', label: 'Public', sortable: true },
-  { key: 'visible_admin', label: 'Admin', sortable: true },
-  { key: 'active', label: 'Aktiv', sortable: true },
-  { key: 'options', label: 'Optionen', sortable: false },
-  { key: 'order', label: 'Reihenfolge', sortable: true },
+  { key: 'id', label: tr('form_field_manager_column_id'), sortable: true },
+  { key: 'key', label: tr('form_field_manager_column_key'), sortable: true },
+  { key: 'label', label: tr('form_field_manager_column_label'), sortable: true },
+  { key: 'placeholder', label: tr('form_field_manager_column_placeholder'), sortable: true },
+  { key: 'help_text', label: tr('form_field_manager_column_help_text'), sortable: true },
+  { key: 'text_align', label: tr('form_field_manager_column_alignment'), sortable: true },
+  { key: 'type', label: tr('form_field_manager_column_type'), sortable: true },
+  { key: 'required', label: tr('form_field_manager_column_required'), sortable: true },
+  { key: 'visible_public', label: tr('form_field_manager_column_public'), sortable: true },
+  { key: 'visible_admin', label: tr('form_field_manager_column_admin'), sortable: true },
+  { key: 'active', label: tr('form_field_manager_column_active'), sortable: true },
+  { key: 'options', label: tr('form_field_manager_column_options'), sortable: false },
+  { key: 'order', label: tr('form_field_manager_column_order'), sortable: true },
 ]
 
 const form = reactive({
@@ -96,7 +96,7 @@ async function save() {
   if (!apiKey.value) { setError(tr('api_key_required')); return }
   loading.value = true
   try {
-    if (protectedKeys.includes(form.key)) throw new Error('Schlüssel ist reserviert.')
+    if (protectedKeys.includes(form.key)) throw new Error(tr('form_field_manager_reserved_key_error'))
     const payload = { ...form, options: form.options.filter(Boolean) }
     const res = await fetch(`${apiBase}/admin/form-fields`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(payload) })
     const text = await res.text()
@@ -104,7 +104,7 @@ async function save() {
     Object.assign(form, { key: '', label: '', type: 'text', required: false, options: [], placeholder: '', help_text: '', text_align: 'left', min_length: null, max_length: null, pattern: '', order: 0, active: true, visible_public: true, visible_admin: true, is_email: false })
     setMessage(tr('field_saved'))
     await load()
-  } catch (e) { setError(`Speichern fehlgeschlagen: ${e}`) } finally { loading.value = false }
+  } catch (e) { setError(tr('form_field_manager_save_failed') + ': ' + e) } finally { loading.value = false }
 }
 
 async function updateField(field) {
@@ -115,7 +115,7 @@ async function updateField(field) {
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     setMessage(tr('field_updated'))
-  } catch (e) { setError(`Speichern fehlgeschlagen: ${e}`) } finally { loading.value = false }
+  } catch (e) { setError(tr('form_field_manager_save_failed') + ': ' + e) } finally { loading.value = false }
 }
 
 async function removeField(id) {
@@ -130,7 +130,7 @@ async function removeField(id) {
     fields.value = fields.value.filter(f => f.id !== id)
     selectedFields.value = selectedFields.value.filter(sel => sel !== id)
     setMessage(tr('field_deleted'))
-  } catch (e) { setError(`Löschen fehlgeschlagen: ${e}`) } finally { loading.value = false }
+  } catch (e) { setError(tr('form_field_manager_delete_failed') + ': ' + e) } finally { loading.value = false }
 }
 
 async function bulkRemoveFields() {
@@ -150,7 +150,7 @@ async function bulkRemoveFields() {
     fields.value = fields.value.filter(f => !deletable.includes(f.id))
     selectedFields.value = []
     setMessage(tr('fields_deleted'))
-  } catch (e) { setError(`Löschen fehlgeschlagen: ${e}`) } finally { loading.value = false }
+  } catch (e) { setError(tr('form_field_manager_delete_failed') + ': ' + e) } finally { loading.value = false }
 }
 
 async function reorderFields(ids) {
@@ -168,7 +168,7 @@ async function reorderFields(ids) {
     }
     setMessage(tr('order_updated'))
   } catch (e) {
-    setError(tr('order_save_failed') + ': ' + e)
+    setError(tr('form_field_manager_order_save_failed') + ': ' + e)
   } finally {
     loading.value = false
   }
@@ -203,52 +203,52 @@ onUnmounted(() => {
     <div v-if="error" class="error">{{ error }}</div>
 
     <details v-if="placeholders.length" class="placeholder-info" aria-live="polite">
-      <summary>Platzhalter anzeigen</summary>
-      <p class="placeholder-hint-text">Verwendbar in <strong>Label</strong>, <strong>Placeholder</strong> und <strong>Hilfetext</strong>:</p>
+      <summary>{{ tr('form_field_manager_show_placeholders') }}</summary>
+      <p class="placeholder-hint-text">{{ tr('form_field_manager_placeholder_hint') }}</p>
       <div class="placeholder-list">
         <code v-for="token in placeholders" :key="token">{{ token }}</code>
       </div>
     </details>
 
     <section class="card">
-      <h3>Neues Feld</h3>
+      <h3>{{ tr('form_field_manager_title_new_field') }}</h3>
       <div class="grid">
-        <label>Key<input v-model="form.key" /></label>
-        <label>Label<input v-model="form.label" /></label>
-        <label>Typ
+        <label>{{ tr('form_field_manager_label_key') }}<input v-model="form.key" /></label>
+        <label>{{ tr('form_field_manager_label_label') }}<input v-model="form.label" /></label>
+        <label>{{ tr('form_field_manager_label_type') }}
           <select v-model="form.type">
-            <option value="text">Text</option>
-            <option value="textarea">Textarea</option>
-            <option value="select">Select</option>
-            <option value="email">E-Mail</option>
-            <option value="checkbox">Checkbox</option>
+            <option value="text">{{ tr('form_field_manager_option_text') }}</option>
+            <option value="textarea">{{ tr('form_field_manager_option_textarea') }}</option>
+            <option value="select">{{ tr('form_field_manager_option_select') }}</option>
+            <option value="email">{{ tr('form_field_manager_option_email') }}</option>
+            <option value="checkbox">{{ tr('form_field_manager_option_checkbox') }}</option>
           </select>
         </label>
-        <label>Options (kommagetrennt)<input :value="form.options.join(', ')" @input="splitOptions($event.target.value)" /></label>
-        <label>Placeholder<input v-model="form.placeholder" /></label>
-        <label>Hilfetext<input v-model="form.help_text" /></label>
-        <label>Textausrichtung
+        <label>{{ tr('form_field_manager_label_options') }}<input :value="form.options.join(', ')" @input="splitOptions($event.target.value)" /></label>
+        <label>{{ tr('form_field_manager_label_placeholder') }}<input v-model="form.placeholder" /></label>
+        <label>{{ tr('form_field_manager_label_help_text') }}<input v-model="form.help_text" /></label>
+        <label>{{ tr('form_field_manager_label_text_alignment') }}
           <select v-model="form.text_align">
-            <option value="left">Links</option>
-            <option value="center">Zentriert</option>
-            <option value="right">Rechts</option>
+            <option value="left">{{ tr('form_field_manager_option_left') }}</option>
+            <option value="center">{{ tr('form_field_manager_option_center') }}</option>
+            <option value="right">{{ tr('form_field_manager_option_right') }}</option>
           </select>
         </label>
-        <label>Min Länge<input v-model.number="form.min_length" type="number" min="0" /></label>
-        <label>Max Länge<input v-model.number="form.max_length" type="number" min="0" /></label>
-        <label>Pattern<input v-model="form.pattern" /></label>
-        <label>Reihenfolge<input v-model.number="form.order" type="number" min="0" /></label>
-        <label>Aktiv<input type="checkbox" v-model="form.active" /></label>
-        <label>Public sichtbar<input type="checkbox" v-model="form.visible_public" /></label>
-        <label>Admin sichtbar<input type="checkbox" v-model="form.visible_admin" /></label>
-        <label>Erforderlich<input type="checkbox" v-model="form.required" /></label>
-        <label>Ist E-Mail<input type="checkbox" v-model="form.is_email" /></label>
+        <label>{{ tr('form_field_manager_label_min_length') }}<input v-model.number="form.min_length" type="number" min="0" /></label>
+        <label>{{ tr('form_field_manager_label_max_length') }}<input v-model.number="form.max_length" type="number" min="0" /></label>
+        <label>{{ tr('form_field_manager_label_pattern') }}<input v-model="form.pattern" /></label>
+        <label>{{ tr('form_field_manager_label_order') }}<input v-model.number="form.order" type="number" min="0" /></label>
+        <label>{{ tr('form_field_manager_label_active') }}<input type="checkbox" v-model="form.active" /></label>
+        <label>{{ tr('form_field_manager_label_visible_public') }}<input type="checkbox" v-model="form.visible_public" /></label>
+        <label>{{ tr('form_field_manager_label_visible_admin') }}<input type="checkbox" v-model="form.visible_admin" /></label>
+        <label>{{ tr('form_field_manager_label_required') }}<input type="checkbox" v-model="form.required" /></label>
+        <label>{{ tr('form_field_manager_label_is_email') }}<input type="checkbox" v-model="form.is_email" /></label>
       </div>
-      <IconButton icon="save" label="Speichern" @click="save" :disabled="loading" />
+      <IconButton icon="save" :label="tr('form_field_manager_button_save')" @click="save" :disabled="loading" />
     </section>
 
     <section class="card">
-      <h3>Felder</h3>
+      <h3>{{ tr('form_field_manager_title_fields') }}</h3>
       <AdminDataTable
         :columns="fieldColumns"
         :rows="fields"
@@ -257,14 +257,14 @@ onUnmounted(() => {
         :loading="loading"
         :page-size="50"
         persist-key="admin-form-fields"
-        empty-text="Keine Felder vorhanden."
+        :empty-text="tr('form_field_manager_no_fields_found')"
         @refresh="load"
         @auto-refresh="load({ auto: true })"
         row-draggable
         @reorder="reorderFields"
       >
         <template #actions>
-          <IconButton icon="trash" variant="danger" label="Auswahl löschen" @click="bulkRemoveFields" :disabled="loading || !selectedFields.length" />
+          <IconButton icon="trash" variant="danger" :label="tr('form_field_manager_button_delete_selection')" @click="bulkRemoveFields" :disabled="loading || !selectedFields.length" />
         </template>
         <template #cell-label="{ row }">
           <input v-model="row.label" @change="updateField(row)" />
@@ -277,18 +277,18 @@ onUnmounted(() => {
         </template>
         <template #cell-text_align="{ row }">
           <select v-model="row.text_align" @change="updateField(row)">
-            <option value="left">Links</option>
-            <option value="center">Zentriert</option>
-            <option value="right">Rechts</option>
+            <option value="left">{{ tr('form_field_manager_option_left') }}</option>
+            <option value="center">{{ tr('form_field_manager_option_center') }}</option>
+            <option value="right">{{ tr('form_field_manager_option_right') }}</option>
           </select>
         </template>
         <template #cell-type="{ row }">
           <select v-model="row.type" @change="updateField(row)" :disabled="protectedKeys.includes(row.key)">
-            <option value="text">Text</option>
-            <option value="textarea">Textarea</option>
-            <option value="select">Select</option>
-            <option value="email">E-Mail</option>
-            <option value="checkbox">Checkbox</option>
+            <option value="text">{{ tr('form_field_manager_option_text') }}</option>
+            <option value="textarea">{{ tr('form_field_manager_option_textarea') }}</option>
+            <option value="select">{{ tr('form_field_manager_option_select') }}</option>
+            <option value="email">{{ tr('form_field_manager_option_email') }}</option>
+            <option value="checkbox">{{ tr('form_field_manager_option_checkbox') }}</option>
           </select>
         </template>
         <template #cell-required="{ row }"><input type="checkbox" v-model="row.required" @change="updateField(row)" /></template>
@@ -300,7 +300,7 @@ onUnmounted(() => {
         </template>
         <template #cell-order="{ row }"><input v-model.number="row.order" type="number" min="0" @change="updateField(row)" /></template>
         <template #row-actions="{ row }">
-          <IconButton variant="danger" icon="trash" label="Löschen" @click="removeField(row.id)" :disabled="protectedKeys.includes(row.key)" />
+          <IconButton variant="danger" icon="trash" :label="tr('form_field_manager_button_delete')" @click="removeField(row.id)" :disabled="protectedKeys.includes(row.key)" />
         </template>
       </AdminDataTable>
     </section>

@@ -18,12 +18,12 @@ const message = ref('')
 const isSuperAdmin = computed(() => currentUser.value?.role === 'superadmin')
 
 const columns = [
-  { key: 'id', label: 'ID', sortable: true },
-  { key: 'user_id', label: 'User-ID', sortable: true },
-  { key: 'route', label: 'Route', sortable: true },
-  { key: 'method', label: 'Methode', sortable: true },
-  { key: 'payload', label: 'Payload', sortable: false },
-  { key: 'created_at', label: 'Zeitpunkt', sortable: true },
+  { key: 'id', label: tr('admin_audit_log_column_id'), sortable: true },
+  { key: 'user_id', label: tr('admin_audit_log_column_user_id'), sortable: true },
+  { key: 'route', label: tr('admin_audit_log_column_route'), sortable: true },
+  { key: 'method', label: tr('admin_audit_log_column_method'), sortable: true },
+  { key: 'payload', label: tr('admin_audit_log_column_payload'), sortable: false },
+  { key: 'created_at', label: tr('admin_audit_log_column_timestamp'), sortable: true },
 ]
 
 const authHeaders = () => buildAdminHeaders({ apiKeyRef: apiKey, includeJson: true })
@@ -36,9 +36,9 @@ async function fetchLogs() {
     const res = await fetch(`${apiBase}/audit-logs`, { headers: authHeaders() })
     if (!res.ok) throw new Error(await res.text())
     logs.value = await res.json()
-    message.value = 'Audit-Log geladen.'
+    message.value = tr('admin_audit_log_loaded')
   } catch (e) {
-    error.value = `Fehler beim Laden: ${e}`
+    error.value = tr('admin_audit_log_load_error') + ': ' + e
   } finally {
     loading.value = false
   }
@@ -53,9 +53,9 @@ async function clearLogs() {
     const res = await fetch(`${apiBase}/audit-logs`, { method: 'DELETE', headers: authHeaders() })
     if (!res.ok) throw new Error(await res.text())
     logs.value = []
-    message.value = 'Audit-Log geleert.'
+    message.value = tr('admin_audit_log_cleared')
   } catch (e) {
-    error.value = `Fehler beim Löschen: ${e}`
+    error.value = tr('admin_audit_log_delete_error') + ': ' + e
   } finally {
     loading.value = false
   }
@@ -71,18 +71,18 @@ onMounted(() => {
     <div v-if="message" class="message">{{ message }}</div>
     <div v-if="error" class="error">{{ error }}</div>
     <section class="card">
-      <h3>Audit-Log</h3>
+      <h3>{{ tr('admin_audit_log_title') }}</h3>
       <AdminDataTable
         :columns="columns"
         :rows="logs"
         :loading="loading"
         :page-size="20"
         persist-key="admin-audit-log"
-        empty-text="Keine Audit-Einträge."
+        empty-text="{{ tr('admin_audit_log_empty_text') }}"
         @refresh="fetchLogs"
       >
         <template #actions>
-          <IconButton icon="trash" variant="danger" label="Audit leeren" @click="clearLogs" :disabled="loading || !logs.length" />
+          <IconButton icon="trash" variant="danger" label="{{ tr('admin_audit_log_button_clear') }}" @click="clearLogs" :disabled="loading || !logs.length" />
         </template>
         <template #cell-payload="{ row }">
           <pre style="white-space:pre-wrap;word-break:break-word;max-width:400px;">{{ row.payload }}</pre>
