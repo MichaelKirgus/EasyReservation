@@ -21,19 +21,20 @@ const workerStatus = ref([])
 const workerLoading = ref(false)
 const workerDriver = ref('')
 const workerTtl = ref(0)
-const workerColumns = [
-  { key: 'worker_id', label: tr('form_field_manager_column_key'), sortable: true },
-  { key: 'status', label: tr('diagnostics_status'), sortable: true },
-  { key: 'ip', label: tr('ip'), sortable: true },
-  { key: 'last_heartbeat_at', label: tr('diagnostics_last_heartbeat'), sortable: true },
-  { key: 'memory_mb', label: tr('diagnostics_memory_mb'), sortable: true },
-  { key: 'redis_latency_ms', label: tr('diagnostics_redis_latency_ms'), sortable: true },
-  { key: 'db_latency_ms', label: tr('diagnostics_db_latency_ms'), sortable: true },
-  { key: 'total_jobs', label: tr('diagnostics_total_jobs'), sortable: true },
-  { key: 'last_job_at', label: tr('diagnostics_last_job_at'), sortable: true },
-  { key: 'last_job_duration_ms', label: tr('diagnostics_last_job_duration_ms'), sortable: true },
-  { key: 'active_jobs', label: tr('diagnostics_active_jobs') },
-]
+// Worker columns - defined as computed to ensure translations are loaded
+const workerColumns = computed(() => [
+  { key: 'worker_id', label: tr('admin_diagnostics_worker_columns_worker_id'), sortable: true },
+  { key: 'status', label: tr('admin_diagnostics_worker_columns_status'), sortable: true },
+  { key: 'ip', label: tr('admin_diagnostics_worker_columns_ip'), sortable: true },
+  { key: 'last_heartbeat_at', label: tr('admin_diagnostics_worker_columns_last_heartbeat_at'), sortable: true },
+  { key: 'memory_mb', label: tr('admin_diagnostics_worker_columns_memory_mb'), sortable: true },
+  { key: 'redis_latency_ms', label: tr('admin_diagnostics_worker_columns_redis_latency_ms'), sortable: true },
+  { key: 'db_latency_ms', label: tr('admin_diagnostics_worker_columns_db_latency_ms'), sortable: true },
+  { key: 'total_jobs', label: tr('admin_diagnostics_worker_columns_total_jobs'), sortable: true },
+  { key: 'last_job_at', label: tr('admin_diagnostics_worker_columns_last_job_at'), sortable: true },
+  { key: 'last_job_duration_ms', label: tr('admin_diagnostics_worker_columns_last_job_duration_ms'), sortable: true },
+  { key: 'active_jobs', label: tr('admin_diagnostics_worker_columns_active_jobs') },
+])
 
 
 
@@ -43,7 +44,8 @@ const loading = ref(false)
 const message = ref('')
 const error = ref('')
 const diagnostics = ref(null)
-const frontendVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : tr('unknown')
+// frontendVersion - defined as computed to ensure translations are loaded
+const frontendVersion = computed(() => typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : tr('unknown'))
 const autoRefreshEnabled = ref(Boolean(localStorage.getItem('admin_diag_autorefresh') === '1'));
 const refreshMs = 2000
 let timerId = null
@@ -54,14 +56,15 @@ const auditLogCount = ref(null)
 const auditLogLoading = ref(false)
 const auditLogError = ref('')
 
-const jobColumns = [
-  { key: 'finished_at', label: tr('diagnostics_finished'), sortable: true },
-  { key: 'job', label: tr('job'), sortable: true },
-  { key: 'queue', label: tr('queue'), sortable: true },
-  { key: 'status', label: tr('diagnostics_status'), sortable: true },
-  { key: 'runtime_ms', label: tr('diagnostics_runtime_ms'), sortable: true },
-  { key: 'message', label: tr('diagnostics_message'), sortable: false },
-]
+// Job columns - defined as computed to ensure translations are loaded
+const jobColumns = computed(() => [
+  { key: 'finished_at', label: tr('admin_diagnostics_job_columns_finished_at'), sortable: true },
+  { key: 'job', label: tr('admin_diagnostics_job_columns_job'), sortable: true },
+  { key: 'queue', label: tr('admin_diagnostics_job_columns_queue'), sortable: true },
+  { key: 'status', label: tr('admin_diagnostics_job_columns_status'), sortable: true },
+  { key: 'runtime_ms', label: tr('admin_diagnostics_job_columns_runtime_ms'), sortable: true },
+  { key: 'message', label: tr('admin_diagnostics_job_columns_message'), sortable: false },
+])
 
 function setMessage(msg) { message.value = msg; error.value = '' }
 function setError(msg, opts = {}) {

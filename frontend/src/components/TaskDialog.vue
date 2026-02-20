@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="task-dialog">
     <h3>{{ task && task.id ? tr('scheduled_tasks_task_dialog_edit_title') : tr('scheduled_tasks_task_dialog_new_title') }}</h3>
     <form @submit.prevent="submit">
@@ -156,8 +156,8 @@
         <input v-model="form.skip_if_overdue" type="checkbox" />
       </div>
       <div style="margin-top:1em; display:flex; gap:0.5em; justify-content:flex-end;">
-        <IconButton icon="check" label="{{ tr('admin_setting_submit_button_text') }}" type="submit" />
-        <IconButton icon="close" label="{{ tr('cancel') }}" variant="danger" type="button" @click="$emit('close')" />
+        <IconButton icon="check" :label="tr('admin_setting_submit_button_text')" type="submit" />
+        <IconButton icon="close" :label="tr('cancel')" variant="danger" type="button" @click="$emit('close')" />
       </div>
     </form>
   </div>
@@ -195,13 +195,13 @@ watch(schedulingMode, (newMode) => {
 })
 
 // Cron expression examples
-const cronExamples = [
+const cronExamples = computed(() => [
   { label: tr('scheduled_tasks_cron_example_minute'), value: '* * * * *' },
   { label: tr('scheduled_tasks_cron_example_hourly'), value: '0 * * * *' },
   { label: tr('scheduled_tasks_cron_example_daily'), value: '0 8 * * *' },
   { label: tr('scheduled_tasks_cron_example_weekly'), value: '30 14 * * 1' },
   { label: tr('scheduled_tasks_cron_example_monthly'), value: '0 0 1 * *' },
-]
+])
 
 const form = ref({
   type: '',
@@ -232,7 +232,7 @@ const currentSettingField = computed(() => {
   return settingsFields.find(f => f.key === selectedSettingKey.value) || { type: 'text' }
 })
 
-// Hilfsfunktion: Wert für Input je nach Typ konvertieren
+// Hilfsfunktion: Wert fÃ¼r Input je nach Typ konvertieren
 function convertSettingValue(val, type) {
   if (type === 'boolean') {
     return val === true || val === '1' || val === 1 || val === 'true';
@@ -257,7 +257,7 @@ function convertSettingValue(val, type) {
   return val ?? '';
 }
 
-// Hilfsfunktion für das richtige Datumsformat im Input
+// Hilfsfunktion fÃ¼r das richtige Datumsformat im Input
 function toDatetimeLocal(val) {
   if (!val) return '';
   let iso = val.replace(' ', 'T');
@@ -266,7 +266,7 @@ function toDatetimeLocal(val) {
   const d = new Date(iso);
   if (isNaN(d)) return '';
   const pad = n => n.toString().padStart(2, '0');
-  // Lokale Zeit für das Input-Feld erzeugen
+  // Lokale Zeit fÃ¼r das Input-Feld erzeugen
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
@@ -277,7 +277,7 @@ const relativeFieldsMap = {
 }
 const relativeFields = computed(() => relativeFieldsMap[form.value.reference_type] || [])
 
-// Berechne nächste Cron-Ausführungszeiten
+// Berechne nÃ¤chste Cron-AusfÃ¼hrungszeiten
 function calculateNextCronRuns() {
   if (!form.value.cron_expression) {
     nextCronRunAt.value = ''
@@ -285,7 +285,7 @@ function calculateNextCronRuns() {
   }
   
   try {
-    // Verwende den Server für die Berechnung (da cron-parser nicht im Browser verfügbar ist)
+    // Verwende den Server fÃ¼r die Berechnung (da cron-parser nicht im Browser verfÃ¼gbar ist)
     axios.post('/api/admin/cron/next-run', { expression: form.value.cron_expression }, apiConfig())
       .then(res => {
         if (res.data && res.data.next_runs) {
@@ -362,18 +362,18 @@ watch(() => props.task, (task) => {
     // Setze Scheduling Mode basierend auf den Daten
     schedulingMode.value = determineSchedulingMode(task)
     
-    // Für Cron-basierte Aufgaben: reference_type auf 'cron' setzen, bevor wir die Daten laden
+    // FÃ¼r Cron-basierte Aufgaben: reference_type auf 'cron' setzen, bevor wir die Daten laden
     let finalTaskData = { ...taskData, options: task.options || {} }
     if (schedulingMode.value === 'cron') {
       finalTaskData.reference_type = 'cron'
     } else if (!finalTaskData.reference_type) {
-      // Fallback für alte Tasks ohne reference_type
+      // Fallback fÃ¼r alte Tasks ohne reference_type
       finalTaskData.reference_type = 'fixed'
     }
     
     form.value = finalTaskData
     
-    // Korrigiere das Datumsformat für das Input-Feld
+    // Korrigiere das Datumsformat fÃ¼r das Input-Feld
     if (schedulingMode.value === 'absolute') {
       form.value.run_at = toDatetimeLocal(task.run_at || '')
     }
@@ -436,14 +436,14 @@ watch(() => props.task, (task) => {
   }
 }, { immediate: true })
 
-// Lade aktuellen Wert aus DB, wenn Schlüssel gewählt wird (nur beim Anlegen oder wenn Wert leer)
+// Lade aktuellen Wert aus DB, wenn SchlÃ¼ssel gewÃ¤hlt wird (nur beim Anlegen oder wenn Wert leer)
 watch(selectedSettingKey, async (key) => {
   if (!key) return;
-  // Nur laden, wenn kein Wert aus Task übernommen wurde oder Wert leer
+  // Nur laden, wenn kein Wert aus Task Ã¼bernommen wurde oder Wert leer
   if (loadedFromTask && settingValue.value !== '') return;
   try {
     const res = await axios.get(`/api/admin/settings/${encodeURIComponent(key)}`, apiConfig())
-    // Wert aus DB übernehmen, aber Typ beachten
+    // Wert aus DB Ã¼bernehmen, aber Typ beachten
     let val = res.data?.value
     val = convertSettingValue(val, currentSettingField.value.type)
     settingValue.value = val
@@ -495,13 +495,13 @@ function submit() {
       payload.run_at = toUtcIsoString(payload.run_at);
     }
   } else if (schedulingMode.value === 'cron') {
-    // Cron Expression direkt übertragen
+    // Cron Expression direkt Ã¼bertragen
     if (!payload.cron_expression) {
       alert(tr('scheduled_tasks_cron_expression_required'))
       return
     }
   } else {
-    // Relative Zeit: run_at ist nicht relevant, aber für Kompatibilität setzen
+    // Relative Zeit: run_at ist nicht relevant, aber fÃ¼r KompatibilitÃ¤t setzen
     payload.run_at = null
   }
   
@@ -519,7 +519,7 @@ function submit() {
     payload.options = { ...payload.options, webhook_template_id: selectedWebhookTemplateId.value };
   } else if (form.value.type === 'change_setting') {
     let value = settingValue.value;
-    // Typkonvertierung für Boolean/Number
+    // Typkonvertierung fÃ¼r Boolean/Number
     if (currentSettingField.value.type === 'boolean') {
       value = value ? '1' : '0'; // String statt Boolean!
     } else if (currentSettingField.value.type === 'number') {

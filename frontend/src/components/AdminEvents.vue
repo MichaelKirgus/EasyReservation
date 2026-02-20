@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 import { adminFetch } from '../utils/adminApi'
@@ -15,7 +15,7 @@ const events = ref([])
 const selectedEvents = ref([])
 const lastAutoErrorAt = ref(0)
 
-const eventColumns = [
+const eventColumns = computed(() => [
   { key: 'id', label: tr('admin_events_columns_id'), sortable: true },
   { key: 'title', label: tr('admin_events_columns_title'), sortable: true },
   { key: 'start_at', label: tr('admin_events_columns_start'), sortable: true },
@@ -23,7 +23,7 @@ const eventColumns = [
   { key: 'url', label: tr('admin_events_columns_url'), sortable: false },
   { key: 'public_transport_url', label: tr('admin_events_columns_public_transport_url'), sortable: false },
   { key: 'active', label: tr('admin_events_columns_active'), sortable: true },
-]
+])
 
 function formatDateTime(val) {
   if (!val) return ''

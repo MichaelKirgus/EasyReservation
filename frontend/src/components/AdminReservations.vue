@@ -1,5 +1,5 @@
-<script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+﻿<script setup>
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 import { adminFetch } from '../utils/adminApi'
@@ -32,37 +32,37 @@ const rateLimits = ref([])
 const rateLimitLoading = ref(false)
 const selectedRateLimits = ref([])
 
-const reservationColumns = [
+const reservationColumns = computed(() => [
   { key: 'id', label: tr('admin_reservations_column_id'), sortable: true },
   { key: 'display_name', label: tr('admin_reservations_column_name'), sortable: true },
   { key: 'email', label: tr('admin_reservations_column_email'), sortable: true },
   { key: 'date_added', label: tr('admin_reservations_column_date'), sortable: true },
   { key: 'payload', label: tr('admin_reservations_column_payload'), sortable: false },
   { key: 'site_token', label: tr('admin_reservations_column_token'), sortable: false },
-]
+])
 
-const waitlistColumns = [
+const waitlistColumns = computed(() => [
   { key: 'id', label: tr('admin_reservations_column_id'), sortable: true },
   { key: 'display_name', label: tr('admin_reservations_column_name'), sortable: true },
   { key: 'email', label: tr('admin_reservations_column_email'), sortable: true },
   { key: 'date_added', label: tr('admin_reservations_column_date'), sortable: true },
   { key: 'status', label: tr('admin_reservations_column_status'), sortable: true },
   { key: 'site_token', label: tr('admin_reservations_column_token'), sortable: false },
-]
+])
 
-const validationColumns = [
+const validationColumns = computed(() => [
   { key: 'id', label: tr('admin_reservations_column_id'), sortable: true },
   { key: 'type', label: tr('admin_reservations_column_type'), sortable: true },
   { key: 'display_name', label: tr('admin_reservations_column_name'), sortable: true },
   { key: 'email', label: tr('admin_reservations_column_email'), sortable: true },
   { key: 'status', label: tr('admin_reservations_column_status'), sortable: true },
-]
+])
 
-const rateLimitColumns = [
+const rateLimitColumns = computed(() => [
   { key: 'ip', label: tr('admin_reservations_column_ip_address'), sortable: true },
   { key: 'count', label: tr('admin_reservations_column_attempts'), sortable: true },
   { key: 'hour', label: tr('admin_reservations_column_time_window'), sortable: true },
-]
+])
 
 function formatRateLimitHour(val) {
   if (!val || val.length !== 10) return val
@@ -76,7 +76,7 @@ function formatRateLimitHour(val) {
   const fmt = (dt) => new Intl.DateTimeFormat(navigator.language, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(dt)
   const fmtTime = (dt) => new Intl.DateTimeFormat(navigator.language, { hour: '2-digit', minute: '2-digit' }).format(dt)
   const end = new Date(date.getTime() + 3600000)
-  return fmt(date) + ' – ' + fmtTime(end)
+  return fmt(date) + ' â€“ ' + fmtTime(end)
 }
 
 function formatDateTime(val) {
@@ -122,7 +122,7 @@ function parsePayload(json) {
     if (typeof parsed === 'object' && parsed !== null) return parsed
     throw new Error(tr('admin_reservations_payload_must_be_object'))
   } catch (e) {
-    throw new Error(`Ungültiges JSON: ${e.message}`)
+    throw new Error(`UngÃ¼ltiges JSON: ${e.message}`)
   }
 }
 
@@ -188,7 +188,7 @@ async function removeItem(id) {
     setMessage(tr('admin_reservations_entry_deleted'));
     await reloadAll();
   } catch (e) {
-    setError(`Löschen fehlgeschlagen: ${e}`);
+    setError(`LÃ¶schen fehlgeschlagen: ${e}`);
   } finally {
     loading.value = false;
     window.__reservationDeleteInProgress = false;
@@ -280,7 +280,7 @@ async function removeWaitlistEntry(id) {
     waitlist.value = waitlist.value.filter(w => w.id !== id);
     setMessage(tr('admin_reservations_waitlist_entry_deleted'));
   } catch (e) {
-    setError(`Löschen fehlgeschlagen: ${e}`);
+    setError(`LÃ¶schen fehlgeschlagen: ${e}`);
   } finally {
     waitlistLoading.value = false;
     window.__waitlistDeleteInProgress = false;
@@ -409,18 +409,17 @@ async function clearValidations() {
   } finally { validationLoading.value = false }
 }
 
-const statusLabels = {
-  email_pending: tr('status_email_pending'),
-  waiting_admin: tr('status_waiting_admin'),
-  ready: tr('status_ready'),
-  completed: tr('status_completed'),
-  expired: tr('status_expired'),
-  failed: tr('status_failed'),
-  cancelled: tr('status_cancelled'),
-}
-
 function statusLabel(status) {
-  return statusLabels[status] || status
+  const labels = {
+    email_pending: tr('status_email_pending'),
+    waiting_admin: tr('status_waiting_admin'),
+    ready: tr('status_ready'),
+    completed: tr('status_completed'),
+    expired: tr('status_expired'),
+    failed: tr('status_failed'),
+    cancelled: tr('status_cancelled'),
+  }
+  return labels[status] || status
 }
 
 async function resendValidation(id) {
@@ -442,7 +441,7 @@ watch(notifyOnChange, (val) => localStorage.setItem('admin_notify_on_change', va
 
 onMounted(() => {
   window.addEventListener('api-key-updated', handleKeyUpdate)
-  // site_token aus erster Reservierung oder Warteliste übernehmen, falls nicht gesetzt
+  // site_token aus erster Reservierung oder Warteliste Ã¼bernehmen, falls nicht gesetzt
   if (!localStorage.getItem('site_token')) {
     if (data.value.length > 0 && data.value[0].site_token) {
       localStorage.setItem('site_token', data.value[0].site_token)
@@ -633,7 +632,7 @@ async function purgeAllData() {
             :disabled="loading || waitlistLoading || validationLoading"
             @click="purgeAllData"
           />
-        <IconButton icon="refresh" label="{{ tr('admin_reservations_refresh') }}" @click="reloadAll" :disabled="loading || waitlistLoading || validationLoading" />
+        <IconButton icon="refresh" :label="tr('admin_reservations_refresh')" @click="reloadAll" :disabled="loading || waitlistLoading || validationLoading" />
       </div>
     </div>
     <div v-if="message" class="message">{{ message }}</div>
@@ -644,10 +643,10 @@ async function purgeAllData() {
         <h3>{{ tr('admin_reservations_participants_list') }}</h3>
       </div>
       <div class="inline-fields">
-        <input v-model="newReservation.name" placeholder="{{ tr('admin_reservations_placeholder_name') }}" />
-        <input v-model="newReservation.email" placeholder="{{ tr('admin_reservations_placeholder_email') }}" />
-        <input v-model="newReservation.payloadJson" placeholder="{{ tr('admin_reservations_placeholder_payload') }}" />
-        <IconButton type="button" icon="plus" label="{{ tr('admin_reservations_add_reservation') }}" variant="success" @click.stop="createReservation" :disabled="loading" />
+        <input v-model="newReservation.name" :placeholder="tr('admin_reservations_placeholder_name')" />
+        <input v-model="newReservation.email" :placeholder="tr('admin_reservations_placeholder_email')" />
+        <input v-model="newReservation.payloadJson" :placeholder="tr('admin_reservations_placeholder_payload')" />
+        <IconButton type="button" icon="plus" :label="tr('admin_reservations_add_reservation')" variant="success" @click.stop="createReservation" :disabled="loading" />
       </div>
     </div>
 
@@ -662,12 +661,12 @@ async function purgeAllData() {
       persist-key="admin-reservations"
       @refresh="reloadAll"
       @auto-refresh="reloadAll({ auto: true })"
-      empty-text="{{ tr('admin_reservations_no_reservations') }}"
+      :empty-text="tr('admin_reservations_no_reservations')"
     >
       <template #actions>
-        <IconButton icon="download" label="{{ tr('admin_reservations_export_participants_csv') }}" @click="exportCsv" :disabled="loading" />
-        <IconButton icon="trash" variant="danger" label="{{ tr('admin_reservations_delete_selection') }}" @click="bulkDeleteReservations" :disabled="loading || !selectedReservations.length" />
-        <IconButton variant="danger" icon="trash2" label="{{ tr('admin_reservations_delete_all') }}" @click="clearReservations" :disabled="loading || !data.length" />
+        <IconButton icon="download" :label="tr('admin_reservations_export_participants_csv')" @click="exportCsv" :disabled="loading" />
+        <IconButton icon="trash" variant="danger" :label="tr('admin_reservations_delete_selection')" @click="bulkDeleteReservations" :disabled="loading || !selectedReservations.length" />
+        <IconButton variant="danger" icon="trash2" :label="tr('admin_reservations_delete_all')" @click="clearReservations" :disabled="loading || !data.length" />
       </template>
       <template #cell-display_name="{ row }">
         <input v-model="row.display_name" @change="saveReservation(row)" />
@@ -677,13 +676,13 @@ async function purgeAllData() {
       </template>
       <template #cell-date_added="{ value }">{{ formatDateTime(value) }}</template>
       <template #cell-payload="{ row }">
-        <pre class="payload" v-if="row.payload">{{ JSON.stringify(row.payload, null, 2) }}</pre><span v-else>–</span>
+        <pre class="payload" v-if="row.payload">{{ JSON.stringify(row.payload, null, 2) }}</pre><span v-else>â€“</span>
       </template>
       <template #cell-site_token="{ row }">
-        <span v-if="row.site_token">{{ row.site_token }}</span><span v-else>–</span>
+        <span v-if="row.site_token">{{ row.site_token }}</span><span v-else>â€“</span>
       </template>
       <template #row-actions="{ row }">
-        <IconButton class="danger" variant="danger" icon="trash" label="{{ tr('admin_reservations_delete') }}" @click.stop="removeItem(row.id)" />
+        <IconButton class="danger" variant="danger" icon="trash" :label="tr('admin_reservations_delete')" @click.stop="removeItem(row.id)" />
       </template>
     </AdminDataTable>
 
@@ -693,10 +692,10 @@ async function purgeAllData() {
           <h3>{{ tr('admin_reservations_waitlist') }}</h3>
         </div>
         <div class="inline-fields">
-          <input v-model="newWaitlist.name" placeholder="{{ tr('admin_reservations_placeholder_name') }}" />
-          <input v-model="newWaitlist.email" placeholder="{{ tr('admin_reservations_placeholder_email') }}" />
-          <input v-model="newWaitlist.payloadJson" placeholder="{{ tr('admin_reservations_placeholder_payload') }}" />
-          <IconButton type="button" icon="plus" label="{{ tr('admin_reservations_add_to_waitlist') }}" variant="success" @click.stop="createWaitlistEntry" :disabled="waitlistLoading" />
+          <input v-model="newWaitlist.name" :placeholder="tr('admin_reservations_placeholder_name')" />
+          <input v-model="newWaitlist.email" :placeholder="tr('admin_reservations_placeholder_email')" />
+          <input v-model="newWaitlist.payloadJson" :placeholder="tr('admin_reservations_placeholder_payload')" />
+          <IconButton type="button" icon="plus" :label="tr('admin_reservations_add_to_waitlist')" variant="success" @click.stop="createWaitlistEntry" :disabled="waitlistLoading" />
         </div>
       </div>
       <AdminDataTable
@@ -709,12 +708,12 @@ async function purgeAllData() {
         persist-key="admin-waitlist"
         @refresh="loadWaitlist"
         @auto-refresh="loadWaitlist({ auto: true })"
-        empty-text="{{ tr('admin_reservations_no_waitlist_entries') }}"
+        :empty-text="tr('admin_reservations_no_waitlist_entries')"
       >
         <template #actions>
-          <IconButton icon="download" label="{{ tr('admin_reservations_export_waitlist_csv') }}" @click="exportWaitlistCsv" :disabled="waitlistLoading" />
-          <IconButton icon="trash" variant="danger" label="{{ tr('admin_reservations_delete_selection') }}" @click="bulkDeleteWaitlist" :disabled="waitlistLoading || !selectedWaitlist.length" />
-          <IconButton variant="danger" icon="trash2" label="{{ tr('admin_reservations_delete_all') }}" @click="clearWaitlist" :disabled="waitlistLoading || !waitlist.length" />
+          <IconButton icon="download" :label="tr('admin_reservations_export_waitlist_csv')" @click="exportWaitlistCsv" :disabled="waitlistLoading" />
+          <IconButton icon="trash" variant="danger" :label="tr('admin_reservations_delete_selection')" @click="bulkDeleteWaitlist" :disabled="waitlistLoading || !selectedWaitlist.length" />
+          <IconButton variant="danger" icon="trash2" :label="tr('admin_reservations_delete_all')" @click="clearWaitlist" :disabled="waitlistLoading || !waitlist.length" />
         </template>
         <template #cell-display_name="{ row }">
           <input v-model="row.display_name" @change="updateWaitlistEntry(row)" />
@@ -725,11 +724,11 @@ async function purgeAllData() {
         <template #cell-date_added="{ value }">{{ formatDateTime(value) }}</template>
         <template #cell-status="{ value }">{{ value }}</template>
         <template #cell-site_token="{ row }">
-          <span v-if="row.site_token">{{ row.site_token }}</span><span v-else>–</span>
+          <span v-if="row.site_token">{{ row.site_token }}</span><span v-else>â€“</span>
         </template>
         <template #row-actions="{ row }">
-          <IconButton icon="arrowUp" label="{{ tr('admin_reservations_promote') }}" @click.stop="promoteWaitlistEntry(row.id)" :disabled="waitlistLoading || row.status !== 'pending'" />
-          <IconButton variant="danger" icon="trash" label="{{ tr('admin_reservations_delete') }}" @click.stop="removeWaitlistEntry(row.id)" :disabled="waitlistLoading" />
+          <IconButton icon="arrowUp" :label="tr('admin_reservations_promote')" @click.stop="promoteWaitlistEntry(row.id)" :disabled="waitlistLoading || row.status !== 'pending'" />
+          <IconButton variant="danger" icon="trash" :label="tr('admin_reservations_delete')" @click.stop="removeWaitlistEntry(row.id)" :disabled="waitlistLoading" />
         </template>
       </AdminDataTable>
     </div>
@@ -750,19 +749,19 @@ async function purgeAllData() {
         persist-key="admin-validations"
         @refresh="loadValidations"
         @auto-refresh="loadValidations({ auto: true })"
-        empty-text="{{ tr('admin_reservations_no_open_validations') }}"
+        :empty-text="tr('admin_reservations_no_open_validations')"
       >
         <template #actions>
-          <IconButton icon="refresh" label="{{ tr('admin_reservations_refresh') }}" @click="loadValidations" :disabled="validationLoading" />
-          <IconButton icon="trash" variant="danger" label="{{ tr('admin_reservations_discard_selection') }}" @click="bulkDiscardValidations" :disabled="validationLoading || !selectedValidations.length" />
-          <IconButton icon="check" label="{{ tr('admin_reservations_approve_selection') }}" @click="bulkApproveValidations" :disabled="validationLoading || !selectedValidations.length" />
-          <IconButton variant="danger" icon="trash2" label="{{ tr('admin_reservations_delete_all') }}" @click="clearValidations" :disabled="validationLoading || !validations.length" />
+          <IconButton icon="refresh" :label="tr('admin_reservations_refresh')" @click="loadValidations" :disabled="validationLoading" />
+          <IconButton icon="trash" variant="danger" :label="tr('admin_reservations_discard_selection')" @click="bulkDiscardValidations" :disabled="validationLoading || !selectedValidations.length" />
+          <IconButton icon="check" :label="tr('admin_reservations_approve_selection')" @click="bulkApproveValidations" :disabled="validationLoading || !selectedValidations.length" />
+          <IconButton variant="danger" icon="trash2" :label="tr('admin_reservations_delete_all')" @click="clearValidations" :disabled="validationLoading || !validations.length" />
         </template>
         <template #cell-status="{ value }">{{ statusLabel(value) }}</template>
         <template #row-actions="{ row }">
-          <IconButton icon="check" label="{{ tr('admin_reservations_approve') }}" @click="approveValidation(row.id)" :disabled="validationLoading" />
-          <IconButton icon="mail" label="{{ tr('admin_reservations_resend_email') }}" @click="resendValidation(row.id)" :disabled="validationLoading" />
-          <IconButton variant="danger" icon="trash" label="{{ tr('admin_reservations_discard') }}" @click="discardValidation(row.id)" :disabled="validationLoading" />
+          <IconButton icon="check" :label="tr('admin_reservations_approve')" @click="approveValidation(row.id)" :disabled="validationLoading" />
+          <IconButton icon="mail" :label="tr('admin_reservations_resend_email')" @click="resendValidation(row.id)" :disabled="validationLoading" />
+          <IconButton variant="danger" icon="trash" :label="tr('admin_reservations_discard')" @click="discardValidation(row.id)" :disabled="validationLoading" />
         </template>
       </AdminDataTable>
     </div>
@@ -780,16 +779,16 @@ async function purgeAllData() {
         :page-size="20"
         persist-key="admin-rate-limits"
         @refresh="loadRateLimits"
-        empty-text="{{ tr('admin_reservations_no_rate_limit_data') }}"
+        :empty-text="tr('admin_reservations_no_rate_limit_data')"
       >
         <template #actions>
-          <IconButton icon="trash2" variant="danger" label="{{ tr('admin_reservations_delete_all_rate_limits') }}" @click="clearAllRateLimits" :disabled="rateLimitLoading || !rateLimits.length" />
+          <IconButton icon="trash2" variant="danger" :label="tr('admin_reservations_delete_all_rate_limits')" @click="clearAllRateLimits" :disabled="rateLimitLoading || !rateLimits.length" />
         </template>
         <template #cell-hour="{ value }">
           <span>{{ formatRateLimitHour(value) }}</span>
         </template>
         <template #row-actions="{ row }">
-          <IconButton icon="trash" variant="danger" label="{{ tr('admin_reservations_reset') }}" @click="resetRateLimit(row.ip)" :disabled="rateLimitLoading" />
+          <IconButton icon="trash" variant="danger" :label="tr('admin_reservations_reset')" @click="resetRateLimit(row.ip)" :disabled="rateLimitLoading" />
         </template>
       </AdminDataTable>
     </div>

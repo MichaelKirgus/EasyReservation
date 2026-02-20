@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted } from 'vue'
 import AdminDataTable from './AdminDataTable.vue'
 import IconButton from './IconButton.vue'
@@ -17,14 +17,15 @@ const message = ref('')
 
 const isSuperAdmin = computed(() => currentUser.value?.role === 'superadmin')
 
-const columns = [
+// Columns - defined as computed to ensure translations are loaded
+const columns = computed(() => [
   { key: 'id', label: tr('admin_audit_log_column_id'), sortable: true },
   { key: 'user_id', label: tr('admin_audit_log_column_user_id'), sortable: true },
   { key: 'route', label: tr('admin_audit_log_column_route'), sortable: true },
   { key: 'method', label: tr('admin_audit_log_column_method'), sortable: true },
   { key: 'payload', label: tr('admin_audit_log_column_payload'), sortable: false },
   { key: 'created_at', label: tr('admin_audit_log_column_timestamp'), sortable: true },
-]
+])
 
 const authHeaders = () => buildAdminHeaders({ apiKeyRef: apiKey, includeJson: true })
 
@@ -78,11 +79,11 @@ onMounted(() => {
         :loading="loading"
         :page-size="20"
         persist-key="admin-audit-log"
-        empty-text="{{ tr('admin_audit_log_empty_text') }}"
+        :empty-text="tr('admin_audit_log_empty_text')"
         @refresh="fetchLogs"
       >
         <template #actions>
-          <IconButton icon="trash" variant="danger" label="{{ tr('admin_audit_log_button_clear') }}" @click="clearLogs" :disabled="loading || !logs.length" />
+          <IconButton icon="trash" variant="danger" :label="tr('admin_audit_log_button_clear')" @click="clearLogs" :disabled="loading || !logs.length" />
         </template>
         <template #cell-payload="{ row }">
           <pre style="white-space:pre-wrap;word-break:break-word;max-width:400px;">{{ row.payload }}</pre>

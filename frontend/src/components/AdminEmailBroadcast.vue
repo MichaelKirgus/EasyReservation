@@ -37,14 +37,14 @@ const canManageTemplates = computed(() =>
   routePrefix.value === 'admin' || userRole.value === 'admin' || userRole.value === 'superadmin'
 )
 
-const templateColumns = [
+const templateColumns = computed(() => [
   { key: 'id', label: tr('admin_email_broadcast_columns_id'), sortable: true },
   { key: 'name', label: tr('admin_email_broadcast_columns_name'), sortable: true },
   { key: 'subject', label: tr('admin_email_broadcast_columns_subject'), sortable: true },
   { key: 'cc', label: tr('admin_email_broadcast_columns_cc'), sortable: false },
   { key: 'bcc', label: tr('admin_email_broadcast_columns_bcc'), sortable: false },
   { key: 'body', label: tr('admin_email_broadcast_columns_body'), sortable: false },
-]
+])
 
 const reservationsWithEmail = computed(() => reservations.value.filter(r => !!r.email))
 const waitlistWithEmail = computed(() => waitlist.value.filter(w => !!w.email))

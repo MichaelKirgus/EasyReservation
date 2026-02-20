@@ -1,15 +1,16 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import AdminDataTable from './AdminDataTable.vue'
 import { adminFetch } from '../utils/adminApi'
 import { useTranslation } from '../composables/useTranslation'
 
 const { tr } = useTranslation()
 
-const columns = [
+// Columns - defined as computed to ensure translations are loaded
+const columns = computed(() => [
   { key: 'key', label: tr('admin_placeholder_values_columns_key'), sortable: true },
   { key: 'value', label: tr('admin_placeholder_values_columns_value'), sortable: false },
-]
+])
 
 const rows = ref([])
 const loading = ref(false)

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 import { buildAdminHeaders } from '../utils/adminApi'
@@ -34,7 +34,7 @@ const lastAutoErrorAt = ref(0)
 const protectedKeys = ['name', 'email']
 const selectedFields = ref([])
 
-const fieldColumns = [
+const fieldColumns = computed(() => [
   { key: 'id', label: tr('form_field_manager_column_id'), sortable: true },
   { key: 'key', label: tr('form_field_manager_column_key'), sortable: true },
   { key: 'label', label: tr('form_field_manager_column_label'), sortable: true },
@@ -48,7 +48,7 @@ const fieldColumns = [
   { key: 'active', label: tr('form_field_manager_column_active'), sortable: true },
   { key: 'options', label: tr('form_field_manager_column_options'), sortable: false },
   { key: 'order', label: tr('form_field_manager_column_order'), sortable: true },
-]
+])
 
 const form = reactive({
   key: '',

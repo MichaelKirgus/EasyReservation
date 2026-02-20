@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
@@ -24,14 +24,14 @@ const showResetPassword = ref(false)
 const resetUser = ref(null)
 const resetLoading = ref(false)
 
-const userColumns = [
+const userColumns = computed(() => [
   { key: 'id', label: tr('admin_users_column_id'), sortable: true },
   { key: 'name', label: tr('admin_users_column_name'), sortable: true },
   { key: 'email', label: tr('admin_users_column_email'), sortable: true },
   { key: 'role', label: tr('admin_users_column_role'), sortable: true },
   { key: 'active', label: tr('admin_users_column_active'), sortable: true },
   { key: 'api_token', label: tr('admin_users_column_api_token'), sortable: false },
-]
+])
 
 const form = reactive({
   name: '',
@@ -405,7 +405,7 @@ onUnmounted(() => {
           <SecretField v-model="form.api_token" />
         </label>
       </div>
-      <IconButton icon="plus" label="{{ tr('admin_users_button_create') }}" @click="createUser" :disabled="loading" />
+      <IconButton icon="plus" :label="tr('admin_users_button_create')" @click="createUser" :disabled="loading" />
     </section>
 
     <section class="card">
@@ -418,12 +418,12 @@ onUnmounted(() => {
         :loading="loading"
         :page-size="20"
         persist-key="admin-users"
-        empty-text="{{ tr('admin_users_empty_text') }}"
+        :empty-text="tr('admin_users_empty_text')"
         @refresh="fetchUsers"
         @auto-refresh="fetchUsers({ auto: true })"
       >
         <template #actions>
-          <IconButton icon="trash" variant="danger" label="{{ tr('admin_users_button_delete_selection') }}" @click="bulkDeleteUsers" :disabled="loading || !selectedUsers.length" />
+          <IconButton icon="trash" variant="danger" :label="tr('admin_users_button_delete_selection')" @click="bulkDeleteUsers" :disabled="loading || !selectedUsers.length" />
         </template>
         <template #cell-name="{ row }">
           <input v-model="row.name" @change="updateUser(row)" />
@@ -453,17 +453,17 @@ onUnmounted(() => {
               @change="updateUser(row)"
               placeholder="Token"
             />
-            <span v-else>{{ row.api_token_is_hashed ? tr('admin_users_hashed') : '–' }}</span>
+            <span v-else>{{ row.api_token_is_hashed ? tr('admin_users_hashed') : 'â€“' }}</span>
           </div>
         </template>
         <template #row-actions="{ row }">
-          <IconButton icon="key" label="{{ tr('admin_users_button_rotate_token') }}" @click="rotateToken(row, false)" :disabled="loading" />
-          <IconButton icon="key" label="{{ tr('admin_users_button_rotate_token_hashed') }}" @click="rotateToken(row, true)" :disabled="loading" />
-          <IconButton icon="shield" label="{{ tr('admin_users_button_enable_2fa') }}" @click="enable2FA(row)" :disabled="loading || row.two_factor_secret || row.role === 'guest'" />
-          <IconButton icon="lock" label="{{ tr('admin_users_button_set_password') }}" @click="openResetPasswordDialog(row)" :disabled="loading || row.role === 'guest'" />
-          <IconButton icon="close" label="{{ tr('admin_users_button_disable_2fa') }}" @click="disable2FA(row)" :disabled="loading || !row.two_factor_secret || row.role === 'guest'" />
-          <IconButton icon="refresh" label="{{ tr('admin_users_button_reset_2fa') }}" @click="reset2FA(row)" :disabled="loading || !row.two_factor_secret || row.role === 'guest'" />
-          <IconButton variant="danger" icon="trash" label="{{ tr('admin_users_button_delete') }}" @click="deleteUser(row)" :disabled="loading" />
+          <IconButton icon="key" :label="tr('admin_users_button_rotate_token')" @click="rotateToken(row, false)" :disabled="loading" />
+          <IconButton icon="key" :label="tr('admin_users_button_rotate_token_hashed')" @click="rotateToken(row, true)" :disabled="loading" />
+          <IconButton icon="shield" :label="tr('admin_users_button_enable_2fa')" @click="enable2FA(row)" :disabled="loading || row.two_factor_secret || row.role === 'guest'" />
+          <IconButton icon="lock" :label="tr('admin_users_button_set_password')" @click="openResetPasswordDialog(row)" :disabled="loading || row.role === 'guest'" />
+          <IconButton icon="close" :label="tr('admin_users_button_disable_2fa')" @click="disable2FA(row)" :disabled="loading || !row.two_factor_secret || row.role === 'guest'" />
+          <IconButton icon="refresh" :label="tr('admin_users_button_reset_2fa')" @click="reset2FA(row)" :disabled="loading || !row.two_factor_secret || row.role === 'guest'" />
+          <IconButton variant="danger" icon="trash" :label="tr('admin_users_button_delete')" @click="deleteUser(row)" :disabled="loading" />
         </template>
       </AdminDataTable>
 

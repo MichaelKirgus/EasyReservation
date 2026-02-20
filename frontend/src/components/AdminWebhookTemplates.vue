@@ -28,7 +28,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import AdminDataTable from './AdminDataTable.vue'
 import IconButton from './IconButton.vue'
 import WebhookTemplateDialog from './WebhookTemplateDialog.vue'
@@ -47,12 +47,13 @@ const loading = ref(false)
 const showDialog = ref(false)
 const selectedTemplate = ref(null)
 
-const columns = [
-  { key: 'id', label: tr('webhook_templates_id', 'ID') },
-  { key: 'name', label: tr('webhook_templates_name', 'Name') },
-  { key: 'url', label: tr('webhook_templates_webhook_url', 'Webhook URL') },
-  { key: 'description', label: tr('webhook_templates_description', 'Description') }
-]
+// Columns - defined as computed to ensure translations are loaded
+const columns = computed(() => [
+  { key: 'id', label: tr('admin_webhook_templates_id', 'ID') },
+  { key: 'name', label: tr('admin_webhook_templates_name', 'Name') },
+  { key: 'url', label: tr('admin_webhook_templates_url', 'Webhook URL') },
+  { key: 'description', label: tr('admin_webhook_templates_description', 'Description') }
+])
 
 function fetchTemplates() {
   loading.value = true

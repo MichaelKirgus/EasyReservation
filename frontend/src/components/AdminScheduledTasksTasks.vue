@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <div>
-    <!-- Ausgelagerter Inhalt aus AdminScheduledTasks.vue für geplante Aufgaben -->
+    <!-- Ausgelagerter Inhalt aus AdminScheduledTasks.vue fÃ¼r geplante Aufgaben -->
     <h2 style="display:flex;align-items:center;justify-content:space-between;">
       <span>{{ tr('scheduled_tasks_title') }}</span>
-      <IconButton icon="plus" label="{{ tr('scheduled_tasks_button_new_task') }}" class="primary" variant="success" @click="createTask" />
+      <IconButton icon="plus" :label="tr('scheduled_tasks_button_new_task')" class="primary" variant="success" @click="createTask" />
     </h2>
     <div v-if="nextRunAt" class="info-box" style="margin-bottom:0.5em;">
       <strong>{{ tr('scheduled_tasks_next_run_at') }}</strong>
@@ -15,36 +15,36 @@
       :loading="loading"
     >
       <template #cell-executed="{ value }">
-        <span v-if="value">✅</span>
-        <span v-else>❌</span>
+        <span v-if="value">âœ…</span>
+        <span v-else>âŒ</span>
       </template>
       <template #cell-executed_at="{ value }">
-        <span>{{ value ? formatDateTime(value) : '–' }}</span>
+        <span>{{ value ? formatDateTime(value) : 'â€“' }}</span>
       </template>
       <template #cell-planned_run_at="{ value }">
-        <span>{{ value ? formatDateTime(value) : '–' }}</span>
+        <span>{{ value ? formatDateTime(value) : 'â€“' }}</span>
       </template>
       <template #cell-next_run_at="{ value }">
-        <span>{{ value ? formatDateTime(value) : '–' }}</span>
+        <span>{{ value ? formatDateTime(value) : 'â€“' }}</span>
       </template>
       <template #cell-last_run_at="{ value }">
-        <span>{{ value ? formatDateTime(value) : '–' }}</span>
+        <span>{{ value ? formatDateTime(value) : 'â€“' }}</span>
       </template>
       <template #cell-active="{ row }">
         <input type="checkbox" :checked="row.active" @change="toggleActive(row)" :disabled="loading" />
       </template>
       <template #cell-run_once="{ value }">
-        <span v-if="value">✅</span>
-        <span v-else>❌</span>
+        <span v-if="value">âœ…</span>
+        <span v-else>âŒ</span>
       </template>
       <template #cell-skip_if_overdue="{ value }">
-        <span v-if="value">✅</span>
-        <span v-else>❌</span>
+        <span v-if="value">âœ…</span>
+        <span v-else>âŒ</span>
       </template>
       <template #row-actions="{ row }">
-        <IconButton icon="play" label="{{ tr('scheduled_tasks_button_run_now') }}" class="ghost" @click.stop="runNow(row)" :disabled="loading" />
-        <IconButton icon="pencil" label="{{ tr('scheduled_tasks_button_edit') }}" class="ghost" @click.stop="editTask(row)" :disabled="loading" />
-        <IconButton icon="trash" label="{{ tr('scheduled_tasks_button_delete') }}" class="ghost" variant="danger" @click.stop="deleteTask(row)" :disabled="loading" />
+        <IconButton icon="play" :label="tr('scheduled_tasks_button_run_now')" class="ghost" @click.stop="runNow(row)" :disabled="loading" />
+        <IconButton icon="pencil" :label="tr('scheduled_tasks_button_edit')" class="ghost" @click.stop="editTask(row)" :disabled="loading" />
+        <IconButton icon="trash" :label="tr('scheduled_tasks_button_delete')" class="ghost" variant="danger" @click.stop="deleteTask(row)" :disabled="loading" />
       </template>
     </AdminDataTable>
     <TaskDialog
@@ -58,7 +58,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import AdminDataTable from './AdminDataTable.vue'
 import TaskDialog from './TaskDialog.vue'
 import IconButton from './IconButton.vue'
@@ -73,7 +73,7 @@ function apiConfig() {
 }
 
 function formatDateTime(val) {
-  if (!val) return '–';
+  if (!val) return 'â€“';
   // If it's a unix timestamp (number), convert directly
   if (typeof val === 'number') {
     const d = new Date(val * 1000);
@@ -100,7 +100,8 @@ const loading = ref(false)
 const showDialog = ref(false)
 const selectedTask = ref(null)
 
-const columns = [
+// Columns - defined as computed to ensure translations are loaded
+const columns = computed(() => [
   { key: 'id', label: tr('scheduled_tasks_column_id') },
   { key: 'type', label: tr('scheduled_tasks_column_type'),
     formatter: (type) => {
@@ -133,7 +134,7 @@ const columns = [
   { key: 'active', label: tr('scheduled_tasks_column_active') },
   { key: 'run_once', label: tr('scheduled_tasks_column_run_once') },
   { key: 'skip_if_overdue', label: tr('scheduled_tasks_column_skip_if_overdue') }
-]
+])
 
 function fetchTasks() {
   loading.value = true
@@ -195,7 +196,7 @@ function closeDialog() {
 }
 
 function toggleActive(task) {
-  // Komplettes Task-Objekt übergeben, nur active ändern
+  // Komplettes Task-Objekt Ã¼bergeben, nur active Ã¤ndern
   saveTask({ ...task, active: !task.active })
 }
 

@@ -69,7 +69,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import IconButton from './IconButton.vue'
 import { useTranslation } from '../composables/useTranslation'
 
@@ -82,7 +82,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['close', 'save'])
 
-const eventTypes = [
+const eventTypes = computed(() => [
   { value: 'reservation_full', label: tr('event_type_reservation_full') },
   { value: 'reservation_disabled', label: tr('event_type_reservation_disabled') },
   { value: 'reservation_enabled', label: tr('event_type_reservation_enabled') },
@@ -94,7 +94,7 @@ const eventTypes = [
   { value: 'waitlist_entry_added', label: tr('event_type_waitlist_entry_added') },
   { value: 'waitlist_entry_removed', label: tr('event_type_waitlist_entry_removed') },
   { value: 'application_error', label: tr('event_type_application_error') }
-]
+])
 
 
 const form = ref({

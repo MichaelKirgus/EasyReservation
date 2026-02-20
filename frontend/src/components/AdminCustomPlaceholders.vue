@@ -42,7 +42,7 @@
 
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import AdminDataTable from './AdminDataTable.vue';
 import IconButton from './IconButton.vue';
 import axios from 'axios';
@@ -51,11 +51,12 @@ import { useTranslation } from '../composables/useTranslation'
 
 const { tr } = useTranslation()
 
-const columns = [
+// Columns - defined as computed to ensure translations are loaded
+const columns = computed(() => [
   { key: 'key', label: tr('admin_custom_placeholders_columns_key'), required: true },
   { key: 'value', label: tr('admin_custom_placesholders_columns_value'), required: true },
   { key: 'description', label: tr('admin_custom_placeholders_columns_description') },
-];
+]);
 
 const rows = ref([]);
 const loading = ref(false);

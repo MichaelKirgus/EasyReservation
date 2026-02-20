@@ -49,7 +49,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import AdminDataTable from './AdminDataTable.vue'
 import IconButton from './IconButton.vue'
 import TriggerDialog from './TriggerDialog.vue'
@@ -73,7 +73,8 @@ function templateName(id) {
   return tpl ? tpl.name : id;
 }
 
-const columns = [
+// Columns - defined as computed to ensure translations are loaded
+const columns = computed(() => [
   { key: 'id', label: tr('admin_event_triggers_column_id') },
   { key: 'event_type', label: tr('admin_event_triggers_column_event_type') },
   { key: 'action_type', label: tr('admin_event_triggers_column_action_type') },
@@ -82,9 +83,10 @@ const columns = [
   { key: 'delay_seconds', label: tr('admin_event_triggers_column_delay_seconds') },
   { key: 'cooldown_seconds', label: tr('admin_event_triggers_column_cooldown_seconds') },
   { key: 'active', label: tr('admin_event_triggers_column_active') }
-]
+])
 
-const eventTypes = [
+// Event types - defined as computed to ensure translations are loaded
+const eventTypes = computed(() => [
   { value: 'reservation_full', label: tr('event_type_reservation_full') },
   { value: 'reservation_disabled', label: tr('event_type_reservation_disabled') },
   { value: 'reservation_enabled', label: tr('event_type_reservation_enabled') },
@@ -96,10 +98,10 @@ const eventTypes = [
   { value: 'waitlist_entry_added', label: tr('event_type_waitlist_entry_added') },
   { value: 'waitlist_entry_removed', label: tr('event_type_waitlist_entry_removed') },
   { value: 'application_error', label: tr('event_type_application_error') }
-]
+])
 
 function eventTypeLabel(val) {
-  const found = eventTypes.find(e => e.value === val)
+  const found = eventTypes.value.find(e => e.value === val)
   return found ? found.label : val
 }
 
