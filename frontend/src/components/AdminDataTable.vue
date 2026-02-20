@@ -17,7 +17,7 @@ const props = defineProps({
   clientSort: { type: Boolean, default: true },
   initialHiddenColumns: { type: Array, default: () => [] },
   persistKey: { type: String, default: null },
-  emptyText: { type: String, default: tr('admin_data_table_empty_text') },
+  emptyText: { type: String, default: '' },
   rowDraggable: { type: Boolean, default: false },
   autoRefreshDefaultEnabled: { type: Boolean, default: false },
   autoRefreshDefaultIntervalMs: { type: Number, default: 10000 },
@@ -37,6 +37,10 @@ const autoRefreshEnabled = ref(!!props.autoRefreshDefaultEnabled)
 const autoRefreshInterval = ref(props.autoRefreshDefaultIntervalMs)
 const autoRefreshLock = ref(false)
 let autoRefreshTimer = null
+
+const emptyTextComputed = computed(() => {
+  return tr('admin_data_table_empty_text', 'No data available')
+})
 
 onMounted(() => {
   if (props.persistKey) {
@@ -286,7 +290,7 @@ function onDrop(globalIndex) {
             <td :colspan="displayColumns.length + (selectable ? 1 : 0) + ($slots['row-actions'] ? 1 : 0) + (rowDraggable ? 1 : 0)">{{ tr('admin_data_table_loading') }}</td>
           </tr>
           <tr v-else-if="!pagedRows.length">
-            <td :colspan="displayColumns.length + (selectable ? 1 : 0) + ($slots['row-actions'] ? 1 : 0) + (rowDraggable ? 1 : 0)">{{ emptyText }}</td>
+            <td :colspan="displayColumns.length + (selectable ? 1 : 0) + ($slots['row-actions'] ? 1 : 0) + (rowDraggable ? 1 : 0)">{{ emptyTextComputed }}</td>
           </tr>
           <tr
             v-else

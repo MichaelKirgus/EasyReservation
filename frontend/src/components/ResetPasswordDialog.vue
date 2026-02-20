@@ -1,7 +1,7 @@
 <template>
   <div class="modal-backdrop" @click.self="$emit('close')">
     <div class="modal">
-      <h3>{{ tr('reset_password_title', 'New password for {{ name }}', { name: user?.name || user?.email }) }}</h3>
+      <h3>{{ resetPasswordTitle }}</h3>
       <form @submit.prevent="submit">
         <label>{{ tr('reset_password_new_label', 'New password:') }}
           <input v-model="password" type="password" required autocomplete="new-password" />
@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import IconButton from './IconButton.vue'
 import { useTranslation } from '../composables/useTranslation'
 
@@ -33,6 +33,12 @@ const password = ref('')
 const passwordRepeat = ref('')
 const error = ref('')
 const { tr } = useTranslation()
+
+const resetPasswordTitle = computed(() => {
+  return tr('reset_password_title', 'New password for {{ name }}', {
+    name: props.user?.name || props.user?.email
+  })
+})
 
 function submit() {
   error.value = ''
