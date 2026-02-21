@@ -51,23 +51,29 @@ class PlaceholderService
 
         $timezone = $this->settings->get('event_timezone', 'Europe/Berlin');
         $nextEvent = $next ? $this->events->format($next) : '';
-        $eventLocationName = $next instanceof Event ? (string) ($next->location_id ? ($next->location?->name ?? '') : ($next->location ?? '')) : '';
+        // Use explicit relationship query to avoid collision with the legacy
+        // "location" string column on the events table which shadows the
+        // location() BelongsTo relationship accessor.
+        $locationModel = $next instanceof Event && $next->location_id
+            ? $next->location()->first()
+            : null;
+        $eventLocationName = $next instanceof Event ? (string) ($next->location_id ? ($locationModel?->name ?? '') : ($next->getAttributes()['location'] ?? '')) : '';
         $eventCity = $next instanceof Event ? (string) ($next->city ?? '') : '';
-        $legacyLocation = $next instanceof Event ? (string) ($next->location ?? '') : '';
-        $locationAddress = $next instanceof Event && $next->location_id ? (string) ($next->location?->address ?? '') : '';
-        $locationPublicTransport = $next instanceof Event && $next->location_id ? (string) ($next->location?->public_transport ?? '') : '';
-        $locationNotes = $next instanceof Event && $next->location_id ? (string) ($next->location?->notes ?? '') : '';
-        $locationCapacity = $next instanceof Event && $next->location_id ? (string) ($next->location?->capacity_override ?? '') : '';
-        $locationContactEmail = $next instanceof Event && $next->location_id ? (string) ($next->location?->contact_email ?? '') : '';
-        $locationLatitude = $next instanceof Event && $next->location_id ? (string) ($next->location?->latitude ?? '') : '';
-        $locationLongitude = $next instanceof Event && $next->location_id ? (string) ($next->location?->longitude ?? '') : '';
+        $legacyLocation = $next instanceof Event ? (string) ($next->getAttributes()['location'] ?? '') : '';
+        $locationAddress = $locationModel ? (string) ($locationModel->address ?? '') : '';
+        $locationPublicTransport = $locationModel ? (string) ($locationModel->public_transport ?? '') : '';
+        $locationNotes = $locationModel ? (string) ($locationModel->notes ?? '') : '';
+        $locationCapacity = $locationModel ? (string) ($locationModel->capacity_override ?? '') : '';
+        $locationContactEmail = $locationModel ? (string) ($locationModel->contact_email ?? '') : '';
+        $locationLatitude = $locationModel ? (string) ($locationModel->latitude ?? '') : '';
+        $locationLongitude = $locationModel ? (string) ($locationModel->longitude ?? '') : '';
         $eventTitle = $next instanceof Event ? (string) ($next->title ?? '') : '';
         $eventDate = $next?->start_at?->copy()->setTimezone($timezone)->format($dateFormat) ?? '';
         $eventTime = $next?->start_at?->copy()->setTimezone($timezone)->format($timeFormat) ?? '';
         $eventDateUtc = $next?->start_at?->copy()->setTimezone('UTC')->format($dateFormat) ?? '';
         $eventTimeUtc = $next?->start_at?->copy()->setTimezone('UTC')->format($timeFormat) ?? '';
         // Get location URL from relationship
-        $locationUrl = $next instanceof Event && $next->location_id ? (string) ($next->location?->url ?? '') : '';
+        $locationUrl = $locationModel ? (string) ($locationModel->url ?? '') : '';
         
         $upcomingCollection = $this->events->upcoming();
         $upcomingTitles = $upcomingCollection

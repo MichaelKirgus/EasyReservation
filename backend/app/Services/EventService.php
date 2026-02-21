@@ -32,9 +32,11 @@ class EventService
         $start = $this->formatDate($event->start_at);
         $end = $event->end_at ? $this->formatDate($event->end_at) : null;
         
-        // Get location info from relationship or fallback to old location field
-        $locationName = $event->location_id ? ($event->location?->name ?? '') : ($event->location ?? '');
-        $city = $event->city ?? ($event->location_id ? $event->location?->city : null);
+        // Use explicit relationship query to avoid collision with the legacy
+        // "location" string column which shadows the location() relationship.
+        $locationModel = $event->location_id ? $event->location()->first() : null;
+        $locationName = $event->location_id ? ($locationModel?->name ?? '') : ($event->getAttributes()['location'] ?? '');
+        $city = $event->city ?? ($locationModel?->city);
         
         $placeParts = array_filter([
             $city ?? '',
