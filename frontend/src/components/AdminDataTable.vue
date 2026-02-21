@@ -318,7 +318,7 @@ function onDrop(globalIndex) {
     </div>
 
     <div class="table-footer" v-if="pageCount > 1">
-      <div>{{ tr('admin_data_table_page_info', { page, pageCount }) }}</div>
+      <div>{{ tr('admin_data_table_page_info', '', { page, pageCount }) }}</div>
       <div class="pager">
         <IconButton icon="chevronLeft" size="sm" variant="ghost" :label="tr('admin_data_table_pagination_prev')" @click="page = Math.max(1, page - 1)" :disabled="page === 1" />
         <IconButton icon="chevronRight" size="sm" variant="ghost" :label="tr('admin_data_table_pagination_next')" @click="page = Math.min(pageCount, page + 1)" :disabled="page === pageCount" />
