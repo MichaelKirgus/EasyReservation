@@ -95,38 +95,38 @@ const navGroups = computed(() => {
   const safeFaq = typeof faqEnabled === 'object' && faqEnabled !== null && 'value' in faqEnabled ? faqEnabled.value : false;
   const safePrivacy = typeof privacyEnabled === 'object' && privacyEnabled !== null && 'value' in privacyEnabled ? privacyEnabled.value : false;
   const publicTabs = [
-    { to: '/', label: 'Reservierung', show: true },
+    { to: '/', label: tr('nav_tab_reservation', 'Reservation'), show: true },
   ];
-  if (safeFaq) publicTabs.push({ to: '/faq', label: 'FAQ', show: true });
-  if (safePrivacy) publicTabs.push({ to: '/privacy', label: 'Datenschutz', show: true });
+  if (safeFaq) publicTabs.push({ to: '/faq', label: tr('nav_tab_faq', 'FAQ'), show: true });
+  if (safePrivacy) publicTabs.push({ to: '/privacy', label: tr('nav_tab_privacy', 'Privacy'), show: true });
   const groups = [
     {
       id: 'public',
-      label: 'Öffentlich',
+      label: tr('nav_public_label', 'Public'),
       tabs: publicTabs,
     },
     {
       id: 'moderation',
-      label: 'Moderation',
+      label: tr('nav_moderation_label', 'Moderation'),
       tabs: [
-        { to: '/moderation/reservations', label: 'Reservierungen', show: !!(currentUser && currentUser.role) },
-        { to: '/moderation/email', label: 'E-Mail', show: !!(currentUser && currentUser.role) },
-        { to: '/moderation/faq', label: 'FAQ', show: !!(currentUser && currentUser.role) },
-        { to: '/moderation/events', label: 'Termine', show: !!(currentUser && currentUser.role) },
-        { to: '/moderation/placeholders', label: 'Platzhalter', show: !!(currentUser && currentUser.role) },
+        { to: '/moderation/reservations', label: tr('nav_tab_reservations', 'Reservations'), show: !!(currentUser && currentUser.role) },
+        { to: '/moderation/email', label: tr('nav_tab_email', 'Email'), show: !!(currentUser && currentUser.role) },
+        { to: '/moderation/faq', label: tr('nav_tab_faq', 'FAQ'), show: !!(currentUser && currentUser.role) },
+        { to: '/moderation/events', label: tr('nav_tab_events', 'Events'), show: !!(currentUser && currentUser.role) },
+        { to: '/moderation/placeholders', label: tr('nav_tab_placeholders', 'Placeholders'), show: !!(currentUser && currentUser.role) },
       ],
     },
     {
       id: 'administration',
-      label: 'Administration',
+      label: tr('nav_administration_label', 'Administration'),
       tabs: [
-        { to: '/admin/diagnostics', label: 'Diagnose', show: !!(currentUser && currentUser.role) },
-        { to: '/admin/settings', label: 'Einstellungen', show: !!(currentUser && currentUser.role) },
-        { to: '/admin/scheduled-tasks', label: 'Geplante Aufgaben', show: !!(currentUser && currentUser.role) },
-        { to: '/admin/custom-placeholders', label: 'Platzhalter', show: !!(currentUser && currentUser.role) },
-        { to: '/admin/form-fields', label: 'Formularfelder', show: !!(currentUser && currentUser.role) },
-        { to: '/admin/users', label: 'Benutzer', show: !!(currentUser && currentUser.role) },
-        { to: '/admin/auditlog', label: 'Audit-Log', show: currentUser && currentUser.role === 'superadmin' },
+        { to: '/admin/diagnostics', label: tr('nav_tab_diagnostics', 'Diagnostics'), show: !!(currentUser && currentUser.role) },
+        { to: '/admin/settings', label: tr('nav_tab_settings', 'Settings'), show: !!(currentUser && currentUser.role) },
+        { to: '/admin/scheduled-tasks', label: tr('nav_tab_scheduled_tasks', 'Scheduled Tasks'), show: !!(currentUser && currentUser.role) },
+        { to: '/admin/custom-placeholders', label: tr('nav_tab_placeholders', 'Placeholders'), show: !!(currentUser && currentUser.role) },
+        { to: '/admin/form-fields', label: tr('nav_tab_form_fields', 'Form Fields'), show: !!(currentUser && currentUser.role) },
+        { to: '/admin/users', label: tr('nav_tab_users', 'Users'), show: !!(currentUser && currentUser.role) },
+        { to: '/admin/auditlog', label: tr('nav_tab_audit_log', 'Audit Log'), show: currentUser && currentUser.role === 'superadmin' },
       ],
     },
   ];

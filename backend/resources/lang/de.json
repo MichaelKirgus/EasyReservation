@@ -1088,5 +1088,21 @@
   "admin_data_table_drag_hint": "Zum Verschieben ziehen",
   "admin_data_table_page_info": "Seite {{ page }} / {{ pageCount }}",
   "admin_data_table_pagination_prev": "Zurück",
-  "admin_data_table_pagination_next": "Weiter"
-}
+  "admin_data_table_pagination_next": "Weiter",
+  "nav_public_label": "Öffentlich",
+  "nav_moderation_label": "Moderation",
+  "nav_administration_label": "Administration",
+  "nav_tab_reservation": "Reservierung",
+  "nav_tab_faq": "FAQ",
+  "nav_tab_privacy": "Datenschutz",
+  "nav_tab_reservations": "Reservierungen",
+  "nav_tab_email": "E-Mail",
+  "nav_tab_events": "Termine",
+  "nav_tab_placeholders": "Platzhalter",
+  "nav_tab_diagnostics": "Diagnose",
+  "nav_tab_settings": "Einstellungen",
+  "nav_tab_scheduled_tasks": "Geplante Aufgaben",
+  "nav_tab_form_fields": "Formularfelder",
+  "nav_tab_users": "Benutzer",
+  "nav_tab_audit_log": "Audit-Log"
+  }

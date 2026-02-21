@@ -1090,5 +1090,21 @@
   "admin_data_table_drag_hint": "Drag to reorder",
   "admin_data_table_page_info": "Page {{ page }} / {{ pageCount }}",
   "admin_data_table_pagination_prev": "Back",
-  "admin_data_table_pagination_next": "Next"
-}
+  "admin_data_table_pagination_next": "Next",
+  "nav_public_label": "Public",
+  "nav_moderation_label": "Moderation",
+  "nav_administration_label": "Administration",
+  "nav_tab_reservation": "Reservation",
+  "nav_tab_faq": "FAQ",
+  "nav_tab_privacy": "Privacy",
+  "nav_tab_reservations": "Reservations",
+  "nav_tab_email": "Email",
+  "nav_tab_events": "Events",
+  "nav_tab_placeholders": "Placeholders",
+  "nav_tab_diagnostics": "Diagnostics",
+  "nav_tab_settings": "Settings",
+  "nav_tab_scheduled_tasks": "Scheduled Tasks",
+  "nav_tab_form_fields": "Form Fields",
+  "nav_tab_users": "Users",
+  "nav_tab_audit_log": "Audit Log"
+  }
