@@ -389,7 +389,7 @@ onMounted(() => {
           <IconButton icon="trash" variant="danger" :label="tr('admin_events_delete_selection_button')" @click="bulkRemoveEvents" :disabled="loading || !selectedEvents.length" />
         </template>
         <template #cell-start_at="{ value }">{{ formatDateTime(value) }}</template>
-        <template #cell-city="{ row }">{{ row.city ? row.city + (row.location_id ? ' – ' + (locations.find(l => l.id === row.location_id)?.name || '') : row.location) : (row.location || '') }}</template>
+        <template #cell-city="{ row }">{{ row.city ? row.city + (row.location_id ? ' – ' + (locations.find(l => l.id === row.location_id)?.name || '') : (row.location && String(row.location) !== 'null' ? row.location : '')) : (row.location && String(row.location) !== 'null' ? row.location : '') }}</template>
         <template #cell-url="{ value }">
           <a v-if="value" :href="value" target="_blank" rel="noopener">{{ tr('admin_events_link_text') }}</a>
           <span v-else>{{ tr('admin_events_dash_text') }}</span>

@@ -182,6 +182,7 @@ Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
     Route::get('/moderator/placeholders/values', [PlaceholderController::class, 'values']);
     Route::apiResource('/moderator/faqs', FaqController::class)->except(['create', 'edit', 'show']);
     Route::apiResource('/moderator/events', EventController::class)->except(['create', 'edit', 'show']);
+    Route::apiResource('/moderator/locations', LocationController::class);
 });
 
 Route::middleware(['role:superadmin'])->group(function () {
