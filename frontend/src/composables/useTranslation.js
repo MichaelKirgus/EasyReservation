@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, unref } from 'vue'
 import api from '../api'
 
 // Global translation state
@@ -51,7 +51,7 @@ function tr(key, fallback = '', params = {}) {
   // Substitute parameters (e.g., {{ name }} -> value)
   Object.keys(params).forEach(param => {
     const regex = new RegExp(`\\{\\{\\s*${param}\\s*\\}\\}`, 'g')
-    text = text.replace(regex, params[param])
+    text = text.replace(regex, unref(params[param]))
   })
   
   return text
