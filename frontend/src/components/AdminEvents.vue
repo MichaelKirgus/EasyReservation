@@ -117,7 +117,7 @@ async function loadEvents(opts = {}) {
     const data = await res.text()
     if (!res.ok) throw new Error(data)
     events.value = data ? JSON.parse(data) : []
-    if (!opts.auto) setMessage(tr('updated'))
+    if (!opts.auto) setMessage(tr('common_messages_updated'))
   } catch (e) { setError(e.message || String(e), opts) } finally { loading.value = false }
 }
 
@@ -224,7 +224,7 @@ async function loadLocations(opts = {}) {
     const data = await res.text()
     if (!res.ok) throw new Error(data)
     locations.value = data ? JSON.parse(data) : []
-    if (!opts.auto && activeTab.value === 'locations') setMessage(tr('updated'))
+    if (!opts.auto && activeTab.value === 'locations') setMessage(tr('common_messages_updated'))
   } catch (e) { setError(e.message || String(e), opts) } finally { loading.value = false }
 }
 
