@@ -3,17 +3,17 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Event extends Model
 {
     protected $fillable = [
         'title',
         'city',
-        'url',
         'public_transport_url',
         'start_at',
         'end_at',
-        'location',
+        'location_id',
         'capacity_override',
         'active',
         'notes',
@@ -29,4 +29,9 @@ class Event extends Model
         'active' => 'boolean',
         'auto_email_sent_at' => 'datetime',
     ];
+
+    public function location(): ?BelongsTo
+    {
+        return $this->belongsTo(Location::class);
+    }
 }

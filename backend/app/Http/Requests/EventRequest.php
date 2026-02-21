@@ -16,11 +16,10 @@ class EventRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
-            'url' => ['nullable', 'url', 'max:1024'],
             'public_transport_url' => ['nullable', 'string', 'max:1024'],
             'start_at' => ['required', 'date'],
             'end_at' => ['nullable', 'date', 'after_or_equal:start_at'],
-            'location' => ['nullable', 'string', 'max:255'],
+            'location_id' => ['nullable', 'integer', 'exists:locations,id'],
             'capacity_override' => ['nullable', 'integer', 'min:0'],
             'active' => ['required', 'boolean'],
             'notes' => ['nullable', 'string'],

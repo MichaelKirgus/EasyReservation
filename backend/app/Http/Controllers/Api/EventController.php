@@ -20,7 +20,7 @@ class EventController extends Controller
 
     public function index(): JsonResponse
     {
-        return response()->json(Event::query()->orderBy('start_at', 'desc')->get());
+        return response()->json(Event::query()->with(['location'])->orderBy('start_at', 'desc')->get());
     }
 
     public function store(EventRequest $request): JsonResponse
@@ -32,6 +32,13 @@ class EventController extends Controller
         }
         if (!empty($data['end_at'])) {
             $data['end_at'] = Carbon::createFromFormat('Y-m-d\TH:i', substr($data['end_at'], 0, 16), $timezone)->setTimezone('UTC');
+        }
+        // If location_id is provided, use it; otherwise fall back to old location field
+        if (isset($data['location_id']) && $data['location_id']) {
+            unset($data['location']);
+        } elseif (!empty($data['location'])) {
+            // For backward compatibility: create a location from the old location string
+            unset($data['location_id']);
         }
         $event = Event::create($data);
         return response()->json($event, 201);
@@ -46,6 +53,13 @@ class EventController extends Controller
         }
         if (!empty($data['end_at'])) {
             $data['end_at'] = Carbon::createFromFormat('Y-m-d\TH:i', substr($data['end_at'], 0, 16), $timezone)->setTimezone('UTC');
+        }
+        // If location_id is provided, use it; otherwise fall back to old location field
+        if (isset($data['location_id']) && $data['location_id']) {
+            unset($data['location']);
+        } elseif (!empty($data['location'])) {
+            // For backward compatibility: create a location from the old location string
+            unset($data['location_id']);
         }
         $event->update($data);
         return response()->json($event);
@@ -64,7 +78,7 @@ class EventController extends Controller
             'title' => $e->title,
             'start_at' => $e->start_at,
             'end_at' => $e->end_at,
-            'location' => $e->location,
+            'location_id' => $e->location_id,
             'active' => $e->active,
             'display' => $this->events->format($e),
         ]);

@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\TranslationController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WaitlistController;
 use App\Http\Controllers\Api\EventController;
+use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\PlaceholderController;
 use App\Http\Controllers\Api\PrivacyPolicyController;
 use App\Http\Controllers\Api\TwoFactorApiController;
@@ -121,6 +122,7 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/event-triggers/{id}/simulate', [\App\Http\Controllers\Api\EventTriggerController::class, 'simulate']);
 
     Route::apiResource('/admin/events', EventController::class)->except(['create', 'edit', 'show']);
+    Route::apiResource('/admin/locations', LocationController::class);
     Route::apiResource('/admin/scheduled-tasks', \App\Http\Controllers\Api\ScheduledTaskController::class)->except(['create', 'edit', 'show']);
     Route::patch('/admin/scheduled-tasks/{id}/activate', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'activate']);
     Route::patch('/admin/scheduled-tasks/{id}/deactivate', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'deactivate']);

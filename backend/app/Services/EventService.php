@@ -31,9 +31,14 @@ class EventService
     {
         $start = $this->formatDate($event->start_at);
         $end = $event->end_at ? $this->formatDate($event->end_at) : null;
+        
+        // Get location info from relationship or fallback to old location field
+        $locationName = $event->location_id ? ($event->location?->name ?? '') : ($event->location ?? '');
+        $city = $event->city ?? ($event->location_id ? $event->location?->city : null);
+        
         $placeParts = array_filter([
-            $event->city ?? '',
-            $event->location ?? '',
+            $city ?? '',
+            $locationName ?? '',
         ], fn ($v) => $v !== '' && $v !== null);
         $place = count($placeParts) ? ' @ '.implode(' – ', $placeParts) : '';
 

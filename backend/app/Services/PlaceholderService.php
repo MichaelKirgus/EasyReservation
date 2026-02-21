@@ -51,16 +51,24 @@ class PlaceholderService
 
         $timezone = $this->settings->get('event_timezone', 'Europe/Berlin');
         $nextEvent = $next ? $this->events->format($next) : '';
-        $eventLocation = $next instanceof Event ? (string) ($next->location ?? '') : '';
+        $eventLocationName = $next instanceof Event ? (string) ($next->location_id ? ($next->location?->name ?? '') : ($next->location ?? '')) : '';
         $eventCity = $next instanceof Event ? (string) ($next->city ?? '') : '';
+        $legacyLocation = $next instanceof Event ? (string) ($next->location ?? '') : '';
+        $locationAddress = $next instanceof Event && $next->location_id ? (string) ($next->location?->address ?? '') : '';
+        $locationPublicTransport = $next instanceof Event && $next->location_id ? (string) ($next->location?->public_transport ?? '') : '';
+        $locationNotes = $next instanceof Event && $next->location_id ? (string) ($next->location?->notes ?? '') : '';
+        $locationCapacity = $next instanceof Event && $next->location_id ? (string) ($next->location?->capacity_override ?? '') : '';
+        $locationContactEmail = $next instanceof Event && $next->location_id ? (string) ($next->location?->contact_email ?? '') : '';
+        $locationLatitude = $next instanceof Event && $next->location_id ? (string) ($next->location?->latitude ?? '') : '';
+        $locationLongitude = $next instanceof Event && $next->location_id ? (string) ($next->location?->longitude ?? '') : '';
         $eventTitle = $next instanceof Event ? (string) ($next->title ?? '') : '';
         $eventDate = $next?->start_at?->copy()->setTimezone($timezone)->format($dateFormat) ?? '';
         $eventTime = $next?->start_at?->copy()->setTimezone($timezone)->format($timeFormat) ?? '';
         $eventDateUtc = $next?->start_at?->copy()->setTimezone('UTC')->format($dateFormat) ?? '';
         $eventTimeUtc = $next?->start_at?->copy()->setTimezone('UTC')->format($timeFormat) ?? '';
-        $eventUrl = $next instanceof Event ? (string) ($next->url ?? '') : '';
-        $eventPublicTransportUrl = $next instanceof Event ? (string) ($next->public_transport_url ?? '') : '';
-
+        // Get location URL from relationship
+        $locationUrl = $next instanceof Event && $next->location_id ? (string) ($next->location?->url ?? '') : '';
+        
         $upcomingCollection = $this->events->upcoming();
         $upcomingTitles = $upcomingCollection
             ->map(fn (Event $e) => (string) ($e->title ?? ''))
@@ -86,15 +94,22 @@ class PlaceholderService
             '{{upcoming_events}}' => $upcomingList,
             '{{upcoming_events_without_next}}' => $upcomingListWithoutNext,
             '{{upcoming_event_dates_without_next}}' => $upcomingDatesWithoutNextList,
-            '{{event_location}}' => $eventLocation,
+            '{{event_location}}' => $legacyLocation, // Backward compatible - uses old location field if no relationship exists
+            '{{event_location_name}}' => $eventLocationName, // New: uses location_id relationship
             '{{event_city}}' => $eventCity,
+            '{{event_location_address}}' => $locationAddress,
+            '{{event_location_public_transport}}' => $locationPublicTransport,
+            '{{event_location_notes}}' => $locationNotes,
+            '{{event_location_capacity}}' => $locationCapacity,
+            '{{event_location_contact_email}}' => $locationContactEmail,
+            '{{event_location_latitude}}' => $locationLatitude,
+            '{{event_location_longitude}}' => $locationLongitude,
             '{{event_title}}' => $eventTitle,
             '{{event_date}}' => $eventDate,
             '{{event_time}}' => $eventTime,
             '{{event_date_utc}}' => $eventDateUtc,
             '{{event_time_utc}}' => $eventTimeUtc,
-            '{{event_url}}' => $eventUrl,
-            '{{event_public_transport_info}}' => $eventPublicTransportUrl,
+            '{{event_location_url}}' => $locationUrl,
             '{{attach_event_ical}}' => '',
             '{{reservation_list_max_count}}' => (string) ($this->settings->get('reservation_max', 0) ?? 0),
             '{{reservation_list_current_count}}' => (string) Reservation::query()->count(),
