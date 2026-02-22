@@ -20,6 +20,10 @@ class PlaceholderService
         '{{validation_link}}',
         '{{validation_link_html}}',
         '{{admin_approval_link}}',
+        '{{privacy_link}}',
+        '{{privacy_link_html}}',
+        '{{faq_link}}',
+        '{{faq_link_html}}',
     ];
 
     private const CONTEXT_TOKENS = [
@@ -137,6 +141,12 @@ class PlaceholderService
         $core['{{site_guest_token}}'] = $guestToken;
         
         $custom = $this->customPlaceholders->getAll();
+        
+        // Build privacy and FAQ links (similar to how validation_link is built in EmailService)
+        $appUrl = rtrim($siteBaseUrl, '/');
+        $privacyLink = $appUrl . '/privacy';
+        $faqLink = $appUrl . '/faq';
+        
         $recipientTokens = [
             '{{name}}' => $recipient['name'] ?? '',
             '{{email}}' => $recipient['email'] ?? '',
@@ -148,6 +158,10 @@ class PlaceholderService
             '{{admin_approval_link_html}}' => $recipient['admin_approval_link_html'] ?? '',
             '{{survey_link}}' => $recipient['survey_link'] ?? '',
             '{{survey_link_html}}' => $recipient['survey_link_html'] ?? '',
+            '{{privacy_link}}' => $privacyLink,
+            '{{privacy_link_html}}' => '<a href="' . $privacyLink . '">' . $privacyLink . '</a>',
+            '{{faq_link}}' => $faqLink,
+            '{{faq_link_html}}' => '<a href="' . $faqLink . '">' . $faqLink . '</a>',
         ];
         // Context placeholders (e.g. error_message from event triggers)
         $contextTokens = [
