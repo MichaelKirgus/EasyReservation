@@ -1163,6 +1163,7 @@
   "nav_tab_scheduled_tasks": "Scheduled Tasks",
   "nav_tab_form_fields": "Form Fields",
   "nav_tab_users": "Users",
+  "nav_tab_archives": "Archives",
   "nav_tab_audit_log": "Audit Log",
   "nav_tab_surveys": "Surveys",
   "scheduled_tasks_type_survey_sendout": "Send survey emails",
