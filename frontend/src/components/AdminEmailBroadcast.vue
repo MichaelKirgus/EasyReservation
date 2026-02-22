@@ -397,6 +397,7 @@ watch(() => props.defaultSubTab, (val) => {
           :page-size="10"
           persist-key="admin-email-templates"
           :empty-text="tr('admin_email_broadcast_empty_templates_text')"
+          :initial-hidden-columns="['cc', 'bcc']"
           @refresh="loadTemplates"
         >
           <template #cell-name="{ row }">
