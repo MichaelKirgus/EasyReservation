@@ -1283,9 +1283,5 @@
   "select_survey_for_details": "Wählen Sie eine Umfrage aus dem Dropdown oben aus, um detaillierte Ergebnisse und Statistiken anzuzeigen.",
   "score": "Punktzahl",
   "global_questions": "Globale Fragen",
-  "add_question": "Frage hinzufügen",
-  "edit_question": "Frage bearbeiten",
-  "really_delete": "Möchten Sie dieses Element wirklich löschen?",
-  "no_questions_yet": "Noch keine Fragen. Fügen Sie unten Ihre erste Frage hinzu.",
-  "no_event_linked": "Kein Event verknüpft"
+  "edit_question": "Frage bearbeiten"
   }

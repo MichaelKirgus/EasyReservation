@@ -1286,9 +1286,5 @@
   "select_survey_for_details": "Select a survey from the dropdown above to view detailed results and statistics.",
   "score": "Score",
   "global_questions": "Global Questions",
-  "add_question": "Add Question",
-  "edit_question": "Edit Question",
-  "really_delete": "Are you sure you want to delete this item?",
-  "no_questions_yet": "No questions yet. Add your first question below.",
-  "no_event_linked": "No event linked"
+  "edit_question": "Edit Question"
   }
