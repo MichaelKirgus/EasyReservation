@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Event;
 use App\Models\Reservation;
+use App\Models\Survey;
 use App\Models\User;
 use App\Models\WaitlistEntry;
 use App\Services\CustomPlaceholderService;
@@ -145,6 +146,8 @@ class PlaceholderService
             '{{validation_link_html}}' => $recipient['validation_link_html'] ?? '',
             '{{admin_approval_link}}' => $recipient['admin_approval_link'] ?? '',
             '{{admin_approval_link_html}}' => $recipient['admin_approval_link_html'] ?? '',
+            '{{survey_link}}' => $recipient['survey_link'] ?? '',
+            '{{survey_link_html}}' => $recipient['survey_link_html'] ?? '',
         ];
         // Context placeholders (e.g. error_message from event triggers)
         $contextTokens = [
@@ -220,5 +223,22 @@ class PlaceholderService
         }
 
         return $names->map(fn ($v) => $v . "\n")->implode('');
+    }
+
+    /**
+     * Set survey link placeholders for email templates.
+     *
+     * @param Survey $survey The survey object
+     * @param string|null $token Optional token for the response link
+     */
+    public function setSurveyLink(Survey $survey, ?string $token = null): self
+    {
+        $linkBuilder = app(LinkBuildingService::class);
+        $surveyLink = $linkBuilder->buildSurveyLink($survey->id, $token ?? (string) \Illuminate\Support\Str::uuid());
+        
+        $this->contextPlaceholders['survey_link'] = $surveyLink;
+        $this->contextPlaceholders['survey_link_html'] = '<a href="' . $surveyLink . '">' . $surveyLink . '</a>';
+        
+        return $this;
     }
 }

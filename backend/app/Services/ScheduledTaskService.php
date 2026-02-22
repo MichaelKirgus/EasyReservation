@@ -270,6 +270,86 @@ class ScheduledTaskService
                     break;
                 }
                 // Weitere Typen hier ergänzen
+                case 'survey_sendout': {
+                    \Log::info('Executing survey_sendout for task ' . $task->id);
+                    $surveyId = $task->options['survey_id'] ?? null;
+                    $templateId = $task->options['template_id'] ?? null;
+                    \Log::debug('survey_sendout params:', ['survey_id' => $surveyId, 'template_id' => $templateId]);
+                    
+                    if (!$surveyId) {
+                        \Log::warning('Survey sendout task without survey_id: ' . $task->id);
+                        throw new \InvalidArgumentException('No survey_id provided for task ' . $task->id);
+                    }
+                    
+                    // Get the survey
+                    $survey = \App\Models\Survey::find($surveyId);
+                    if (!$survey) {
+                        \Log::warning('Survey not found for ID: ' . $surveyId);
+                        throw new \RuntimeException('Survey with ID ' . $surveyId . ' not found');
+                    }
+                    
+                    // Get email template if provided
+                    $template = null;
+                    if ($templateId) {
+                        $template = \App\Models\EmailTemplate::find($templateId);
+                        if (!$template) {
+                            \Log::warning('Email template not found for ID: ' . $templateId);
+                            throw new \RuntimeException('Email template with ID ' . $templateId . ' not found');
+                        }
+                    }
+                    
+                    // Send surveys to recipients
+                    $sentCount = 0;
+                    $recipients = $this->getSurveyRecipients($survey);
+                    
+                    foreach ($recipients as $recipient) {
+                        try {
+                            $responseToken = $recipient['token'] ?? (string) \Illuminate\Support\Str::uuid();
+                            $surveyLink = route('public.survey.response', [
+                                'surveyId' => $survey->id,
+                                'token' => $responseToken,
+                            ]);
+                            
+                            // Build email body using template if provided
+                            if ($template) {
+                                $replacements = [
+                                    '{{survey_title}}' => $survey->title,
+                                    '{{survey_description}}' => $survey->description ?? '',
+                                    '{{survey_link}}' => $surveyLink,
+                                    '{{survey_link_html}}' => '<a href="' . $surveyLink . '">' . $surveyLink . '</a>',
+                                ];
+                                
+                                $subject = strtr($template->subject, $replacements);
+                                $body = strtr($template->body, $replacements);
+                            } else {
+                                // Fallback if no template selected
+                                \Log::warning('Survey sendout without email template for task ' . $task->id);
+                                throw new \RuntimeException('No email template selected for survey sendout');
+                            }
+                            
+                            // Send email using existing job
+                            dispatch(new \App\Jobs\SendMailJob(
+                                config('mail.default'),
+                                $recipient['email'] ?? '',
+                                null,
+                                $subject,
+                                $body,
+                                null,
+                                null,
+                                [],
+                                config('mail.from.address'),
+                                config('mail.from.name')
+                            ));
+                            
+                            $sentCount++;
+                        } catch (\Exception $e) {
+                            \Log::error("Failed to send survey email to {$recipient['email']}: " . $e->getMessage());
+                        }
+                    }
+                    
+                    \Log::info("Survey sendout completed for task {$task->id}: {$sentCount} emails sent");
+                    break;
+                }
                 default:
                     \Log::warning('Unbekannter Task-Typ: ' . $task->type);
                     throw new \InvalidArgumentException('Unknown task type: ' . $task->type);
@@ -304,5 +384,63 @@ class ScheduledTaskService
         // Die eigentliche Ausführung erfolgt asynchron als Job, damit sie im Protokoll sichtbar ist
         \Log::info('ScheduledTaskService: queueTaskExecution für Task ' . $task->id);
         ExecuteScheduledTaskJob::dispatch($task->id);
+    }
+
+    /**
+     * Get recipients for a survey based on token type.
+     * This is used by both SurveyService and ScheduledTaskService.
+     */
+    private function getSurveyRecipients(\App\Models\Survey $survey): array
+    {
+        $recipients = [];
+
+        switch ($survey->response_token_type) {
+            case 'reservation_email':
+                if ($survey->event_id) {
+                    $reservations = \App\Models\Reservation::whereHas('event', function($q) use ($survey) {
+                        $q->where('id', $survey->event_id);
+                    })->get(['email', 'site_token']);
+
+                    foreach ($reservations as $reservation) {
+                        try {
+                            $recipients[] = [
+                                'email' => $reservation->email,
+                                'token' => $reservation->site_token ?? hash('sha256', $reservation->email),
+                            ];
+                        } catch (\Exception $e) {
+                            // Skip if decryption fails
+                        }
+                    }
+                }
+                break;
+
+            case 'user_account':
+                $users = \App\Models\User::where('active', true)->get(['email']);
+                foreach ($users as $user) {
+                    $recipients[] = [
+                        'email' => $user->email,
+                        'token' => $user->api_token ?? hash('sha256', $user->email),
+                    ];
+                }
+                break;
+
+            case 'anonymous':
+            default:
+                if ($survey->event_id) {
+                    $reservations = \App\Models\Reservation::whereHas('event', function($q) use ($survey) {
+                        $q->where('id', $survey->event_id);
+                    })->get(['site_token']);
+
+                    foreach ($reservations as $reservation) {
+                        $recipients[] = [
+                            'email' => null,
+                            'token' => $reservation->site_token ?? (string) \Illuminate\Support\Str::uuid(),
+                        ];
+                    }
+                }
+                break;
+        }
+
+        return $recipients;
     }
 }

@@ -113,6 +113,7 @@ const navGroups = computed(() => {
         { to: '/moderation/email', label: tr('nav_tab_email', 'Email'), show: !!(currentUser && currentUser.role) },
         { to: '/moderation/faq', label: tr('nav_tab_faq', 'FAQ'), show: !!(currentUser && currentUser.role) },
         { to: '/moderation/events', label: tr('nav_tab_events', 'Events'), show: !!(currentUser && currentUser.role) },
+        { to: '/moderation/surveys', label: tr('nav_tab_surveys', 'Surveys'), show: !!(currentUser && currentUser.role) },
         { to: '/moderation/placeholders', label: tr('nav_tab_placeholders', 'Placeholders'), show: !!(currentUser && currentUser.role) },
       ],
     },

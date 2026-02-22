@@ -72,6 +72,31 @@ class LinkBuildingService
     }
 
     /**
+     * Build survey response link for email templates.
+     *
+     * @param int $surveyId The survey ID
+     * @param string|null $token Optional responder token (if not provided, a new one will be generated)
+     */
+    public function buildSurveyLink(int $surveyId, ?string $token = null): string
+    {
+        $base = trim((string) ($this->settings->get('email_validation_base_url', config('app.url'))));
+        if ($base === '') {
+            $base = rtrim(config('app.url'), '/');
+        }
+
+        $params = ['survey_id' => (string) $surveyId];
+        
+        if ($token) {
+            $params['token'] = $token;
+        } else {
+            // Generate a unique token for the responder
+            $params['token'] = (string) Str::uuid();
+        }
+
+        return $this->appendQuery($base, $params);
+    }
+
+    /**
      * Append query parameters to URL
      */
     private function appendQuery(string $base, array $params): string

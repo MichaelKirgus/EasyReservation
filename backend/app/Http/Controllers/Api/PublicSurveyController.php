@@ -1,0 +1,165 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Survey;
+use App\Models\SurveyQuestion;
+use App\Models\SurveyResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+class PublicSurveyController extends Controller
+{
+    // GET /surveys/{surveyId}
+    public function show(Survey $survey)
+    {
+        if (!$survey->active) {
+            return response()->json(['message' => __('survey_not_active')], 403);
+        }
+
+        $questions = SurveyQuestion::where('survey_id', $survey->id)
+            ->orderBy('display_order')
+            ->get();
+
+        return response()->json([
+            'survey' => [
+                'id' => $survey->id,
+                'title' => $survey->title,
+                'description' => $survey->description,
+                'starts_at' => $survey->starts_at?->toIso8601String(),
+                'ends_at' => $survey->ends_at?->toIso8601String(),
+            ],
+            'questions' => $questions,
+        ]);
+    }
+
+    // POST /surveys/{surveyId}/submit
+    public function submit(Request $request, Survey $survey)
+    {
+        $data = $request->validate([
+            'token' => 'required|string',
+            'responses' => 'required|array',
+            'responses.*.question_id' => 'required|exists:survey_questions,id',
+            'responses.*.response_text' => 'nullable|string|max:10000',
+            'responses.*.response_score' => 'nullable|integer|min:1|max:5',
+        ]);
+
+        // Check if survey is active
+        if (!$survey->active) {
+            return response()->json(['message' => __('survey_not_active')], 403);
+        }
+
+        // Check time window
+        $now = now();
+        if ($survey->starts_at && $now->lt($survey->starts_at)) {
+            return response()->json(['message' => __('survey_not_started')], 403);
+        }
+        if ($survey->ends_at && $now->gt($survey->ends_at)) {
+            return response()->json(['message' => __('survey_ended')], 403);
+        }
+
+        // Check if user has already responded
+        if (SurveyResponse::hasResponded($survey->id, $data['token'])) {
+            return response()->json(['message' => __('already_responded')], 409);
+        }
+
+        DB::beginTransaction();
+        try {
+            foreach ($data['responses'] as $response) {
+                // Validate required fields
+                $question = SurveyQuestion::find($response['question_id']);
+                
+                if ($question->is_required && 
+                    empty($response['response_text']) && 
+                    empty($response['response_score'])) {
+                    return response()->json([
+                        'message' => __('field_required', ['field' => $question->question_text]),
+                    ], 422);
+                }
+
+                // Validate score range
+                if (isset($response['response_score']) && 
+                    ($response['response_score'] < 1 || $response['response_score'] > 5)) {
+                    return response()->json([
+                        'message' => __('score_must_be_1_to_5'),
+                    ], 422);
+                }
+
+                // Create or update response
+                SurveyResponse::updateOrCreate(
+                    [
+                        'survey_id' => $survey->id,
+                        'question_id' => $response['question_id'],
+                        'responder_token' => $data['token'],
+                    ],
+                    [
+                        'response_text' => $response['response_text'] ?? null,
+                        'response_score' => $response['response_score'] ?? null,
+                        'is_responded' => true,
+                    ]
+                );
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => __('survey_submitted'),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Survey submission failed', [
+                'survey_id' => $survey->id,
+                'token' => $data['token'],
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => __('survey_submission_failed'),
+            ], 500);
+        }
+    }
+
+    // GET /surveys/{surveyId}/check-status
+    public function checkStatus(Survey $survey, Request $request)
+    {
+        $token = $request->query('token');
+
+        if (!$token) {
+            return response()->json([
+                'can_respond' => true,
+                'message' => __('enter_survey'),
+            ]);
+        }
+
+        // Check if already responded
+        if (SurveyResponse::hasResponded($survey->id, $token)) {
+            return response()->json([
+                'can_respond' => false,
+                'already_responded' => true,
+                'message' => __('thank_you_for_response'),
+            ]);
+        }
+
+        // Check time window
+        $now = now();
+        if ($survey->starts_at && $now->lt($survey->starts_at)) {
+            return response()->json([
+                'can_respond' => false,
+                'message' => __('survey_not_started'),
+            ]);
+        }
+        if ($survey->ends_at && $now->gt($survey->ends_at)) {
+            return response()->json([
+                'can_respond' => false,
+                'message' => __('survey_ended'),
+            ]);
+        }
+
+        return response()->json([
+            'can_respond' => true,
+            'message' => __('ready_to_respond'),
+        ]);
+    }
+}

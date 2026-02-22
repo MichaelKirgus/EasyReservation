@@ -25,13 +25,18 @@ use App\Http\Controllers\Api\PrivacyPolicyController;
 use App\Http\Controllers\Api\TwoFactorApiController;
 use App\Http\Controllers\Api\LanguagesController;
 use App\Http\Controllers\Api\FlagController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\SurveyController;
+use App\Http\Controllers\Api\PublicSurveyController;
+use Illuminate\Support\Facades\Route;
 
 Route::options('/{any}', fn () => response()->noContent())->where('any', '.*');
 
 // Public health check endpoint (no authentication required)
 Route::get('/health', [HealthController::class, 'check']);
+Route::get('/surveys/{survey}', [PublicSurveyController::class, 'show']);
+Route::post('/surveys/{survey}/submit', [PublicSurveyController::class, 'submit']);
+Route::get('/surveys/{survey}/check-status', [PublicSurveyController::class, 'checkStatus']);
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -120,6 +125,20 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::put('/admin/event-triggers/{id}', [\App\Http\Controllers\Api\EventTriggerController::class, 'update']);
     Route::delete('/admin/event-triggers/{id}', [\App\Http\Controllers\Api\EventTriggerController::class, 'destroy']);
     Route::post('/admin/event-triggers/{id}/simulate', [\App\Http\Controllers\Api\EventTriggerController::class, 'simulate']);
+
+    Route::apiResource('/admin/surveys', SurveyController::class)->except(['create', 'edit', 'show']);
+    Route::post('/admin/surveys/{survey}/send', [SurveyController::class, 'send']);
+    Route::get('/admin/surveys/{survey}/responses', [SurveyController::class, 'responses']);
+    Route::get('/admin/surveys/{survey}/questions', [SurveyController::class, 'getQuestions']);
+    Route::post('/admin/surveys/{survey}/questions', [SurveyController::class, 'addQuestion']);
+    Route::put('/admin/surveys/{survey}/questions/{question}', [SurveyController::class, 'updateQuestion']);
+    Route::delete('/admin/surveys/{survey}/questions/{question}', [SurveyController::class, 'deleteQuestion']);
+
+    // Global questions (shared across all surveys)
+    Route::get('/admin/global-questions', [SurveyController::class, 'getGlobalQuestions']);
+    Route::post('/admin/global-questions', [SurveyController::class, 'createGlobalQuestion']);
+    Route::put('/admin/global-questions/{question}', [SurveyController::class, 'updateGlobalQuestion']);
+    Route::delete('/admin/global-questions/{question}', [SurveyController::class, 'deleteGlobalQuestion']);
 
     Route::apiResource('/admin/events', EventController::class)->except(['create', 'edit', 'show']);
     Route::apiResource('/admin/locations', LocationController::class);

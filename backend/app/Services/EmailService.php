@@ -7,6 +7,7 @@ use App\Models\EmailTemplate;
 use App\Models\EmailValidation;
 use App\Models\JobLog;
 use App\Models\Reservation;
+use App\Models\Survey;
 use App\Models\WaitlistEntry;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -336,6 +337,8 @@ class EmailService
             'undo_link_html' => $recipient->undo_token ? '<a href="'.$this->linkBuilder->buildUndoLink($recipient).'">'.$this->linkBuilder->buildUndoLink($recipient).'</a>' : '',
             'validation_link' => '',
             'validation_link_html' => '',
+            'survey_link' => '',
+            'survey_link_html' => '',
         ]);
 
         $subject = $this->renderTemplate($template->subject, $replacements);
@@ -456,5 +459,64 @@ class EmailService
     {
         return str_contains($template['subject'] ?? '', '{{attach_event_ical}}')
             || str_contains($template['body'] ?? '', '{{attach_event_ical}}');
+    }
+
+    /**
+     * Send survey email to a recipient using the template system
+     */
+    public function sendSurveyEmail(array $mailerConfig, Survey $survey, string $recipientEmail, ?string $recipientName = null, ?int $templateId = null): void
+    {
+        if ($this->isDebugBlacklistedEmail($recipientEmail)) {
+            return;
+        }
+
+        // Generate unique token for this recipient
+        $responseToken = (string) \Illuminate\Support\Str::uuid();
+        
+        // Build survey link using LinkBuildingService
+        $surveyLink = $this->linkBuilder->buildSurveyLink($survey->id, $responseToken);
+        
+        // Prepare replacements with placeholders
+        $replacements = $this->placeholders->replacements([
+            'name' => $recipientName ?? '',
+            'email' => $recipientEmail,
+            'undo_link' => '',
+            'undo_link_html' => '',
+            'validation_link' => '',
+            'validation_link_html' => '',
+            'survey_link' => $surveyLink,
+            'survey_link_html' => '<a href="' . $surveyLink . '">' . $surveyLink . '</a>',
+        ]);
+
+        // Use provided template or default
+        if ($templateId) {
+            $template = EmailTemplate::query()->find($templateId);
+        } else {
+            // Try to find a survey-type template, otherwise use default
+            $template = EmailTemplate::query()->where('type', 'survey')->first();
+        }
+
+        if (!$template) {
+            \Illuminate\Support\Facades\Log::error('EmailService: Could not resolve survey email template');
+            return;
+        }
+
+        $subject = $this->renderTemplate($template->subject, $replacements);
+        $body = $this->renderTemplate($template->body, $replacements);
+
+        $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
+        $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
+
+        // Use template-specific CC/BCC if set
+        $templateCc = $template->cc ?? null;
+        $templateBcc = $template->bcc ?? null;
+
+        $globalCc = $this->settings->get('mail_global_cc');
+        $globalBcc = $this->settings->get('mail_global_bcc');
+
+        $cc = $templateCc ?: $globalCc;
+        $bcc = $templateBcc ?: $globalBcc;
+
+        SendMailJob::dispatch($mailerConfig, $recipientEmail, $recipientName, $subject, $body, $fromAddress, $fromName, [], $cc, $bcc);
     }
 }

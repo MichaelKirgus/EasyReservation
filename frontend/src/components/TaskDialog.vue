@@ -13,6 +13,7 @@
           <option value="custom_email_broadcast">{{ tr('scheduled_tasks_type_custom_email_broadcast') }}</option>
           <option value="change_setting">{{ tr('scheduled_tasks_type_change_setting') }}</option>
           <option value="webhook">{{ tr('scheduled_tasks_type_webhook') }}</option>
+          <option value="survey_sendout">{{ tr('scheduled_tasks_type_survey_sendout') }}</option>
         </select>
       </div>
       <!-- Scheduling Mode Selection -->
@@ -139,6 +140,23 @@
           </option>
         </select>
       </div>
+      <div v-if="form.type === 'survey_sendout'">
+        <label>{{ tr('surveys') }}:</label>
+        <select v-model.number="selectedSurveyId" required>
+          <option value="">{{ tr('scheduled_tasks_select_placeholder') }}</option>
+          <option v-for="s in surveys" :key="s.id" :value="s.id">
+            {{ s.title || (tr('surveys') + ' #' + s.id) }} (ID: {{ s.id }})
+          </option>
+        </select>
+        
+        <label style="margin-top:0.5em;">{{ tr('email_template_name') }}:</label>
+        <select v-model.number="selectedTemplateId" required>
+          <option value="">{{ tr('scheduled_tasks_select_placeholder') }}</option>
+          <option v-for="tpl in emailTemplates" :key="tpl.id" :value="tpl.id">
+            {{ tpl.name || tpl.subject || (tr('email_template_name') + ' #' + tpl.id) }} (ID: {{ tpl.id }})
+          </option>
+        </select>
+      </div>
       <div>
         <label>{{ tr('scheduled_tasks_label_executed') }}:</label>
         <input v-model="form.executed" type="checkbox" />
@@ -223,6 +241,8 @@ const customEmails = ref('');
 const selectedTemplateId = ref('')
 const webhookTemplates = ref([])
 const selectedWebhookTemplateId = ref('')
+const surveys = ref([])
+const selectedSurveyId = ref('')
 const settingKeys = ref([])
 const selectedSettingKey = ref('')
 const settingValue = ref('')
@@ -339,6 +359,10 @@ onMounted(async () => {
   try {
     const keysRes = await axios.get('/api/admin/settings-keys', apiConfig())
     settingKeys.value = keysRes.data
+  } catch {}
+  try {
+    const surveysRes = await axios.get('/api/admin/surveys', apiConfig())
+    surveys.value = surveysRes.data.surveys || []
   } catch {}
 })
 
@@ -517,6 +541,12 @@ function submit() {
   }
   if (form.value.type === 'webhook') {
     payload.options = { ...payload.options, webhook_template_id: selectedWebhookTemplateId.value };
+  } else if (form.value.type === 'survey_sendout') {
+    payload.options = {
+      ...payload.options,
+      survey_id: selectedSurveyId.value,
+      template_id: selectedTemplateId.value
+    };
   } else if (form.value.type === 'change_setting') {
     let value = settingValue.value;
     // Typkonvertierung fÃ¼r Boolean/Number
