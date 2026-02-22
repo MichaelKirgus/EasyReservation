@@ -27,9 +27,7 @@ const eventColumns = computed(() => [
   { key: 'id', label: tr('admin_events_columns_id'), sortable: true },
   { key: 'title', label: tr('admin_events_columns_title'), sortable: true },
   { key: 'start_at', label: tr('admin_events_columns_start'), sortable: true },
-  { key: 'city', label: tr('admin_events_columns_city'), sortable: true },
   { key: 'url', label: tr('admin_events_columns_url'), sortable: false },
-  { key: 'public_transport_url', label: tr('admin_events_columns_public_transport_url'), sortable: false },
   { key: 'active', label: tr('admin_events_columns_active'), sortable: true },
 ])
 
@@ -71,8 +69,6 @@ function formatDateTime(val) {
 const eventForm = reactive({
   id: null,
   title: '',
-  city: '',
-  public_transport_url: '',
   start_at: '',
   end_at: '',
   location_id: null,
@@ -126,8 +122,6 @@ async function loadEvents(opts = {}) {
 function resetEventForm() {
   eventForm.id = null
   eventForm.title = ''
-  eventForm.city = ''
-  eventForm.public_transport_url = ''
   eventForm.start_at = ''
   eventForm.end_at = ''
   eventForm.location_id = null
@@ -139,8 +133,6 @@ function resetEventForm() {
 function editEvent(ev) {
   eventForm.id = ev.id
   eventForm.title = ev.title
-  eventForm.city = ev.city || ''
-  eventForm.public_transport_url = ev.public_transport_url || ''
   function toLocalDatetime(val) {
     if (!val) return ''
     const d = new Date(val)
@@ -163,8 +155,6 @@ async function saveEvent() {
   try {
     const payload = {
       title: eventForm.title,
-      city: eventForm.city || null,
-      public_transport_url: eventForm.public_transport_url || null,
       start_at: eventForm.start_at,
       end_at: eventForm.end_at || null,
       location_id: eventForm.location_id || null,
@@ -357,8 +347,6 @@ onMounted(() => {
 
       <div class="form-grid">
         <label> {{ tr('admin_events_columns_title') }} <input v-model="eventForm.title" /></label>
-        <label> {{ tr('admin_events_city_label') }} <input v-model="eventForm.city" /></label>
-        <label> {{ tr('admin_events_columns_public_transport_url') }} {{ tr('admin_events_columns_public_transport_url_hint') }} <input v-model="eventForm.public_transport_url" :placeholder="tr('admin_events_public_transport_placeholder')" /></label>
         <label> {{ tr('admin_events_start_label') }} <input v-model="eventForm.start_at" type="datetime-local" /></label>
         <label> {{ tr('admin_events_end_label') }} <input v-model="eventForm.end_at" type="datetime-local" /></label>
         <label> {{ tr('admin_events_location_label') }}
@@ -391,12 +379,10 @@ onMounted(() => {
           <IconButton icon="trash" variant="danger" :label="tr('admin_events_delete_selection_button')" @click="bulkRemoveEvents" :disabled="loading || !selectedEvents.length" />
         </template>
         <template #cell-start_at="{ value }">{{ formatDateTime(value) }}</template>
-        <template #cell-city="{ row }">{{ row.city ? row.city + (row.location_id ? ' – ' + (locations.find(l => l.id === row.location_id)?.name || '') : (row.location && String(row.location) !== 'null' ? row.location : '')) : (row.location && String(row.location) !== 'null' ? row.location : '') }}</template>
         <template #cell-url="{ value }">
           <a v-if="value" :href="value" target="_blank" rel="noopener">{{ tr('admin_events_link_text') }}</a>
           <span v-else>{{ tr('admin_events_dash_text') }}</span>
         </template>
-        <template #cell-public_transport_url="{ value }">{{ value || '–' }}</template>
         <template #cell-active="{ value }">{{ value ? tr('admin_events_yes_text') : tr('admin_events_no_text') }}</template>
         <template #row-actions="{ row }">
           <IconButton icon="pencil" :label="tr('admin_events_edit_button')" variant="ghost" @click="editEvent(row)" />

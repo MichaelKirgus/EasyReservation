@@ -63,7 +63,7 @@ class PlaceholderService
             ? $next->location()->first()
             : null;
         $eventLocationName = $next instanceof Event ? (string) ($next->location_id ? ($locationModel?->name ?? '') : ($next->getAttributes()['location'] ?? '')) : '';
-        $eventCity = $next instanceof Event ? (string) ($next->city ?? '') : '';
+        $eventCity = $next instanceof Event && $locationModel ? (string) ($locationModel->city ?? '') : '';
         $legacyLocation = $next instanceof Event ? (string) ($next->getAttributes()['location'] ?? '') : '';
         $locationAddress = $locationModel ? (string) ($locationModel->address ?? '') : '';
         $locationPublicTransport = $locationModel ? (string) ($locationModel->public_transport ?? '') : '';

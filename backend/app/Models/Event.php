@@ -9,8 +9,6 @@ class Event extends Model
 {
     protected $fillable = [
         'title',
-        'city',
-        'public_transport_url',
         'start_at',
         'end_at',
         'location_id',

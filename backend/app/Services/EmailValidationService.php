@@ -486,12 +486,13 @@ HTML;
             '{{upcoming_events_without_next}}' => $this->resolveUpcomingEventsWithoutNextList(),
             '{{upcoming_event_dates_without_next}}' => $this->resolveUpcomingEventDatesWithoutNextList(),
             '{{event_location}}' => $this->resolveEventLocation(),
-            '{{event_city}}' => $this->resolveEventCity(),
             '{{event_title}}' => $this->resolveEventTitle(),
             '{{event_date}}' => $this->resolveEventDate(),
             '{{event_time}}' => $this->resolveEventTime(),
             '{{event_url}}' => $this->resolveEventUrl(),
-            '{{event_public_transport_info}}' => $this->resolveEventPublicTransportUrl(),
+            // Use location data instead of event data
+            '{{event_location_city}}' => $this->resolveEventLocationCity(),
+            '{{event_location_public_transport}}' => $this->resolveEventLocationPublicTransport(),
             '{{attach_event_ical}}' => '',
         ];
 
@@ -529,10 +530,12 @@ HTML;
         return $next ? (string) ($next->location ?? '') : '';
     }
 
-    private function resolveEventCity(): string
+    private function resolveEventLocationCity(): string
     {
         $next = $this->events->next();
-        return $next ? (string) ($next->city ?? '') : '';
+        if (!$next || !$next->location_id) return '';
+        $locationModel = $next->location()->first();
+        return $locationModel ? (string) ($locationModel->city ?? '') : '';
     }
 
     private function resolveEventTitle(): string
@@ -561,10 +564,12 @@ HTML;
         return $next ? (string) ($next->url ?? '') : '';
     }
 
-    private function resolveEventPublicTransportUrl(): string
+    private function resolveEventLocationPublicTransport(): string
     {
         $next = $this->events->next();
-        return $next ? (string) ($next->public_transport_url ?? '') : '';
+        if (!$next || !$next->location_id) return '';
+        $locationModel = $next->location()->first();
+        return $locationModel ? (string) ($locationModel->public_transport ?? '') : '';
     }
 
     private function sendWaitlistValidationSuccessEmail(WaitlistEntry $entry): void

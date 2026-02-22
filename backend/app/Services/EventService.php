@@ -36,7 +36,7 @@ class EventService
         // "location" string column which shadows the location() relationship.
         $locationModel = $event->location_id ? $event->location()->first() : null;
         $locationName = $event->location_id ? ($locationModel?->name ?? '') : ($event->getAttributes()['location'] ?? '');
-        $city = $event->city ?? ($locationModel?->city);
+        $city = $locationModel?->city;
         
         $placeParts = array_filter([
             $city ?? '',

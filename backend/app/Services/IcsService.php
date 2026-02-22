@@ -56,10 +56,8 @@ class IcsService
             '{{timezone}}' => $timezone,
             '{{title}}' => $this->escape((string) $event->title),
             '{{location}}' => $this->escape((string) $event->location),
-            '{{city}}' => $this->escape((string) $event->city),
             '{{notes}}' => $this->escape((string) $event->notes),
             '{{url}}' => $this->escape((string) $event->url),
-            '{{public_transport_url}}' => $this->escape((string) $event->public_transport_url),
             '{{start_date}}' => $start->format('Y-m-d'),
             '{{start_time}}' => $start->format('H:i'),
             '{{end_date}}' => $end->format('Y-m-d'),
@@ -77,15 +75,17 @@ class IcsService
 
         // Fallback: bisherige Logik (wie gehabt)
         $summary = $event->title ?: (string) $this->settings->get('reservation_name', 'Event');
+        // Get location data from relationship
+        $locationModel = $event->location_id ? $event->location()->first() : null;
         $locationParts = array_filter([
             $event->location ?: null,
-            $event->city ?: null,
+            $locationModel?->city ?? null,
         ], fn ($v) => $v !== null && $v !== '');
         $location = empty($locationParts) ? '' : implode(' – ', $locationParts);
         $descriptionParts = array_filter([
             (string) ($event->notes ?? ''),
             (string) ($event->url ?? ''),
-            (string) ($event->public_transport_url ?? ''),
+            $locationModel?->public_transport ? (string) $locationModel->public_transport : null,
         ], fn ($v) => $v !== '');
         $description = empty($descriptionParts) ? $summary : implode(' | ', $descriptionParts);
         $url = $event->url ? (string) $event->url : '';
