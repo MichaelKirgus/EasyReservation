@@ -180,6 +180,8 @@ const tabFieldMap = {
     'email_validation_admin_rate_limit_per_hour',
     'session_lifetime_minutes',
     'site_guest_user_id',
+    'archive_store_emails_by_default',
+    'archive_moderator_access_enabled',
   ]),
   email: new Set([
     'email_validation_enabled',

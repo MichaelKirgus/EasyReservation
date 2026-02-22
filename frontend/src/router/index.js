@@ -12,6 +12,7 @@ import AdminScheduledTasks from '../components/AdminScheduledTasks.vue'
 import FormFieldManager from '../components/FormFieldManager.vue'
 import AdminUsers from '../components/AdminUsers.vue'
 import AdminCustomPlaceholders from '../components/AdminCustomPlaceholders.vue'
+import AdminArchives from '../components/AdminArchives.vue'
 import AdminPlaceholderValues from '../components/AdminPlaceholderValues.vue'
 import AdminSurveys from '../components/AdminSurveys.vue'
 import SurveyQuestionManager from '../components/SurveyQuestionManager.vue'
@@ -36,6 +37,7 @@ const routes = [
   { path: '/admin/scheduled-tasks', name: 'admin-scheduled-tasks', component: AdminScheduledTasks },
   { path: '/admin/form-fields', name: 'admin-form-fields', component: FormFieldManager },
   { path: '/admin/users', name: 'admin-users', component: AdminUsers },
+  { path: '/admin/archives', name: 'admin-archives', component: AdminArchives },
   { path: '/admin/custom-placeholders', name: 'admin-custom-placeholders', component: AdminCustomPlaceholders },
   { path: '/admin/surveys', name: 'admin-surveys', component: AdminSurveys },
   { path: '/moderation/surveys/:id/questions', name: 'survey-questions', component: SurveyQuestionManager, props: true },

@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\PrivacyPolicyController;
 use App\Http\Controllers\Api\TwoFactorApiController;
 use App\Http\Controllers\Api\LanguagesController;
 use App\Http\Controllers\Api\FlagController;
+use App\Http\Controllers\Api\ArchiveController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\SurveyController;
 use App\Http\Controllers\Api\PublicSurveyController;
@@ -169,6 +170,18 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::delete('/admin/webhook-templates/{id}', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'destroy']);
     Route::post('/admin/webhook-templates/{id}/clone', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'clone']);
     Route::post('/admin/webhook-templates/{id}/test', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'test']);
+
+    // Archive routes (admin/superadmin only)
+    Route::get('/admin/archives', [ArchiveController::class, 'index']);
+    Route::post('/admin/archives', [ArchiveController::class, 'store']);
+    Route::delete('/admin/archives/{archive}', [ArchiveController::class, 'destroy']);
+    Route::get('/admin/archives/{archive}/reservations', [ArchiveController::class, 'getReservations']);
+    Route::get('/admin/archives/{archive}/waitlist', [ArchiveController::class, 'getWaitlistEntries']);
+    Route::post('/admin/archives/{archive}/restore-reservation/{reservation}', [ArchiveController::class, 'restoreReservation']);
+    Route::post('/admin/archives/{archive}/restore-reservations', [ArchiveController::class, 'restoreReservations']);
+    Route::post('/admin/archives/{archive}/restore-waitlist-entry/{entry}', [ArchiveController::class, 'restoreWaitlistEntry']);
+    Route::post('/admin/archives/{archive}/restore-waitlist-entries', [ArchiveController::class, 'restoreWaitlistEntries']);
+    Route::get('/admin/archives/{archive}/download-csv/{type}', [ArchiveController::class, 'downloadCsv']);
 });
 
 Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
@@ -195,6 +208,11 @@ Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
 
     Route::get('/moderator/email-validation-admin-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'adminApprovalIndex']);
     Route::delete('/moderator/email-validation-admin-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'destroyAllAdminApproval']);
+
+    // Moderator archive routes (if enabled via setting)
+    Route::get('/moderator/archives', [ArchiveController::class, 'index']);
+    Route::get('/moderator/archives/{archive}/reservations', [ArchiveController::class, 'getReservations']);
+    Route::get('/moderator/archives/{archive}/waitlist', [ArchiveController::class, 'getWaitlistEntries']);
 
     Route::get('/moderator/email-templates', [EmailTemplateController::class, 'index']);
     Route::get('/moderator/email-templates/{emailTemplate}/preview', [EmailTemplateController::class, 'preview']);

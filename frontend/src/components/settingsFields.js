@@ -141,4 +141,8 @@ export const settingsFields = [
     { key: 'login_rate_limit_decay_minutes', type: 'number', default: 1 },
     { key: 'session_lifetime_minutes', type: 'number', default: 43200 },
     { key: 'site_guest_user_id', type: 'number' },
+    
+    // Archive settings
+    { key: 'archive_store_emails_by_default', type: 'boolean', default: 1 },
+    { key: 'archive_moderator_access_enabled', type: 'boolean', default: 0 },
 ];
