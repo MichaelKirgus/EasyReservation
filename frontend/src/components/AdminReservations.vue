@@ -657,7 +657,7 @@ async function purgeAllData() {
       selectable
       :loading="loading"
       :page-size="20"
-      :initial-hidden-columns="['payload']"
+      :initial-hidden-columns="['id', 'payload']"
       persist-key="admin-reservations"
       @refresh="reloadAll"
       @auto-refresh="reloadAll({ auto: true })"
@@ -705,6 +705,7 @@ async function purgeAllData() {
         selectable
         :loading="waitlistLoading"
         :page-size="20"
+        :initial-hidden-columns="['id']"
         persist-key="admin-waitlist"
         @refresh="loadWaitlist"
         @auto-refresh="loadWaitlist({ auto: true })"
@@ -746,6 +747,7 @@ async function purgeAllData() {
         selectable
         :loading="validationLoading"
         :page-size="20"
+        :initial-hidden-columns="['id']"
         persist-key="admin-validations"
         @refresh="loadValidations"
         @auto-refresh="loadValidations({ auto: true })"
