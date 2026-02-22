@@ -134,6 +134,8 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/surveys/{survey}/send', [SurveyController::class, 'send']);
     Route::get('/admin/surveys/{survey}/responses', [SurveyController::class, 'responses']);
     Route::get('/admin/surveys/{survey}/questions', [SurveyController::class, 'getQuestions']);
+    Route::get('/admin/surveys/{survey}/results', [SurveyController::class, 'results']);
+    Route::get('/admin/surveys/results/export', [SurveyController::class, 'export']);
 
     Route::apiResource('/admin/surveys', SurveyController::class)->except(['create', 'edit', 'show']);
     Route::post('/admin/surveys/{survey}/questions', [SurveyController::class, 'addQuestion']);

@@ -222,4 +222,174 @@ class SurveyController extends Controller
             'questions' => $questions,
         ]);
     }
+
+    // GET /admin/surveys/{survey}/results
+    public function results(Survey $survey): JsonResponse
+    {
+        $survey->load(['questions', 'responses']);
+
+        $summary = [
+            'total_responses' => $survey->responses()->where('is_responded', true)->count(),
+            'response_rate' => 0,
+            'avg_completion_time' => null,
+        ];
+
+        // Calculate response rate if we have estimated total potential respondents
+        // For now, just show the count
+        $summary['response_rate'] = $survey->responses()->where('is_responded', true)->count();
+
+        $questionsData = $survey->questions()
+            ->with('globalQuestion')
+            ->orderBy('display_order')
+            ->get()
+            ->map(function ($question) {
+                $statistics = [
+                    'total_responses' => 0,
+                    'distribution' => [],
+                    'average_score' => null,
+                    'responses' => [],
+                ];
+
+                if ($question->field_type === 'score_1_5') {
+                    // Get score distribution
+                    $scores = $question->responses()
+                        ->where('is_responded', true)
+                        ->select('response_score', \DB::raw('count(*) as count'))
+                        ->groupBy('response_score')
+                        ->orderBy('response_score')
+                        ->get();
+
+                    $distribution = [];
+                    foreach ($scores as $score) {
+                        $distribution[(string)$score->response_score] = (int)$score->count;
+                    }
+
+                    // Fill missing scores with 0
+                    for ($i = 1; $i <= 5; $i++) {
+                        if (!isset($distribution[$i])) {
+                            $distribution[$i] = 0;
+                        }
+                    }
+
+                    // Calculate average
+                    $avg = $question->responses()
+                        ->where('is_responded', true)
+                        ->avg('response_score');
+
+                    $statistics = [
+                        'total_responses' => (int)$scores->sum('count'),
+                        'distribution' => $distribution,
+                        'average_score' => round($avg, 2),
+                        'responses' => [],
+                    ];
+                } elseif ($question->field_type === 'text_multiple_choice') {
+                    // Get option distribution
+                    $options = json_decode($question->options, true) ?: [];
+                    
+                    $responseCounts = $question->responses()
+                        ->where('is_responded', true)
+                        ->select('response_text', \DB::raw('count(*) as count'))
+                        ->groupBy('response_text')
+                        ->get();
+
+                    $distribution = [];
+                    foreach ($options as $option) {
+                        $count = $responseCounts->firstWhere('response_text', $option)?->count ?? 0;
+                        $distribution[$option] = (int)$count;
+                    }
+
+                    // Add any responses not in options
+                    foreach ($responseCounts as $rc) {
+                        if (!isset($distribution[$rc->response_text])) {
+                            $distribution[$rc->response_text] = (int)$rc->count;
+                        }
+                    }
+
+                    $statistics = [
+                        'total_responses' => (int)$responseCounts->sum('count'),
+                        'distribution' => $distribution,
+                        'average_score' => null,
+                        'responses' => [],
+                    ];
+                } else {
+                    // text_open - get all responses
+                    $responses = $question->responses()
+                        ->where('is_responded', true)
+                        ->pluck('response_text')
+                        ->filter()
+                        ->toArray();
+
+                    $statistics = [
+                        'total_responses' => count($responses),
+                        'distribution' => [],
+                        'average_score' => null,
+                        'responses' => $responses,
+                    ];
+                }
+
+                return [
+                    'id' => $question->id,
+                    'question_text' => $question->globalQuestion?->question_text ?? $question->question_text,
+                    'field_type' => $question->field_type,
+                    'options' => $question->options,
+                    'statistics' => $statistics,
+                ];
+            });
+
+        return response()->json([
+            'survey' => [
+                'id' => $survey->id,
+                'title' => $survey->title,
+                'description' => $survey->description,
+                'starts_at' => $survey->starts_at?->toIso8601String(),
+                'ends_at' => $survey->ends_at?->toIso8601String(),
+                'active' => $survey->active,
+            ],
+            'summary' => $summary,
+            'questions' => $questionsData,
+        ]);
+    }
+
+    // GET /admin/surveys/results/export
+    public function export(Request $request): JsonResponse
+    {
+        $format = $request->query('format', 'csv');
+        $surveyId = $request->query('survey_id');
+        $includeResponses = $request->query('include_responses', 'false') === 'true';
+
+        $query = SurveyResponse::with(['question.globalQuestion', 'survey'])
+            ->where('is_responded', true);
+
+        if ($surveyId) {
+            $query->where('survey_id', $surveyId);
+        }
+
+        $responses = $query->get();
+
+        if ($format === 'json') {
+            return response()->json($responses, 200, [], JSON_PRETTY_PRINT);
+        }
+
+        // CSV export
+        $csv = "Survey ID,Survey Title,Question ID,Question Text,Response Text,Response Score,Response Time\n";
+        
+        foreach ($responses as $response) {
+            $questionText = $response->question->globalQuestion?->question_text ?? $response->question->question_text;
+            $surveyTitle = $response->survey?->title ?? 'Unknown';
+            
+            // Escape CSV fields
+            $responseText = str_replace('"', '""', $includeResponses ? ($response->response_text ?? '') : '');
+            $responseScore = $response->response_score ?? '';
+            $responseTime = $response->updated_at?->toIso8601String() ?? '';
+
+            $csv .= "\"$surveyTitle\",\"$questionText\",{$response->question_id},\"$responseText\",$responseScore,$responseTime\n";
+        }
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="survey_results_' . date('Y-m-d_His') . '.csv"',
+        ];
+
+        return response($csv, 200, $headers);
+    }
 }

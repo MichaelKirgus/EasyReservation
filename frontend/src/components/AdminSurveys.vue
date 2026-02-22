@@ -1,12 +1,16 @@
 <script setup>
 
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 import api from '../api'
 import { useTranslation } from '../composables/useTranslation'
+import { Chart, BarController, PieController, CategoryScale, LinearScale, Tooltip, Legend, ArcElement, LineElement, PointElement } from 'chart.js'
 
 const { tr } = useTranslation()
+
+// Register Chart.js components
+Chart.register(BarController, PieController, CategoryScale, LinearScale, Tooltip, Legend, ArcElement, LineElement, PointElement)
 
 // Tab state
 const activeTab = ref('surveys')
@@ -29,6 +33,13 @@ const showSurveyDialog = ref(false)
 const showPreviewDialog = ref(false)
 const previewSurveyData = ref(null)
 const previewQuestions = ref([])
+
+// Results tab state
+const activeResultsTab = ref('overview') // 'overview' or 'detail'
+const selectedSurveyForResults = ref(null)
+const surveyResults = ref(null)
+const loadingResults = ref(false)
+let resultsChart = ref(null)
 
 // Form data for survey
 const surveyFormData = ref({
@@ -73,6 +84,10 @@ onMounted(async () => {
   await loadSurveys()
   await loadEvents()
   await loadQuestions()
+})
+
+onUnmounted(() => {
+  destroyResultsChart()
 })
 
 async function loadSurveys() {
@@ -286,6 +301,172 @@ function getQuestionTypeLabel(type) {
   return labels[type] || type
 }
 
+// Results tab functions
+async function loadSurveyResults(surveyId) {
+  if (!surveyId) return
+  
+  loadingResults.value = true
+  try {
+    const response = await api.get(`/admin/surveys/${surveyId}/results`)
+    surveyResults.value = response.data
+    
+    // Create chart after data is loaded
+    await nextTick()
+    createResultsChart()
+    
+    // Create individual charts for each question
+    await nextTick()
+    createQuestionCharts()
+  } catch (error) {
+    console.error('Failed to load survey results:', error)
+  } finally {
+    loadingResults.value = false
+  }
+}
+
+function createQuestionCharts() {
+  if (!surveyResults.value?.questions?.length) return
+  
+  surveyResults.value.questions.forEach(q => {
+    if (q.field_type === 'score_1_5' && q.statistics?.distribution) {
+      const canvasId = `score-chart-${q.id}`
+      const canvas = document.getElementById(canvasId)
+      
+      if (!canvas) return
+
+      const labels = ['1', '2', '3', '4', '5']
+      const data = [0, 0, 0, 0, 0]
+      
+      // Fill in actual scores
+      for (let i = 1; i <= 5; i++) {
+        if (q.statistics.distribution[i]) {
+          data[i - 1] = q.statistics.distribution[i]
+        }
+      }
+
+      const ctx = canvas.getContext('2d')
+      
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: tr('responses'),
+            data: data,
+            backgroundColor: '#3b82f6',
+            borderColor: '#2563eb',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+          },
+          plugins: { legend: { display: false } }
+        }
+      })
+    }
+  })
+}
+
+function createResultsChart() {
+  if (!surveyResults.value || !surveyResults.value.questions?.length) return
+  
+  // Destroy existing chart if any
+  if (resultsChart.value) {
+    resultsChart.value.destroy()
+  }
+
+  const canvas = document.getElementById('survey-results-chart')
+  if (!canvas) return
+
+  // Aggregate data from all questions for the main chart
+  const questionData = surveyResults.value.questions.filter(q =>
+    q.field_type === 'score_1_5' || q.field_type === 'text_multiple_choice'
+  )
+
+  if (questionData.length === 0) {
+    // No chartable data
+    return
+  }
+
+  // Create a combined dataset for the main chart
+  const labels = []
+  const data = []
+
+  questionData.forEach(q => {
+    if (q.field_type === 'score_1_5' && q.statistics?.distribution) {
+      Object.entries(q.statistics.distribution).forEach(([score, count]) => {
+        labels.push(`${q.question_text} (${tr('score')} ${score})`)
+        data.push(count)
+      })
+    } else if (q.field_type === 'text_multiple_choice' && q.statistics?.distribution) {
+      Object.entries(q.statistics.distribution).forEach(([option, count]) => {
+        labels.push(`${q.question_text}: ${option}`)
+        data.push(count)
+      })
+    }
+  })
+
+  const ctx = canvas.getContext('2d')
+  
+  resultsChart.value = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: tr('responses'),
+        data: data,
+        backgroundColor: '#3b82f6',
+        borderColor: '#2563eb',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1 }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  })
+}
+
+function destroyResultsChart() {
+  if (resultsChart.value) {
+    resultsChart.value.destroy()
+    resultsChart.value = null
+  }
+}
+
+function exportToCSV() {
+  if (!selectedSurveyForResults.value) return
+  
+  const surveyId = selectedSurveyForResults.value.id
+  window.open(`/api/admin/surveys/results/export?survey_id=${surveyId}&format=csv&include_responses=true`, '_blank')
+}
+
+function exportToJSON() {
+  if (!selectedSurveyForResults.value) return
+  
+  const surveyId = selectedSurveyForResults.value.id
+  window.open(`/api/admin/surveys/results/export?survey_id=${surveyId}&format=json&include_responses=true`, '_blank')
+}
+
+function selectSurveyForResults(survey) {
+  selectedSurveyForResults.value = survey
+  activeResultsTab.value = 'detail'
+  loadSurveyResults(survey.id)
+}
+
 </script>
 
 <template>
@@ -305,6 +486,13 @@ function getQuestionTypeLabel(type) {
         style="padding:0.5rem 1rem;border:none;background:transparent;color:#6b7280;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;"
       >
         {{ tr('global_questions') }}
+      </button>
+      <button
+        :class="{ active: activeTab === 'results' }"
+        @click="activeTab = 'results'"
+        style="padding:0.5rem 1rem;border:none;background:transparent;color:#6b7280;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;"
+      >
+        {{ tr('survey_results') }}
       </button>
     </div>
 
@@ -511,6 +699,154 @@ function getQuestionTypeLabel(type) {
         </template>
       </AdminDataTable>
     </div>
+
+    <!-- Results Tab -->
+    <div v-if="activeTab === 'results'" class="tab-content" style="display:flex;flex-direction:column;">
+      <h2 style="display:flex;align-items:center;justify-content:space-between;">
+        <span>{{ tr('survey_results') }}</span>
+      </h2>
+
+      <!-- Survey Selection -->
+      <div style="margin-bottom:1rem;">
+        <label style="font-weight:bold;display:block;margin-bottom:0.5rem;">{{ tr('select_survey') }}</label>
+        <select
+          v-model="selectedSurveyForResults"
+          @change="selectSurveyForResults(selectedSurveyForResults)"
+          class="results-select-dropdown"
+        >
+          <option value="">{{ tr('select_survey_first') }}</option>
+          <option v-for="survey in surveys" :key="survey.id" :value="survey">
+            {{ survey.title }} ({{ survey.event_title ? survey.event_title : tr('no_event_linked') }})
+          </option>
+        </select>
+      </div>
+
+      <!-- Results Content -->
+      <div v-if="selectedSurveyForResults && activeResultsTab === 'detail'" class="results-tab-content">
+        <!-- Header with Export Buttons -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <h2>{{ tr('survey_results') }}</h2>
+          <div style="display:flex;gap:0.5rem;">
+            <IconButton
+              icon="download"
+              :label="tr('export_csv')"
+              class="primary"
+              variant="success"
+              @click="exportToCSV"
+            />
+            <IconButton
+              icon="download"
+              :label="tr('export_json')"
+              class="primary"
+              variant="info"
+              @click="exportToJSON"
+            />
+          </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="results-summary-cards">
+          <div class="results-card">
+            <div class="results-card-label">{{ tr('total_responses') }}</div>
+            <div class="results-card-value">{{ surveyResults?.summary?.total_responses || 0 }}</div>
+          </div>
+          <div class="results-card">
+            <div class="results-card-label">{{ tr('response_rate') }}</div>
+            <div class="results-card-value">{{ surveyResults?.summary?.total_responses ? '100%' : '0%' }}</div>
+          </div>
+        </div>
+
+        <!-- Chart Container -->
+        <div class="results-chart-container">
+          <h3>{{ tr('response_distribution') }}</h3>
+          <canvas id="survey-results-chart" height="300"></canvas>
+        </div>
+
+        <!-- Question Results -->
+        <div v-if="surveyResults?.questions?.length">
+          <h3>{{ tr('question_results') }}</h3>
+          
+          <div v-for="(question, index) in surveyResults.questions" :key="question.id" class="results-question-section">
+            <h4 class="results-question-title">{{ index + 1 }}. {{ question.question_text }}</h4>
+            
+            <!-- Score Question -->
+            <div v-if="question.field_type === 'score_1_5'">
+              <div class="results-statistics">
+                <div>
+                  <div class="results-statistic-label">{{ tr('average_score') }}</div>
+                  <div class="results-statistic-value">{{ question.statistics?.average_score || 'N/A' }} / 5</div>
+                </div>
+                <div>
+                  <div class="results-statistic-label">{{ tr('total_responses') }}</div>
+                  <div class="results-statistic-value">{{ question.statistics?.total_responses || 0 }}</div>
+                </div>
+              </div>
+              
+              <!-- Score Distribution Chart -->
+              <div v-if="question.statistics?.distribution" class="results-distribution-bar-container">
+                <canvas :id="'score-chart-' + question.id" height="200"></canvas>
+              </div>
+            </div>
+
+            <!-- Multiple Choice Question -->
+            <div v-else-if="question.field_type === 'text_multiple_choice'">
+              <div style="margin-bottom:1rem;">
+                <div class="results-statistic-label">{{ tr('total_responses') }}</div>
+                <div class="results-statistic-value">{{ question.statistics?.total_responses || 0 }}</div>
+              </div>
+
+              <!-- Option Distribution -->
+              <div v-if="question.statistics?.distribution" class="results-distribution-bar-container">
+                <h4>{{ tr('option_distribution') }}</h4>
+                
+                <div v-for="(count, option) in question.statistics.distribution" :key="option" class="results-distribution-label">
+                  <span class="results-distribution-option">{{ option }}</span>
+                  <div class="results-distribution-bar">
+                    <div
+                      class="results-distribution-fill"
+                      :style="{ width: question.statistics.total_responses > 0 ? (count / question.statistics.total_responses * 100) + '%' : '0%' }"
+                    ></div>
+                  </div>
+                  <span class="results-distribution-count">{{ count }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Open Text Question -->
+            <div v-else-if="question.field_type === 'text_open'">
+              <div style="margin-bottom:1rem;">
+                <div class="results-statistic-label">{{ tr('total_responses') }}</div>
+                <div class="results-statistic-value">{{ question.statistics?.total_responses || 0 }}</div>
+              </div>
+
+              <!-- Sample Responses -->
+              <div v-if="question.statistics?.responses?.length" class="results-sample-responses">
+                <h4>{{ tr('sample_responses') }}</h4>
+                
+                <ul style="list-style-position:inside;margin:0;">
+                  <li v-for="(response, idx) in question.statistics.responses.slice(0, 5)" :key="idx" style="margin-bottom:0.5rem;">
+                    {{ response }}
+                  </li>
+                </ul>
+
+                <div v-if="question.statistics.responses.length > 5" style="color:#6b7280;font-size:0.875rem;margin-top:0.5rem;">
+                  +{{ question.statistics.responses.length - 5 }} more responses
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else style="color:#6b7280;font-style:italic;text-align:center;padding:2rem;">
+          {{ tr('no_responses_yet') }}
+        </div>
+      </div>
+
+      <!-- Overview State -->
+      <div v-if="selectedSurveyForResults && activeResultsTab === 'overview'">
+        <p style="color:#6b7280;">{{ tr('select_survey_for_details') }}</p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -614,5 +950,146 @@ function getQuestionTypeLabel(type) {
 .no-questions {
   color: var(--text-muted);
   font-style: italic;
+}
+
+/* Results Tab Styles */
+.results-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.results-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.results-card {
+  background: var(--app-card-bg, var(--surface));
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  color: var(--text);
+}
+
+.results-card-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.results-card-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--text);
+}
+
+.results-chart-container {
+  background: var(--app-card-bg, var(--surface));
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+}
+
+.results-question-section {
+  background: var(--app-card-bg, var(--surface));
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.results-question-title {
+  font-weight: bold;
+  color: var(--text);
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+.results-statistics {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1rem;
+}
+
+.results-statistic-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.results-statistic-value {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--text);
+}
+
+.results-distribution-bar-container {
+  background: var(--surface-muted);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-top: 0.75rem;
+}
+
+.results-distribution-label {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.results-distribution-option {
+  flex: 0 0 120px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.results-distribution-bar {
+  flex: 1;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  height: 24px;
+}
+
+.results-distribution-fill {
+  background: var(--primary);
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.results-distribution-count {
+  flex: 0 0 50px;
+  font-weight: bold;
+  color: var(--text);
+}
+
+.results-sample-responses {
+  background: var(--surface-muted);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.results-no-responses {
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  padding: 2rem;
+}
+
+/* Results Tab Select Dropdown */
+.results-select-dropdown {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Results Tab H3 Headings */
+.results-tab-content h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: var(--text);
 }
 </style>

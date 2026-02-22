@@ -34,4 +34,9 @@ class SurveyQuestion extends Model
     {
         return $this->belongsTo(GlobalQuestion::class, 'global_question_id');
     }
+
+    public function responses()
+    {
+        return $this->hasMany(SurveyResponse::class, 'question_id');
+    }
 }
