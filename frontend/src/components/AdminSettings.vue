@@ -501,11 +501,11 @@ watch(() => props.langCode, () => fetchTranslations())
 <template>
   <div class="stack">
     <div class="controls">
-      <IconButton icon="refresh" :label="tr('admin_settings_loading', 'Loading...')" @click="load" :disabled="loading" />
       <IconButton icon="save" :label="tr('admin_settings_save', 'Save')" @click="save" :disabled="loading" />
       <IconButton icon="download" :label="tr('admin_settings_export', 'Export')" @click="exportSettings" />
       <input ref="importInputRef" type="file" accept=".json" style="display: none" @change="handleImportFile" />
       <IconButton icon="upload" :label="tr('admin_settings_import', 'Import')" @click="openImportDialog" />
+      <IconButton icon="refresh" :label="tr('admin_settings_loading', 'Loading...')" @click="load" :disabled="loading" />
     </div>
     <div v-if="error" class="error">{{ error }}</div>
     <div v-if="message" class="message">{{ message }}</div>

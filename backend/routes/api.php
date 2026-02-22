@@ -87,9 +87,9 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::get('/admin/settings', [SettingsController::class, 'index']);
     Route::post('/admin/settings', [SettingsController::class, 'update']);
     Route::get('/admin/settings-keys', [SettingsController::class, 'keys']);
-    Route::get('/admin/settings/{key}', [SettingsController::class, 'show']);
     Route::get('/admin/settings/export', [SettingsController::class, 'export']);
     Route::post('/admin/settings/import', [SettingsController::class, 'import']);
+    Route::get('/admin/settings/{key}', [SettingsController::class, 'show']);
     Route::get('/admin/media/images', [MediaController::class, 'images']);
 
     Route::apiResource('/admin/form-fields', FormFieldController::class)->except(['create', 'edit', 'show']);
