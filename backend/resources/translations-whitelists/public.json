@@ -57,5 +57,6 @@
     "otp_code",
     "otp_placeholder",
     "remember_me",
-    "cancel"
+    "cancel",
+    "project_footer_text"
 ]

@@ -623,7 +623,7 @@ function goToGDPR() {
       </section>
 
       <footer v-if="Number(config.settings.show_project_footer) === 1" class="project-footer">
-        <span>EasyReservation – Open Source Projekt auf <a href="https://github.com/MichaelKirgus/EasyReservation" target="_blank" rel="noopener">GitHub</a></span>
+        <span v-html="tr('project_footer_text', 'EasyReservation – Open Source Projekt auf GitHub')"></span>
       </footer>
     </div>
   </div>
