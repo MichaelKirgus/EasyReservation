@@ -417,6 +417,7 @@
   "admin_locations_columns_notes": "Notizen",
   "admin_locations_columns_url": "URL",
   "admin_locations_columns_comment": "Kommentar",
+  "admin_locations_columns_active": "Aktiv",
   "admin_locations_columns_capacity": "Kapazität (optional)",
   "location_deleted_confirm": "Möchten Sie diesen Standort wirklich löschen?",
   "location_name_required": "Bitte geben Sie einen Namen für den Standort ein.",
