@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\SettingsService;
+use App\Services\TranslationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
@@ -17,6 +18,7 @@ class AuthController extends Controller
 {
     public function __construct(
         private readonly SettingsService $settings,
+        private readonly TranslationService $translationService,
     ) {}
 
     public function login(Request $request): JsonResponse
@@ -94,6 +96,9 @@ class AuthController extends Controller
             'Lax'
         );
 
+        // Clear translation cache to ensure fresh translations are loaded for the new user role
+        $this->translationService->flush();
+
         return response()->json([
             'api_token' => $plainToken,
             'user' => [
@@ -110,6 +115,9 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
+        // Clear translation cache on logout to ensure clean state for next login
+        $this->translationService->flush();
+
         $cookie = Cookie::forget('api_session', '/');
 
         return response()->json(['message' => 'Logged out.'])->cookie($cookie);

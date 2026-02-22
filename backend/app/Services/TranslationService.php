@@ -28,19 +28,25 @@ class TranslationService
      */
     public function getTranslations(string $locale, ?array $whitelist = null): array
     {
+        // When no whitelist is specified (admin/superadmin), always load all translations
+        // to avoid returning cached filtered data from previous requests with whitelists
+        if ($whitelist === null) {
+            $translations = $this->loadFromJson($locale);
+            return $translations ?? [];
+        }
+
+        // For whitelisted requests, use cache for performance
         $cached = $this->store->get($locale);
 
         if ($cached !== null) {
-            return $whitelist !== null ? array_intersect_key($cached, array_flip($whitelist)) : $cached;
+            return array_intersect_key($cached, array_flip($whitelist));
         }
 
         // Cache miss – load from JSON and warm the cache
         $translations = $this->loadFromJson($locale);
 
         if ($translations !== null) {
-            if ($whitelist !== null) {
-                $translations = array_intersect_key($translations, array_flip($whitelist));
-            }
+            $translations = array_intersect_key($translations, array_flip($whitelist));
             $this->store->put($locale, $translations);
             return $translations;
         }
