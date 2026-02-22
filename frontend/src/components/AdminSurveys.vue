@@ -16,11 +16,19 @@ const surveys = ref([])
 const events = ref([])
 const loadingSurveys = ref(false)
 
-// Question state  
+// Question state
 const questions = ref([])
 const loadingQuestions = ref(false)
 const showDialog = ref(false)
 const selectedQuestion = ref(null)
+
+// Survey dialog state
+const showSurveyDialog = ref(false)
+
+// Preview state
+const showPreviewDialog = ref(false)
+const previewSurveyData = ref(null)
+const previewQuestions = ref([])
 
 // Form data for survey
 const surveyFormData = ref({
@@ -119,6 +127,7 @@ function createSurvey() {
     ends_at: null,
     active: true,
   }
+  showSurveyDialog.value = true
 }
 
 async function saveSurvey() {
@@ -130,7 +139,15 @@ async function saveSurvey() {
       await api.post('/admin/surveys', surveyFormData.value)
     }
     
-    createSurvey()
+    showSurveyDialog.value = false
+    surveyFormData.value = {
+      title: '',
+      description: '',
+      event_id: null,
+      starts_at: new Date().toISOString().slice(0, 16),
+      ends_at: null,
+      active: true,
+    }
     await loadSurveys()
   } catch (error) {
     console.error('Failed to save survey:', error)
@@ -154,14 +171,16 @@ async function deleteSurvey(id) {
 }
 
 function editSurvey(survey) {
-  surveyFormData.value = { 
+  surveyFormData.value = {
     ...survey,
     starts_at: survey.starts_at ? survey.starts_at.slice(0, 16) : null,
     ends_at: survey.ends_at ? survey.ends_at.slice(0, 16) : null,
   }
+  showSurveyDialog.value = true
 }
 
 function closeSurveyDialog() {
+  showSurveyDialog.value = false
   surveyFormData.value = {
     title: '',
     description: '',
@@ -170,6 +189,24 @@ function closeSurveyDialog() {
     ends_at: null,
     active: true,
   }
+}
+
+async function previewSurvey(survey) {
+  try {
+    const response = await api.get(`/admin/surveys/${survey.id}/preview`)
+    console.log('Preview response:', response.data)
+    previewSurveyData.value = response.data.survey
+    previewQuestions.value = response.data.questions || []
+    showPreviewDialog.value = true
+  } catch (error) {
+    console.error('Failed to load survey preview:', error)
+  }
+}
+
+function closePreviewDialog() {
+  showPreviewDialog.value = false
+  previewSurveyData.value = null
+  previewQuestions.value = []
 }
 
 // Question functions
@@ -291,13 +328,13 @@ function getQuestionTypeLabel(type) {
         </template>
         <template #row-actions="{ row }">
           <IconButton icon="pencil" :label="tr('edit')" class="ghost" @click.stop="editSurvey(row)" :disabled="loadingSurveys" />
-          <IconButton icon="question" :label="tr('survey_questions')" class="ghost" @click.stop="$emit('view-questions', row)" :disabled="loadingSurveys" />
+          <IconButton icon="eye" :label="tr('preview')" class="ghost" @click.stop="previewSurvey(row)" :disabled="loadingSurveys" />
           <IconButton icon="trash" :label="tr('delete')" class="ghost" variant="danger" @click.stop="deleteSurvey(row.id)" :disabled="loadingSurveys" />
         </template>
       </AdminDataTable>
 
       <!-- Survey Dialog -->
-      <div v-if="surveyFormData.title || surveyFormData.id" class="modal-overlay">
+      <div v-if="showSurveyDialog" class="modal-overlay">
         <div class="modal-dialog">
           <h3>{{ surveyFormData.id ? tr('edit_survey') : tr('create_survey') }}</h3>
           
@@ -363,6 +400,49 @@ function getQuestionTypeLabel(type) {
               <IconButton icon="close" :label="tr('cancel')" variant="danger" @click="closeSurveyDialog" />
             </div>
           </form>
+        </div>
+      </div>
+
+      <!-- Preview Dialog -->
+      <div v-if="showPreviewDialog" class="modal-overlay">
+        <div class="modal-dialog preview-dialog">
+          <h3>{{ tr('survey_preview') }}</h3>
+          
+          <div v-if="previewSurveyData" class="preview-content">
+            <h4>{{ previewSurveyData.title }}</h4>
+            <p v-if="previewSurveyData.description">{{ previewSurveyData.description }}</p>
+            
+            <div v-if="!previewQuestions.length" class="no-questions">
+              {{ tr('no_questions_available') }}
+            </div>
+            
+            <div v-for="question in previewQuestions" :key="question.id" class="preview-question">
+              <label class="question-text">{{ question.globalQuestion?.question_text || question.question_text }}</label>
+              
+              <div v-if="question.field_type === 'score_1_5'" class="score-preview">
+                <input type="range" min="1" max="5" value="3" disabled />
+                <span>1 - 5 (Score)</span>
+              </div>
+              
+              <div v-else-if="question.field_type === 'text_multiple_choice'" class="choice-preview">
+                <label v-for="(option, index) in question.options" :key="index" class="radio-option">
+                  <input type="radio" name="preview-q" :value="option" disabled />
+                  {{ option }}
+                </label>
+              </div>
+              
+              <textarea
+                v-else
+                :placeholder="tr('your_answer')"
+                disabled
+                rows="2"
+              ></textarea>
+            </div>
+          </div>
+          
+          <div style="margin-top:1em; display:flex; gap:0.5em; justify-content:flex-end;">
+            <IconButton icon="close" :label="tr('close')" @click="closePreviewDialog" />
+          </div>
         </div>
       </div>
     </div>
@@ -473,7 +553,66 @@ function getQuestionTypeLabel(type) {
 .form-group select {
   width: 100%;
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border);
   border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.preview-dialog {
+  max-width: 600px;
+}
+
+.preview-content h4 {
+  margin-top: 0;
+  font-size: 1.2em;
+  color: var(--text);
+}
+
+.preview-content p {
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.preview-question {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: var(--surface-muted);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.question-text {
+  font-weight: bold;
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.score-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.score-preview input {
+  width: 200px;
+}
+
+.choice-preview label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  margin-bottom: 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.no-questions {
+  color: var(--text-muted);
+  font-style: italic;
 }
 </style>

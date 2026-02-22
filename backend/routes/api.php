@@ -129,10 +129,13 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::delete('/admin/event-triggers/{id}', [\App\Http\Controllers\Api\EventTriggerController::class, 'destroy']);
     Route::post('/admin/event-triggers/{id}/simulate', [\App\Http\Controllers\Api\EventTriggerController::class, 'simulate']);
 
-    Route::apiResource('/admin/surveys', SurveyController::class)->except(['create', 'edit', 'show']);
+    // Survey routes (must be before apiResource to avoid {survey} parameter conflict)
+    Route::get('/admin/surveys/{survey}/preview', [SurveyController::class, 'preview']);
     Route::post('/admin/surveys/{survey}/send', [SurveyController::class, 'send']);
     Route::get('/admin/surveys/{survey}/responses', [SurveyController::class, 'responses']);
     Route::get('/admin/surveys/{survey}/questions', [SurveyController::class, 'getQuestions']);
+
+    Route::apiResource('/admin/surveys', SurveyController::class)->except(['create', 'edit', 'show']);
     Route::post('/admin/surveys/{survey}/questions', [SurveyController::class, 'addQuestion']);
     Route::put('/admin/surveys/{survey}/questions/{question}', [SurveyController::class, 'updateQuestion']);
     Route::delete('/admin/surveys/{survey}/questions/{question}', [SurveyController::class, 'deleteQuestion']);

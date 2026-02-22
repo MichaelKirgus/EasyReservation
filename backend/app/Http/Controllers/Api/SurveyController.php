@@ -190,4 +190,23 @@ class SurveyController extends Controller
 
         return response()->json(['message' => 'Question deleted']);
     }
+
+    // GET /admin/surveys/{survey}/preview
+    public function preview(Survey $survey): JsonResponse
+    {
+        // Get all global questions (since questions are now defined globally)
+        $questions = GlobalQuestion::orderBy('display_order')->get();
+
+        return response()->json([
+            'survey' => [
+                'id' => $survey->id,
+                'title' => $survey->title,
+                'description' => $survey->description,
+                'starts_at' => $survey->starts_at?->toIso8601String(),
+                'ends_at' => $survey->ends_at?->toIso8601String(),
+                'active' => $survey->active,
+            ],
+            'questions' => $questions,
+        ]);
+    }
 }
