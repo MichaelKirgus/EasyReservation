@@ -317,6 +317,14 @@ async function login() {
       otherStorage.removeItem('admin_user')
     }
     window.dispatchEvent(new CustomEvent('api-key-updated', { detail: sessionMarker }))
+    
+    // Fetch translations again with the new user's whitelist
+    try {
+      await fetchTranslations(selectedLang.value)
+    } catch (err) {
+      console.error('Failed to refresh translations after login:', err)
+    }
+    
     loginForm.identifier = ''
     loginForm.password = ''
     loginForm.otp = ''
