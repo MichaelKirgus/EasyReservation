@@ -41,6 +41,8 @@ const locationColumns = computed(() => [
   { key: 'contact_email', label: tr('admin_locations_columns_contact_email'), sortable: false },
   { key: 'public_transport', label: tr('admin_locations_columns_public_transport'), sortable: false },
   { key: 'capacity_override', label: tr('admin_locations_columns_capacity'), sortable: true },
+  { key: 'url', label: tr('admin_locations_columns_url'), sortable: false },
+  { key: 'notes', label: tr('admin_locations_columns_comment'), sortable: false },
   { key: 'active', label: tr('admin_locations_columns_active'), sortable: true },
 ])
 
@@ -439,7 +441,7 @@ onMounted(() => {
         :loading="loading"
         :page-size="20"
         persist-key="admin-locations"
-        :initial-hidden-columns="['id']"
+        :initial-hidden-columns="['id', 'notes']"
         :empty-text="tr('admin_locations_no_locations_text')"
         @refresh="loadLocations"
         @auto-refresh="loadLocations({ auto: true })"
@@ -448,6 +450,11 @@ onMounted(() => {
           <IconButton icon="trash" variant="danger" :label="tr('admin_events_delete_selection_button')" @click="bulkRemoveLocations" :disabled="loading || !selectedLocations.length" />
         </template>
         <template #cell-contact_email="{ value }">{{ value || tr('admin_events_dash_text') }}</template>
+        <template #cell-url="{ value }">
+          <a v-if="value" :href="value" target="_blank" rel="noopener">{{ value }}</a>
+          <span v-else>{{ tr('admin_events_dash_text') }}</span>
+        </template>
+        <template #cell-notes="{ value }">{{ value || tr('admin_events_dash_text') }}</template>
         <template #cell-active="{ value }">{{ value ? tr('admin_events_yes_text') : tr('admin_events_no_text') }}</template>
         <template #row-actions="{ row }">
           <IconButton icon="pencil" :label="tr('admin_events_edit_button')" variant="ghost" @click="editLocation(row)" />
