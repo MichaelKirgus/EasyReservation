@@ -182,6 +182,7 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/archives/{archive}/restore-waitlist-entry/{entry}', [ArchiveController::class, 'restoreWaitlistEntry']);
     Route::post('/admin/archives/{archive}/restore-waitlist-entries', [ArchiveController::class, 'restoreWaitlistEntries']);
     Route::get('/admin/archives/{archive}/download-csv/{type}', [ArchiveController::class, 'downloadCsv']);
+    Route::post('/admin/archives/{archive}/archive-data', [ArchiveController::class, 'archiveData']);
 });
 
 Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
@@ -211,6 +212,8 @@ Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
 
     // Moderator archive routes (if enabled via setting)
     Route::get('/moderator/archives', [ArchiveController::class, 'index']);
+    Route::post('/moderator/archives', [ArchiveController::class, 'store']);
+    Route::delete('/moderator/archives/{archive}', [ArchiveController::class, 'destroy']);
     Route::get('/moderator/archives/{archive}/reservations', [ArchiveController::class, 'getReservations']);
     Route::get('/moderator/archives/{archive}/waitlist', [ArchiveController::class, 'getWaitlistEntries']);
 

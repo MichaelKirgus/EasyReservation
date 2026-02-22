@@ -76,7 +76,7 @@ class ArchiveController extends Controller
     /**
      * Get archived reservations for an archive.
      */
-    public function getReservations(Archive $archive): JsonResponse
+    public function getReservations(Request $request, Archive $archive): JsonResponse
     {
         $nameFilter = $request->query('name', '');
 
@@ -88,7 +88,7 @@ class ArchiveController extends Controller
     /**
      * Get archived waitlist entries for an archive.
      */
-    public function getWaitlistEntries(Archive $archive): JsonResponse
+    public function getWaitlistEntries(Request $request, Archive $archive): JsonResponse
     {
         $nameFilter = $request->query('name', '');
         $statusFilter = $request->query('status', '');
@@ -281,5 +281,20 @@ class ArchiveController extends Controller
         return response()->streamDownload($callback, 'archive_' . $archive->name . '_reservations.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
+    }
+
+    /**
+     * Archive current data to an archive.
+     */
+    public function archiveData(Archive $archive): JsonResponse
+    {
+        try {
+            $this->archiveService->archiveData($archive);
+            
+            return response()->json(['message' => 'Archive populated successfully']);
+        } catch (\Exception $e) {
+            Log::error('Failed to archive data', ['archive_id' => $archive->id, 'error' => $e->getMessage()]);
+            return response()->json(['message' => 'Failed to archive data'], 500);
+        }
     }
 }

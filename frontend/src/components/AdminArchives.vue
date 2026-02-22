@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 import { adminFetch } from '../utils/adminApi'
@@ -8,7 +8,7 @@ import { useTranslation } from '../composables/useTranslation'
 const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const { tr } = useTranslation()
 const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
-const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
+const routePrefix = ref('admin')
 const archives = ref([])
 const loading = ref(false)
 const message = ref('')
@@ -20,8 +20,8 @@ const newArchiveName = ref('')
 const newArchiveDescription = ref('')
 const newArchiveStoreEmails = ref(true)
 
-// View archive dialog
-const activeArchive = ref(null)
+// View state - active tab is 'list' or an archive ID
+const activeTab = ref('list')
 const viewTab = ref('reservations') // 'reservations' or 'waitlist'
 const archiveReservations = ref([])
 const archiveWaitlistEntries = ref([])
@@ -33,25 +33,21 @@ const nameFilter = ref('')
 const statusFilter = ref('')
 
 const columns = computed(() => [
-  { key: 'id', label: tr('admin_archives_column_id'), sortable: true },
   { key: 'name', label: tr('admin_archives_column_name'), sortable: true },
   { key: 'description', label: tr('admin_archives_column_description'), sortable: false },
   { key: 'store_emails', label: tr('admin_archives_column_store_emails'), sortable: true, type: 'boolean' },
   { key: 'created_at', label: tr('admin_archives_column_created_at'), sortable: true },
-  { key: 'actions', label: tr('admin_archives_column_actions'), sortable: false },
 ])
 
 const reservationColumns = computed(() => [
-  { key: 'id', label: tr('admin_archives_column_id'), sortable: true },
-  { key: 'original_reservation_id', label: tr('admin_archives_column_original_id'), sortable: true },
+  { key: 'original_reservation_id', label: tr('admin_archives_column_original_id'), sortable: true, hidden: true },
   { key: 'display_name', label: tr('admin_archives_column_name'), sortable: true },
   { key: 'email', label: tr('admin_archives_column_email'), sortable: true },
   { key: 'date_added', label: tr('admin_archives_column_date'), sortable: true },
 ])
 
 const waitlistColumns = computed(() => [
-  { key: 'id', label: tr('admin_archives_column_id'), sortable: true },
-  { key: 'original_waitlist_entry_id', label: tr('admin_archives_column_original_id'), sortable: true },
+  { key: 'original_waitlist_entry_id', label: tr('admin_archives_column_original_id'), sortable: true, hidden: true },
   { key: 'display_name', label: tr('admin_archives_column_name'), sortable: true },
   { key: 'email', label: tr('admin_archives_column_email'), sortable: true },
   { key: 'status', label: tr('admin_archives_column_status'), sortable: true },
@@ -94,7 +90,7 @@ async function loadArchives(opts = {}) {
 }
 
 async function loadArchiveData(archiveId, tab) {
-  if (!apiKey.value || !activeArchive.value) return
+  if (!apiKey.value || !archiveId) return
   
   if (tab === 'reservations') {
     try {
@@ -133,10 +129,28 @@ async function createArchive() {
       }),
     })
     
-    const text = await res.text()
-    if (!res.ok) throw new Error(text)
+    let archiveData
+    try {
+      archiveData = await res.json()
+    } catch (e) {
+      // If JSON parsing fails, use the text response for error handling
+      const text = await res.text()
+      if (!res.ok) throw new Error(text)
+      throw e
+    }
     
+    if (!res.ok) throw new Error(archiveData.message || 'Unknown error')
     setMessage(tr('admin_archives_created_success'))
+    
+    // Archive current data to the newly created archive
+    loading.value = true
+    try {
+      await fetchWithAuth(`archives/${archiveData.id}/archive-data`, { method: 'POST' })
+      setMessage(tr('admin_archives_data_archived_success'))
+    } catch (e) {
+      setError(tr('error_archiving_data') + ': ' + e)
+    }
+    
     showCreateDialog.value = false
     newArchiveName.value = ''
     newArchiveDescription.value = ''
@@ -167,8 +181,29 @@ async function deleteArchive(archiveId) {
   }
 }
 
+async function archiveCurrentData(archiveId) {
+  if (!archiveId) return
+  
+  if (!confirm(tr('admin_archives_confirm_data_archive'))) return
+  
+  loading.value = true
+  try {
+    const res = await fetchWithAuth(`archives/${archiveId}/archive-data`, { method: 'POST' })
+    const text = await res.text()
+    if (!res.ok) throw new Error(text)
+    
+    setMessage(tr('admin_archives_data_archived_success'))
+    // Refresh the archive data
+    await loadArchiveData(archiveId, viewTab.value)
+  } catch (e) {
+    setError(tr('error_archiving_data') + ': ' + e)
+  } finally {
+    loading.value = false
+  }
+}
+
 function viewArchive(archive) {
-  activeArchive.value = archive
+  activeTab.value = archive.id
   viewTab.value = 'reservations'
   nameFilter.value = ''
   statusFilter.value = ''
@@ -179,21 +214,21 @@ function viewArchive(archive) {
 }
 
 function closeArchiveView() {
-  activeArchive.value = null
+  activeTab.value = 'list'
 }
 
 async function restoreReservation(reservationId) {
-  if (!activeArchive.value || !reservationId) return
+  if (!activeTab.value || !reservationId) return
   
   loading.value = true
   try {
-    const res = await fetchWithAuth(`archives/${activeArchive.value.id}/restore-reservation/${reservationId}`, { method: 'POST' })
+    const res = await fetchWithAuth(`archives/${activeTab.value}/restore-reservation/${reservationId}`, { method: 'POST' })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     
     setMessage(tr('admin_archives_restored_success'))
     // Refresh the archive data
-    await loadArchiveData(activeArchive.value.id, viewTab.value)
+    await loadArchiveData(activeTab.value, viewTab.value)
   } catch (e) {
     setError(tr('error_restoring') + ': ' + e)
   } finally {
@@ -202,13 +237,13 @@ async function restoreReservation(reservationId) {
 }
 
 async function bulkRestoreReservations() {
-  if (!selectedArchiveReservations.value.length || !activeArchive.value) return
+  if (!selectedArchiveReservations.value.length || !activeTab.value) return
   
   if (!confirm(tr('admin_archives_bulk_restore_confirm', { count: selectedArchiveReservations.value.length }))) return
   
   loading.value = true
   try {
-    const res = await fetchWithAuth(`archives/${activeArchive.value.id}/restore-reservations`, {
+    const res = await fetchWithAuth(`archives/${activeTab.value}/restore-reservations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reservation_ids: selectedArchiveReservations.value }),
@@ -219,7 +254,7 @@ async function bulkRestoreReservations() {
     
     setMessage(tr('admin_archives_bulk_restored_success'))
     selectedArchiveReservations.value = []
-    await loadArchiveData(activeArchive.value.id, viewTab.value)
+    await loadArchiveData(activeTab.value, viewTab.value)
   } catch (e) {
     setError(tr('error_restoring') + ': ' + e)
   } finally {
@@ -228,16 +263,16 @@ async function bulkRestoreReservations() {
 }
 
 async function restoreWaitlistEntry(entryId) {
-  if (!activeArchive.value || !entryId) return
+  if (!activeTab.value || !entryId) return
   
   loading.value = true
   try {
-    const res = await fetchWithAuth(`archives/${activeArchive.value.id}/restore-waitlist-entry/${entryId}`, { method: 'POST' })
+    const res = await fetchWithAuth(`archives/${activeTab.value}/restore-waitlist-entry/${entryId}`, { method: 'POST' })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     
     setMessage(tr('admin_archives_restored_success'))
-    await loadArchiveData(activeArchive.value.id, viewTab.value)
+    await loadArchiveData(activeTab.value, viewTab.value)
   } catch (e) {
     setError(tr('error_restoring') + ': ' + e)
   } finally {
@@ -246,13 +281,13 @@ async function restoreWaitlistEntry(entryId) {
 }
 
 async function bulkRestoreWaitlistEntries() {
-  if (!selectedArchiveWaitlistEntries.value.length || !activeArchive.value) return
+  if (!selectedArchiveWaitlistEntries.value.length || !activeTab.value) return
   
   if (!confirm(tr('admin_archives_bulk_restore_confirm', { count: selectedArchiveWaitlistEntries.value.length }))) return
   
   loading.value = true
   try {
-    const res = await fetchWithAuth(`archives/${activeArchive.value.id}/restore-waitlist-entries`, {
+    const res = await fetchWithAuth(`archives/${activeTab.value}/restore-waitlist-entries`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ entry_ids: selectedArchiveWaitlistEntries.value }),
@@ -263,7 +298,7 @@ async function bulkRestoreWaitlistEntries() {
     
     setMessage(tr('admin_archives_bulk_restored_success'))
     selectedArchiveWaitlistEntries.value = []
-    await loadArchiveData(activeArchive.value.id, viewTab.value)
+    await loadArchiveData(activeTab.value, viewTab.value)
   } catch (e) {
     setError(tr('error_restoring') + ': ' + e)
   } finally {
@@ -272,14 +307,14 @@ async function bulkRestoreWaitlistEntries() {
 }
 
 function downloadCsv(type) {
-  if (!activeArchive.value) return
+  if (!activeTab.value) return
   
-  const url = `${apiBase}/${routePrefix.value}/archives/${activeArchive.value.id}/download-csv/${type}`
+  const url = `${apiBase}/${routePrefix.value}/archives/${activeTab.value}/download-csv/${type}`
   window.open(url, '_blank')
 }
 
-watch(() => activeArchive.value?.id, (newId) => {
-  if (newId) {
+watch(() => activeTab.value, (newId) => {
+  if (newId && newId !== 'list') {
     loadArchiveData(newId, viewTab.value)
   }
 })
@@ -295,6 +330,7 @@ onMounted(() => {
     <div class="top-bar">
       <h2>{{ tr('admin_archives_title') }}</h2>
       <IconButton
+        v-if="activeTab === 'list'"
         icon="plus"
         variant="success"
         :label="tr('admin_archives_create_button')"
@@ -306,8 +342,54 @@ onMounted(() => {
     <div v-if="message" class="message">{{ message }}</div>
     <div v-if="error" class="error">{{ error }}</div>
 
-    <!-- Archives List -->
+    <!-- Create Archive Dialog (Modal) -->
+    <div v-if="showCreateDialog" class="modal-backdrop" @click.self="showCreateDialog = false">
+      <div class="modal">
+        <h3>{{ tr('admin_archives_create_title') }}</h3>
+        
+        <div class="field">
+          <label>{{ tr('admin_archives_name_label') }}</label>
+          <input
+            v-model="newArchiveName"
+            :placeholder="tr('admin_archives_name_placeholder')"
+          />
+        </div>
+
+        <div class="field">
+          <label>{{ tr('admin_archives_description_label') }}</label>
+          <textarea
+            v-model="newArchiveDescription"
+            :placeholder="tr('admin_archives_description_placeholder')"
+            rows="3"
+          />
+        </div>
+
+        <div class="field">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              v-model="newArchiveStoreEmails"
+            />
+            {{ tr('admin_archives_store_emails_label') }}
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <IconButton class="ghost" variant="ghost" @click="showCreateDialog = false" icon="close" :label="tr('cancel')" />
+          <button
+            variant="success"
+            @click="createArchive"
+            :disabled="loading || !newArchiveName.trim()"
+          >
+            {{ tr('admin_archives_create_button') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Archive List View -->
     <AdminDataTable
+      v-if="activeTab === 'list'"
       :columns="columns"
       :rows="archives"
       :loading="loading"
@@ -321,6 +403,11 @@ onMounted(() => {
         <span v-else class="label inline danger">{{ tr('no') }}</span>
       </template>
       <template #row-actions="{ row }">
+        <IconButton
+          icon="archive"
+          :label="tr('admin_archives_archive_data')"
+          @click.stop="archiveCurrentData(row.id)"
+        />
         <IconButton
           icon="eye"
           :label="tr('admin_archives_view')"
@@ -336,258 +423,200 @@ onMounted(() => {
       </template>
     </AdminDataTable>
 
-    <!-- Create Archive Dialog -->
-    <div v-if="showCreateDialog" class="modal-overlay">
-      <div class="modal">
-        <h3>{{ tr('admin_archives_create_title') }}</h3>
+    <!-- Archive Details View -->
+    <div v-else class="archive-details">
+      <!-- Back button and header -->
+      <div class="details-header">
+        <IconButton
+          icon="chevronLeft"
+          :label="tr('admin_archives_back')"
+          @click="closeArchiveView"
+        />
+        <h3>{{ tr('admin_archives_view_title') }}: {{ archives.find(a => a.id === activeTab)?.name }}</h3>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button
+          :class="{ active: viewTab === 'reservations' }"
+          @click="viewTab = 'reservations'"
+        >
+          {{ tr('admin_archives_tab_reservations') }}
+        </button>
+        <button
+          :class="{ active: viewTab === 'waitlist' }"
+          @click="viewTab = 'waitlist'"
+        >
+          {{ tr('admin_archives_tab_waitlist') }}
+        </button>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <input
+          v-model="nameFilter"
+          :placeholder="tr('admin_archives_filter_name')"
+          @keyup.enter="loadArchiveData(activeTab, viewTab)"
+        />
+        <select
+          v-if="viewTab === 'waitlist'"
+          v-model="statusFilter"
+          @change="loadArchiveData(activeTab, viewTab)"
+        >
+          <option value="">{{ tr('admin_archives_status_all') }}</option>
+          <option value="pending">{{ tr('admin_archives_status_pending') }}</option>
+          <option value="promoted">{{ tr('admin_archives_status_promoted') }}</option>
+          <option value="cancelled">{{ tr('admin_archives_status_cancelled') }}</option>
+        </select>
+      </div>
+
+      <!-- Actions -->
+      <div class="archive-actions">
+        <IconButton
+          icon="download"
+          :label="tr('admin_archives_download_csv')"
+          @click="downloadCsv(viewTab === 'reservations' ? 'reservations' : 'waitlist')"
+        />
         
-        <div class="form-group">
-          <label>{{ tr('admin_archives_name_label') }}</label>
-          <input
-            v-model="newArchiveName"
-            :placeholder="tr('admin_archives_name_placeholder')"
-          />
-        </div>
-
-        <div class="form-group">
-          <label>{{ tr('admin_archives_description_label') }}</label>
-          <textarea
-            v-model="newArchiveDescription"
-            :placeholder="tr('admin_archives_description_placeholder')"
-            rows="3"
-          />
-        </div>
-
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input
-              type="checkbox"
-              v-model="newArchiveStoreEmails"
-            />
-            {{ tr('admin_archives_store_emails_label') }}
-          </label>
-        </div>
-
-        <div class="modal-actions">
-          <button @click="showCreateDialog = false">{{ tr('cancel') }}</button>
-          <button
-            variant="success"
-            @click="createArchive"
-            :disabled="loading || !newArchiveName.trim()"
-          >
-            {{ tr('admin_archives_create_button') }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Archive View Modal -->
-    <div v-if="activeArchive" class="modal-overlay">
-      <div class="modal large">
-        <div class="modal-header">
-          <h3>{{ tr('admin_archives_view_title') }}: {{ activeArchive.name }}</h3>
-          <button class="close-btn" @click="closeArchiveView">&times;</button>
-        </div>
-
-        <!-- Tabs -->
-        <div class="tabs">
-          <button
-            :class="{ active: viewTab === 'reservations' }"
-            @click="viewTab = 'reservations'"
-          >
-            {{ tr('admin_archives_tab_reservations') }}
-          </button>
-          <button
-            :class="{ active: viewTab === 'waitlist' }"
-            @click="viewTab = 'waitlist'"
-          >
-            {{ tr('admin_archives_tab_waitlist') }}
-          </button>
-        </div>
-
-        <!-- Filters -->
-        <div class="filters">
-          <input
-            v-model="nameFilter"
-            :placeholder="tr('admin_archives_filter_name')"
-            @keyup.enter="loadArchiveData(activeArchive.id, viewTab)"
-          />
-          <select
-            v-if="viewTab === 'waitlist'"
-            v-model="statusFilter"
-            @change="loadArchiveData(activeArchive.id, viewTab)"
-          >
-            <option value="">{{ tr('admin_archives_status_all') }}</option>
-            <option value="pending">{{ tr('admin_archives_status_pending') }}</option>
-            <option value="promoted">{{ tr('admin_archives_status_promoted') }}</option>
-            <option value="cancelled">{{ tr('admin_archives_status_cancelled') }}</option>
-          </select>
-        </div>
-
-        <!-- Actions -->
-        <div class="archive-actions">
+        <template v-if="viewTab === 'reservations'">
           <IconButton
-            icon="download"
-            :label="tr('admin_archives_download_csv')"
-            @click="downloadCsv(viewTab === 'reservations' ? 'reservations' : 'waitlist')"
+            icon="restore"
+            :label="tr('admin_archives_restore_selection')"
+            @click="bulkRestoreReservations"
+            :disabled="!selectedArchiveReservations.length"
           />
-          
-          <template v-if="viewTab === 'reservations'">
-            <IconButton
-              icon="restore"
-              :label="tr('admin_archives_restore_selection')"
-              @click="bulkRestoreReservations"
-              :disabled="!selectedArchiveReservations.length"
-            />
-          </template>
-          
-          <template v-else>
-            <IconButton
-              icon="restore"
-              :label="tr('admin_archives_restore_selection')"
-              @click="bulkRestoreWaitlistEntries"
-              :disabled="!selectedArchiveWaitlistEntries.length"
-            />
-          </template>
-        </div>
-
-        <!-- Data Table -->
-        <AdminDataTable
-          v-if="viewTab === 'reservations'"
-          :columns="reservationColumns"
-          :rows="archiveReservations"
-          :loading="loading"
-          :page-size="20"
-          persist-key="admin-archives-reservations"
-          @refresh="loadArchiveData(activeArchive.id, viewTab)"
-          :empty-text="tr('admin_archives_no_data')"
-        >
-          <template #cell-date_added="{ value }">{{ formatDateTime(value) }}</template>
-          <template #row-actions="{ row }">
-            <IconButton
-              icon="restore"
-              :label="tr('admin_archives_restore')"
-              @click.stop="restoreReservation(row.id)"
-            />
-          </template>
-        </AdminDataTable>
-
-        <AdminDataTable
-          v-else
-          :columns="waitlistColumns"
-          :rows="archiveWaitlistEntries"
-          :loading="loading"
-          :page-size="20"
-          persist-key="admin-archives-waitlist"
-          @refresh="loadArchiveData(activeArchive.id, viewTab)"
-          :empty-text="tr('admin_archives_no_data')"
-        >
-          <template #cell-date_added="{ value }">{{ formatDateTime(value) }}</template>
-          <template #row-actions="{ row }">
-            <IconButton
-              icon="restore"
-              :label="tr('admin_archives_restore')"
-              @click.stop="restoreWaitlistEntry(row.id)"
-            />
-          </template>
-        </AdminDataTable>
+        </template>
+        
+        <template v-else>
+          <IconButton
+            icon="restore"
+            :label="tr('admin_archives_restore_selection')"
+            @click="bulkRestoreWaitlistEntries"
+            :disabled="!selectedArchiveWaitlistEntries.length"
+          />
+        </template>
       </div>
+
+      <!-- Data Table -->
+      <AdminDataTable
+        v-if="viewTab === 'reservations'"
+        :columns="reservationColumns"
+        :rows="archiveReservations"
+        :loading="loading"
+        :page-size="20"
+        persist-key="admin-archives-reservations"
+        @refresh="loadArchiveData(activeTab, viewTab)"
+        :empty-text="tr('admin_archives_no_data')"
+      >
+        <template #cell-date_added="{ value }">{{ formatDateTime(value) }}</template>
+        <template #row-actions="{ row }">
+          <IconButton
+            icon="restore"
+            :label="tr('admin_archives_restore')"
+            @click.stop="restoreReservation(row.id)"
+          />
+        </template>
+      </AdminDataTable>
+
+      <AdminDataTable
+        v-else
+        :columns="waitlistColumns"
+        :rows="archiveWaitlistEntries"
+        :loading="loading"
+        :page-size="20"
+        persist-key="admin-archives-waitlist"
+        @refresh="loadArchiveData(activeTab, viewTab)"
+        :empty-text="tr('admin_archives_no_data')"
+      >
+        <template #cell-date_added="{ value }">{{ formatDateTime(value) }}</template>
+        <template #row-actions="{ row }">
+          <IconButton
+            icon="restore"
+            :label="tr('admin_archives_restore')"
+            @click.stop="restoreWaitlistEntry(row.id)"
+          />
+        </template>
+      </AdminDataTable>
     </div>
   </div>
 </template>
 
 <style scoped>
-.stack { display: flex; flex-direction: column; gap: 0.75rem; }
+.stack { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; }
 .top-bar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
 
 .message { color: #065f46; background: #ecfdf3; border: 1px solid #a7f3d0; padding: 0.5rem; border-radius: 6px; }
 .error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; padding: 0.5rem; border-radius: 6px; }
 
 /* Modal */
-.modal-overlay {
+.modal-backdrop {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  padding: 1rem;
+  z-index: 50;
 }
 
 .modal {
-  background: #fff;
-  border-radius: 8px;
-  padding: 1.5rem;
-  max-width: 500px;
-  width: 90%;
+  background: var(--app-card-bg, var(--surface));
+  color: var(--text);
+  border-radius: 12px;
+  padding: 1rem;
+  width: min(720px, 100%);
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: 0 20px 50px var(--shadow);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.modal.large { max-width: 900px; }
+/* Archive Details View */
+.archive-details { display: flex; flex-direction: column; gap: 1rem; }
 
-.modal-header {
+.details-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
 }
 
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #6b7280;
-}
-
-/* Tabs */
-.tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; }
+.tabs { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
 .tabs button {
-  background: none;
-  border: none;
   padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  border-radius: 6px;
   cursor: pointer;
-  color: #6b7280;
-  font-weight: 500;
+  color: var(--text);
 }
-.tabs button.active { color: #2563eb; border-bottom: 2px solid #2563eb; }
+.tabs button.active { background: #2563eb; color: #fff; border-color: #1d4ed8; }
 
-/* Filters */
-.filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.filters { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
 .filters input, .filters select {
   padding: 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 6px;
 }
 
-/* Archive Actions */
-.archive-actions { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.archive-actions { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
 
-/* Form Groups */
-.form-group { margin-bottom: 1rem; }
-.form-group label {
-  display: block;
+/* Field styling */
+.field { display: flex; flex-direction: column; gap: 0.25rem; }
+.field label {
   font-weight: 600;
-  margin-bottom: 0.25rem;
 }
-.form-group input, .form-group textarea {
-  width: 100%;
+.field input, .field textarea {
   padding: 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 6px;
 }
 
 /* Modal Actions */
-.modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
-.modal-actions button {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.modal-actions button[type="button"] { background: #e5e7eb; color: #374151; }
-.modal-actions button.success { background: #22c55e; color: white; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
 
 /* Labels */
 .label.inline {
