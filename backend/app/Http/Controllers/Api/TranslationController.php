@@ -19,7 +19,23 @@ class TranslationController extends Controller
             throw new NotFoundHttpException('Translations not found');
         }
 
-        $data = $this->translationService->getTranslations($lang);
+        // Determine whitelist based on user authentication (similar to settings whitelist)
+        $whitelistFile = null;
+        $user = auth()->user();
+        
+        if (!$user) {
+            $whitelistFile = resource_path('translations-whitelists/public.json');
+        } elseif (in_array($user->role, ['user', 'moderator'])) {
+            $whitelistFile = resource_path('translations-whitelists/user.json');
+        }
+        // Admin/Superadmin: No whitelist - all translations
+
+        $whitelist = null;
+        if ($whitelistFile && file_exists($whitelistFile)) {
+            $whitelist = json_decode(file_get_contents($whitelistFile), true);
+        }
+
+        $data = $this->translationService->getTranslations($lang, $whitelist);
 
         return response()->json($data);
     }

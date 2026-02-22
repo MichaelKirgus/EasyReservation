@@ -26,18 +26,21 @@ class TranslationService
      *
      * @return array<string, string>
      */
-    public function getTranslations(string $locale): array
+    public function getTranslations(string $locale, ?array $whitelist = null): array
     {
         $cached = $this->store->get($locale);
 
         if ($cached !== null) {
-            return $cached;
+            return $whitelist !== null ? array_intersect_key($cached, array_flip($whitelist)) : $cached;
         }
 
         // Cache miss – load from JSON and warm the cache
         $translations = $this->loadFromJson($locale);
 
         if ($translations !== null) {
+            if ($whitelist !== null) {
+                $translations = array_intersect_key($translations, array_flip($whitelist));
+            }
             $this->store->put($locale, $translations);
             return $translations;
         }
