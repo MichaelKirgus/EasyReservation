@@ -194,8 +194,21 @@ class SurveyController extends Controller
     // GET /admin/surveys/{survey}/preview
     public function preview(Survey $survey): JsonResponse
     {
+        $placeholderService = app(\App\Services\PlaceholderService::class);
+        
         // Get all global questions (since questions are now defined globally)
-        $questions = GlobalQuestion::orderBy('display_order')->get();
+        $questions = GlobalQuestion::orderBy('display_order')->get()
+            ->map(function ($q) use ($placeholderService) {
+                // Replace placeholders in question text
+                $q->question_text = $placeholderService->replaceString($q->question_text);
+                
+                // Also replace placeholders in options for multiple choice questions
+                if ($q->options && is_array($q->options)) {
+                    $q->options = array_map(fn($opt) => $placeholderService->replaceString($opt), $q->options);
+                }
+                
+                return $q;
+            });
 
         return response()->json([
             'survey' => [

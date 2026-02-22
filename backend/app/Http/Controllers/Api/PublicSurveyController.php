@@ -19,9 +19,29 @@ class PublicSurveyController extends Controller
             return response()->json(['message' => __('survey_not_active')], 403);
         }
 
+        $placeholderService = app(\App\Services\PlaceholderService::class);
+        
         $questions = SurveyQuestion::where('survey_id', $survey->id)
+            ->with(['globalQuestion' => function ($query) {
+                $query->select('id', 'question_text', 'field_type', 'is_required', 'display_order', 'options');
+            }])
             ->orderBy('display_order')
-            ->get();
+            ->get()
+            ->map(function ($q) use ($placeholderService) {
+                // Use global question text if available
+                if ($q->globalQuestion && $q->question_text === null) {
+                    $q->question_text = $q->globalQuestion->question_text;
+                }
+                // Replace placeholders in question text
+                $q->question_text = $placeholderService->replaceString($q->question_text);
+                
+                // Also replace placeholders in options for multiple choice questions
+                if ($q->options && is_array($q->options)) {
+                    $q->options = array_map(fn($opt) => $placeholderService->replaceString($opt), $q->options);
+                }
+                
+                return $q;
+            });
 
         return response()->json([
             'survey' => [
