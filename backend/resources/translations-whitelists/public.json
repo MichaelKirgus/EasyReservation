@@ -1,4 +1,8 @@
 [
+    "nav_public_label",
+    "nav_tab_reservation",
+    "nav_tab_faq",
+    "nav_tab_privacy",
     "faq_title",
     "faq_intro",
     "faq_empty",
@@ -41,5 +45,15 @@
     "no_questions_available",
     "survey_not_found",
     "thank_you_for_response",
-    "survey_submission_failed"
+    "survey_submission_failed",
+    "two_factor_settings_invalid_code_message",
+    "otp_code_required",
+    "login",
+    "username_or_email",
+    "password",
+    "password_placeholder",
+    "otp_code",
+    "otp_placeholder",
+    "remember_me",
+    "cancel"
 ]
