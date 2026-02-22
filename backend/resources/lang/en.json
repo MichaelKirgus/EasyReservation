@@ -399,6 +399,8 @@
   "admin_events_columns_id": "ID",
   "admin_events_columns_title": "Title",
   "admin_events_columns_start": "Start",
+  "admin_events_columns_location": "Location",
+  "admin_events_columns_address": "Address",
   "admin_events_columns_city": "City",
   "admin_events_columns_url": "URL",
   "admin_events_columns_public_transport_url": "Public Transport",

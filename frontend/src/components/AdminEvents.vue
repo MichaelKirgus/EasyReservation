@@ -27,7 +27,11 @@ const eventColumns = computed(() => [
   { key: 'id', label: tr('admin_events_columns_id'), sortable: true },
   { key: 'title', label: tr('admin_events_columns_title'), sortable: true },
   { key: 'start_at', label: tr('admin_events_columns_start'), sortable: true },
+  { key: 'location.city', label: tr('admin_events_columns_city'), sortable: false },
+  { key: 'location.name', label: tr('admin_events_columns_location'), sortable: false },
+  { key: 'location.address', label: tr('admin_events_columns_address'), sortable: false },
   { key: 'url', label: tr('admin_events_columns_url'), sortable: false },
+  { key: 'capacity', label: tr('admin_events_columns_capacity'), sortable: true },
   { key: 'active', label: tr('admin_events_columns_active'), sortable: true },
 ])
 
@@ -379,9 +383,17 @@ onMounted(() => {
           <IconButton icon="trash" variant="danger" :label="tr('admin_events_delete_selection_button')" @click="bulkRemoveEvents" :disabled="loading || !selectedEvents.length" />
         </template>
         <template #cell-start_at="{ value }">{{ formatDateTime(value) }}</template>
-        <template #cell-url="{ value }">
-          <a v-if="value" :href="value" target="_blank" rel="noopener">{{ tr('admin_events_link_text') }}</a>
+        <template #cell-location.city="{ row }">{{ row.location?.city || tr('admin_events_dash_text') }}</template>
+        <template #cell-location.name="{ row }">{{ row.location?.name || tr('admin_events_dash_text') }}</template>
+        <template #cell-location.address="{ row }">{{ row.location?.address || tr('admin_events_dash_text') }}</template>
+        <template #cell-url="{ row, value }">
+          <!-- Use location.url if available from relationship, otherwise fall back to event.url -->
+          <a v-if="row.location?.url" :href="row.location.url" target="_blank" rel="noopener">{{ tr('admin_events_link_text') }}</a>
+          <span v-else-if="value" :href="value" target="_blank" rel="noopener">{{ value }}</span>
           <span v-else>{{ tr('admin_events_dash_text') }}</span>
+        </template>
+        <template #cell-capacity="{ row }">
+          {{ row.capacity_override ?? row.location?.capacity_override ?? tr('admin_events_dash_text') }}
         </template>
         <template #cell-active="{ value }">{{ value ? tr('admin_events_yes_text') : tr('admin_events_no_text') }}</template>
         <template #row-actions="{ row }">
