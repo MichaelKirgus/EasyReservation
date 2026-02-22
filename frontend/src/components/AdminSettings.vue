@@ -225,6 +225,7 @@ const guestUserFieldKeys = new Set([
 ])
 
 const selectedTab = ref('general')
+const importInputRef = ref(null)
 
 const visibleFields = computed(() => {
   const allowed = tabFieldMap[selectedTab.value] || new Set()
@@ -401,6 +402,84 @@ async function save() {
   } catch (e) { setError(tr('admin_settings_save_failed', 'Save failed: ') + e) } finally { loading.value = false }
 }
 
+async function exportSettings() {
+  if (!apiKey.value) { setError(tr('api_key_missing')); return }
+  loading.value = true
+  try {
+    const res = await fetch(`${apiBase}/admin/settings/export`, { headers: authHeaders() })
+    if (!res.ok) throw new Error(await res.text())
+    
+    const data = await res.json()
+    const jsonString = JSON.stringify(data, null, 2)
+    const blob = new Blob([jsonString], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `settings-export-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    
+    setMessage(tr('admin_settings_exported', 'Settings exported successfully'))
+  } catch (e) {
+    setError(tr('admin_settings_export_failed', 'Export failed: ') + e)
+  } finally {
+    loading.value = false
+  }
+}
+
+function openImportDialog() {
+  if (importInputRef.value) {
+    importInputRef.value.click()
+  }
+}
+
+async function handleImportFile(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  try {
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        const importedSettings = JSON.parse(e.target.result)
+        
+        // Validate that it's an object with settings
+        if (!importedSettings || typeof importedSettings !== 'object') {
+          throw new Error(tr('admin_settings_invalid_json', 'Invalid JSON format'))
+        }
+        
+        loading.value = true
+        
+        const res = await fetch(`${apiBase}/admin/settings/import`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ settings: importedSettings }),
+        })
+        
+        const text = await res.text()
+        if (!res.ok) throw new Error(text)
+        
+        // Reload settings after import
+        await load()
+        
+        setMessage(tr('admin_settings_imported', 'Settings imported successfully'))
+      } catch (parseError) {
+        setError(tr('admin_settings_import_failed', 'Import failed: ') + parseError.message)
+      } finally {
+        loading.value = false
+      }
+    }
+    reader.readAsText(file)
+  } catch (e) {
+    setError(tr('admin_settings_import_failed', 'Import failed: ') + e)
+  } finally {
+    event.target.value = '' // Reset file input
+  }
+}
+
 function handleKeyUpdate(e) { apiKey.value = e.detail || '' }
 
 onMounted(() => {
@@ -422,6 +501,9 @@ watch(() => props.langCode, () => fetchTranslations())
     <div class="controls">
       <IconButton icon="refresh" :label="tr('admin_settings_loading', 'Loading...')" @click="load" :disabled="loading" />
       <IconButton icon="save" :label="tr('admin_settings_save', 'Save')" @click="save" :disabled="loading" />
+      <IconButton icon="download" :label="tr('admin_settings_export', 'Export')" @click="exportSettings" />
+      <input ref="importInputRef" type="file" accept=".json" style="display: none" @change="handleImportFile" />
+      <IconButton icon="upload" :label="tr('admin_settings_import', 'Import')" @click="openImportDialog" />
     </div>
     <div v-if="error" class="error">{{ error }}</div>
     <div v-if="message" class="message">{{ message }}</div>

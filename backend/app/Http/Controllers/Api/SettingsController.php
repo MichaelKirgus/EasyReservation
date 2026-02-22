@@ -78,6 +78,80 @@ class SettingsController extends Controller
         return response()->json(['message' => __('admin_setting_change_success'), 'settings' => $this->settings->all()]);
     }
 
+    /**
+     * Export all settings as JSON
+     */
+    public function export(): JsonResponse
+    {
+        $settings = $this->settings->all();
+        
+        // Convert boolean strings back to actual booleans for cleaner export
+        foreach ($settings as $key => $value) {
+            if ($value === '1') {
+                $settings[$key] = true;
+            } elseif ($value === '0') {
+                $settings[$key] = false;
+            }
+        }
+        
+        return response()->json($settings, 200)
+            ->header('Content-Type', 'application/json')
+            ->header('Content-Disposition', 'attachment; filename="settings-export.json"');
+    }
+
+    /**
+     * Import settings from JSON
+     */
+    public function import(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'settings' => 'required|array',
+            'settings.*' => 'nullable|string|json'
+        ]);
+
+        $importedSettings = $validated['settings'];
+        $oldSettings = $this->settings->all();
+
+        // Validate and process each setting
+        foreach ($importedSettings as $name => $value) {
+            // Skip if not in whitelist (only allow known settings)
+            $settingExists = Setting::query()->where('name', $name)->exists();
+            if (!$settingExists) {
+                continue; // Skip unknown settings
+            }
+
+            // Convert boolean values to string for storage
+            if (is_bool($value)) {
+                $value = $value ? '1' : '0';
+            } elseif (is_null($value)) {
+                $value = '';
+            } else {
+                $value = (string)$value;
+            }
+
+            $setting = Setting::firstOrNew(['name' => $name]);
+            $setting->value = $value;
+            $setting->save();
+        }
+
+        $this->settings->refresh();
+
+        // Trigger event triggers if reservation_enabled changed
+        if (array_key_exists('reservation_enabled', $importedSettings)) {
+            $old = (int)($oldSettings['reservation_enabled'] ?? 0);
+            $new = (int)$importedSettings['reservation_enabled'];
+            if ($old !== $new) {
+                if ($new === 1) {
+                    $this->eventTriggers->handle('reservation_enabled');
+                } else {
+                    $this->eventTriggers->handle('reservation_disabled');
+                }
+            }
+        }
+
+        return response()->json(['message' => __('admin_setting_change_success'), 'settings' => $this->settings->all()]);
+    }
+
     // Gibt den Wert einer einzelnen Einstellung zurück
     public function show($key): JsonResponse
     {
