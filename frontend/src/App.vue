@@ -275,7 +275,8 @@ async function login() {
   try {
     const body = { ...loginForm, remember: rememberMe.value };
     if (!showOtp.value) delete body.otp;
-    const res = await fetch(`${apiBase}/auth/login`, {
+    // Include the selected language in the request
+    const res = await fetch(`${apiBase}/auth/login?lang=${selectedLang.value}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       credentials: 'same-origin',
@@ -290,10 +291,10 @@ async function login() {
         showOtp.value = true;
         if (wasAlreadyShowingOtp) {
           // Invalid OTP code — show as error
-          setAuthError(errorData?.message || tr('two_factor_invalid_code', 'Ungültiger Code.'));
+          setAuthError(errorData?.message || tr('two_factor_invalid_code', 'Invalid code.'));
         } else {
           // First prompt for OTP — show as info
-          setAuthInfo(errorData?.message || tr('otp_code_required', 'Bitte OTP-Code eingeben.'));
+          setAuthInfo(errorData?.message || tr('two_factor_required', 'Please enter the OTP code from your authenticator app.'));
         }
         return;
       }

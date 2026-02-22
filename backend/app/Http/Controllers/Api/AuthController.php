@@ -23,6 +23,12 @@ class AuthController extends Controller
 
     public function login(Request $request): JsonResponse
     {
+        // Set locale based on frontend's selected language (if provided)
+        $lang = $request->query('lang');
+        if ($lang && $this->translationService->localeExists($lang)) {
+            app()->setLocale($lang);
+        }
+
         $data = $request->validate([
             'identifier' => ['required', 'string', 'max:255'], // name oder email
             'password' => ['required', 'string'],

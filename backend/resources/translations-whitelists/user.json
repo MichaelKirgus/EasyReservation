@@ -61,6 +61,8 @@
     "webhook_templates_test_success",
     "webhook_templates_test_error",
     "two_factor_settings_invalid_code_message",
+    "two_factor_required",
+    "two_factor_invalid_code",
     "otp_code_required",
     "nav_tab_email",
     "nav_tab_events",

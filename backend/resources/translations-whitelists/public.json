@@ -47,6 +47,8 @@
     "thank_you_for_response",
     "survey_submission_failed",
     "two_factor_settings_invalid_code_message",
+    "two_factor_required",
+    "two_factor_invalid_code",
     "otp_code_required",
     "login",
     "username_or_email",
