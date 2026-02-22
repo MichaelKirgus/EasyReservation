@@ -15,8 +15,7 @@
       :loading="loading"
     >
       <template #cell-executed="{ value }">
-        <span v-if="value">âœ…</span>
-        <span v-else>âŒ</span>
+        <input type="checkbox" :checked="value" disabled />
       </template>
       <template #cell-executed_at="{ value }">
         <span>{{ value ? formatDateTime(value) : 'â€“' }}</span>
@@ -33,13 +32,11 @@
       <template #cell-active="{ row }">
         <input type="checkbox" :checked="row.active" @change="toggleActive(row)" :disabled="loading" />
       </template>
-      <template #cell-run_once="{ value }">
-        <span v-if="value">âœ…</span>
-        <span v-else>âŒ</span>
+      <template #cell-run_once="{ row, value }">
+        <input type="checkbox" :checked="value" @change="toggleRunOnce(row)" :disabled="loading" />
       </template>
-      <template #cell-skip_if_overdue="{ value }">
-        <span v-if="value">âœ…</span>
-        <span v-else>âŒ</span>
+      <template #cell-skip_if_overdue="{ row, value }">
+        <input type="checkbox" :checked="value" @change="toggleSkipIfOverdue(row)" :disabled="loading" />
       </template>
       <template #row-actions="{ row }">
         <IconButton icon="play" :label="tr('scheduled_tasks_button_run_now')" class="ghost" @click.stop="runNow(row)" :disabled="loading" />
@@ -198,6 +195,14 @@ function closeDialog() {
 function toggleActive(task) {
   // Komplettes Task-Objekt Ã¼bergeben, nur active Ã¤ndern
   saveTask({ ...task, active: !task.active })
+}
+
+function toggleRunOnce(task) {
+  saveTask({ ...task, run_once: !task.run_once })
+}
+
+function toggleSkipIfOverdue(task) {
+  saveTask({ ...task, skip_if_overdue: !task.skip_if_overdue })
 }
 
 onMounted(fetchTasks)
