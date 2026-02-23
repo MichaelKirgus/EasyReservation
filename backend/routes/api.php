@@ -29,6 +29,8 @@ use App\Http\Controllers\Api\ArchiveController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\SurveyController;
 use App\Http\Controllers\Api\PublicSurveyController;
+use App\Http\Controllers\Api\MailAccountController;
+use App\Http\Controllers\Api\MailGroupController;
 use Illuminate\Support\Facades\Route;
 
 Route::options('/{any}', fn () => response()->noContent())->where('any', '.*');
@@ -230,6 +232,15 @@ Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
     Route::apiResource('/moderator/faqs', FaqController::class)->except(['create', 'edit', 'show']);
     Route::apiResource('/moderator/events', EventController::class)->except(['create', 'edit', 'show']);
     Route::apiResource('/moderator/locations', LocationController::class);
+
+    // Mail transport routes
+    Route::apiResource('/admin/mail-accounts', MailAccountController::class);
+    Route::post('/admin/mail-accounts/{account}/test', [MailAccountController::class, 'testConnection']);
+
+    Route::apiResource('/admin/mail-groups', MailGroupController::class);
+    Route::post('/admin/mail-groups/{group}/add-account', [MailGroupController::class, 'addAccount']);
+    Route::delete('/admin/mail-groups/{group}/remove-account/{account}', [MailGroupController::class, 'removeAccount']);
+    Route::post('/admin/mail-groups/{group}/test', [MailGroupController::class, 'testConnection']);
 });
 
 Route::middleware(['role:superadmin'])->group(function () {

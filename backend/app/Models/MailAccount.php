@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MailAccount extends Model
 {
+    protected $table = 'mail_transport_accounts';
+
     protected $fillable = [
         'name',
         'host',

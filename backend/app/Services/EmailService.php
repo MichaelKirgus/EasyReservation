@@ -84,16 +84,16 @@ class EmailService
         $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
         $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
 
-        // Use template-specific CC/BCC if set, otherwise use global
+        // Merge template-specific CC/BCC with global CC/BCC
         $templateCc = $template['cc'] ?? null;
         $templateBcc = $template['bcc'] ?? null;
         
         $globalCc = $this->settings->get('mail_global_cc');
         $globalBcc = $this->settings->get('mail_global_bcc');
 
-        // If template has CC/BCC, use those; otherwise fall back to global
-        $cc = $templateCc ?: $globalCc;
-        $bcc = $templateBcc ?: $globalBcc;
+        // Merge template and global CC/BCC (remove duplicates)
+        $cc = $this->mergeEmailAddresses($templateCc, $globalCc);
+        $bcc = $this->mergeEmailAddresses($templateBcc, $globalBcc);
 
         $attachments = $this->attachmentsForTemplate($template);
 
@@ -151,15 +151,16 @@ class EmailService
         $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
         $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
 
-        // Use template-specific CC/BCC if set, otherwise use global
+        // Merge template-specific CC/BCC with global CC/BCC
         $templateCc = $template['cc'] ?? null;
         $templateBcc = $template['bcc'] ?? null;
 
         $globalCc = $this->settings->get('mail_global_cc');
         $globalBcc = $this->settings->get('mail_global_bcc');
 
-        $cc = $templateCc ?: $globalCc;
-        $bcc = $templateBcc ?: $globalBcc;
+        // Merge template and global CC/BCC (remove duplicates)
+        $cc = $this->mergeEmailAddresses($templateCc, $globalCc);
+        $bcc = $this->mergeEmailAddresses($templateBcc, $globalBcc);
 
         $attachments = $this->attachmentsForTemplate($template);
 
@@ -507,16 +508,48 @@ class EmailService
         $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
         $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
 
-        // Use template-specific CC/BCC if set
+        // Merge template-specific CC/BCC with global CC/BCC
         $templateCc = $template->cc ?? null;
         $templateBcc = $template->bcc ?? null;
 
         $globalCc = $this->settings->get('mail_global_cc');
         $globalBcc = $this->settings->get('mail_global_bcc');
 
-        $cc = $templateCc ?: $globalCc;
-        $bcc = $templateBcc ?: $globalBcc;
+        // Merge template and global CC/BCC (remove duplicates)
+        $cc = $this->mergeEmailAddresses($templateCc, $globalCc);
+        $bcc = $this->mergeEmailAddresses($templateBcc, $globalBcc);
 
         SendMailJob::dispatch($mailerConfig, $recipientEmail, $recipientName, $subject, $body, $fromAddress, $fromName, [], $cc, $bcc);
+    }
+
+    /**
+     * Merge email addresses from two sources, removing duplicates.
+     */
+    private function mergeEmailAddresses(?string $first, ?string $second): ?string
+    {
+        if (!$first && !$second) {
+            return null;
+        }
+
+        // Parse both strings into arrays (comma-separated)
+        $addresses = [];
+        
+        if ($first) {
+            foreach (array_filter(array_map('trim', explode(',', $first))) as $addr) {
+                if (filter_var($addr, FILTER_VALIDATE_EMAIL)) {
+                    $addresses[strtolower($addr)] = $addr;
+                }
+            }
+        }
+
+        if ($second) {
+            foreach (array_filter(array_map('trim', explode(',', $second))) as $addr) {
+                if (filter_var($addr, FILTER_VALIDATE_EMAIL)) {
+                    $addresses[strtolower($addr)] = $addr;
+                }
+            }
+        }
+
+        return !empty($addresses) ? implode(', ', $addresses) : null;
     }
 }

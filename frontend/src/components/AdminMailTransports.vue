@@ -21,12 +21,10 @@ const groups = ref([])
 const loading = ref(false)
 const message = ref('')
 const error = ref('')
-
-// Dialog state
-const showAccountDialog = ref(false)
-const showGroupDialog = ref(false)
 const editingAccount = ref(null)
 const editingGroup = ref(null)
+const showAddAccountForm = ref(false)
+const showAddGroupForm = ref(false)
 
 // Tabs
 const tabs = [
@@ -223,8 +221,9 @@ async function loadAll() {
 }
 
 // Account operations
-function openAccountDialog(account = null) {
+function openAccountForm(account = null) {
   editingAccount.value = account
+  showAddAccountForm.value = !account
   if (account) {
     // Edit existing
     accountForm.name = account.name || ''
@@ -256,7 +255,6 @@ function openAccountDialog(account = null) {
     accountForm.rateLimitPerHour = null
     accountForm.isActive = true
   }
-  showAccountDialog.value = true
 }
 
 async function saveAccount() {
@@ -288,13 +286,32 @@ async function saveAccount() {
       setMessage(t('admin_mail_transports_account_saved'))
     }
     
-    showAccountDialog.value = false
+    editingAccount.value = null
+    showAddAccountForm.value = false
     await loadAccounts()
   } catch (e) {
     setError(e.message || t('admin_mail_transports_error_saving_account'))
   } finally {
     loading.value = false
   }
+}
+
+function cancelAccountForm() {
+  editingAccount.value = null
+  showAddAccountForm.value = false
+  accountForm.name = ''
+  accountForm.host = ''
+  accountForm.port = 587
+  accountForm.encryption = 'tls'
+  accountForm.username = ''
+  accountForm.password = ''
+  accountForm.authMethod = 'plain'
+  accountForm.ignoreSelfSigned = false
+  accountForm.timeout = 30
+  accountForm.rateLimitEnabled = false
+  accountForm.rateLimitPerMinute = null
+  accountForm.rateLimitPerHour = null
+  accountForm.isActive = true
 }
 
 async function deleteAccount(id) {
@@ -329,8 +346,9 @@ async function testAccountConnection(id) {
 }
 
 // Group operations
-function openGroupDialog(group = null) {
+function openGroupForm(group = null) {
   editingGroup.value = group
+  showAddGroupForm.value = !group
   if (group) {
     // Edit existing
     groupForm.name = group.name || ''
@@ -352,7 +370,6 @@ function openGroupDialog(group = null) {
     groupForm.maxRetriesPerAccount = 3
     groupForm.isActive = true
   }
-  showGroupDialog.value = true
 }
 
 async function saveGroup() {
@@ -379,13 +396,27 @@ async function saveGroup() {
       setMessage(t('admin_mail_transports_group_saved'))
     }
     
-    showGroupDialog.value = false
+    editingGroup.value = null
+    showAddGroupForm.value = false
     await loadGroups()
   } catch (e) {
     setError(e.message || t('admin_mail_transports_error_saving_group'))
   } finally {
     loading.value = false
   }
+}
+
+function cancelGroupForm() {
+  editingGroup.value = null
+  showAddGroupForm.value = false
+  groupForm.name = ''
+  groupForm.description = ''
+  groupForm.rateLimitEnabled = false
+  groupForm.rateLimitPerMinute = null
+  groupForm.rateLimitPerHour = null
+  groupForm.failoverStrategy = 'sequential'
+  groupForm.maxRetriesPerAccount = 3
+  groupForm.isActive = true
 }
 
 async function deleteGroup(id) {
@@ -464,7 +495,19 @@ onUnmounted(() => {
     <!-- Accounts Tab -->
     <div v-if="selectedTab === 'accounts'" class="content-section">
       <div class="controls" style="margin-bottom: 1rem;">
-        <IconButton icon="plus" :label="t('admin_mail_transports_add_account')" @click="openAccountDialog" />
+        <IconButton icon="plus" :label="t('admin_mail_transports_add_account')" @click="openAccountForm()" />
+      </div>
+      
+      <!-- Account Form (Inline) -->
+      <div v-if="editingAccount || showAddAccountForm" class="form-card">
+        <h3>{{ editingAccount ? t('admin_mail_transports_edit_account') : t('admin_mail_transports_add_account') }}</h3>
+        
+        <MailAccountForm 
+          v-model="accountForm"
+          :is-editing="!!editingAccount"
+          @save="saveAccount"
+          @cancel="cancelAccountForm"
+        />
       </div>
       
       <AdminDataTable 
@@ -487,7 +530,7 @@ onUnmounted(() => {
               icon="edit" 
               :label="t('admin_mail_transports_edit')" 
               variant="ghost"
-              @click="openAccountDialog(row)"
+              @click="openAccountForm(row)"
             />
             <IconButton 
               icon="trash" 
@@ -503,7 +546,19 @@ onUnmounted(() => {
     <!-- Groups Tab -->
     <div v-if="selectedTab === 'groups'" class="content-section">
       <div class="controls" style="margin-bottom: 1rem;">
-        <IconButton icon="plus" :label="t('admin_mail_transports_add_group')" @click="openGroupDialog" />
+        <IconButton icon="plus" :label="t('admin_mail_transports_add_group')" @click="openGroupForm()" />
+      </div>
+      
+      <!-- Group Form (Inline) -->
+      <div v-if="editingGroup || showAddGroupForm" class="form-card">
+        <h3>{{ editingGroup ? t('admin_mail_transports_edit_group') : t('admin_mail_transports_add_group') }}</h3>
+        
+        <MailGroupForm 
+          v-model="groupForm"
+          :is-editing="!!editingGroup"
+          @save="saveGroup"
+          @cancel="cancelGroupForm"
+        />
       </div>
       
       <AdminDataTable 
@@ -526,7 +581,7 @@ onUnmounted(() => {
               icon="edit" 
               :label="t('admin_mail_transports_edit')" 
               variant="ghost"
-              @click="openGroupDialog(row)"
+              @click="openGroupForm(row)"
             />
             <IconButton 
               icon="trash" 
@@ -537,234 +592,6 @@ onUnmounted(() => {
           </div>
         </template>
       </AdminDataTable>
-    </div>
-    
-    <!-- Account Form Dialog -->
-    <div v-if="showAccountDialog" class="modal-backdrop" @click.self="showAccountDialog = false">
-      <div class="modal">
-        <h3>{{ editingAccount ? t('admin_mail_transports_edit_account') : t('admin_mail_transports_add_account') }}</h3>
-        
-        <div class="form-grid">
-          <!-- Name -->
-          <label class="field">
-            <span>{{ t('admin_mail_transports_account_name') }}</span>
-            <input v-model="accountForm.name" type="text" required />
-          </label>
-          
-          <!-- Host (only for SMTP methods) -->
-          <label class="field" v-if="!accountForm.authMethod || !accountForm.authMethod.startsWith('api_key')">
-            <span>{{ t('admin_mail_transports_account_host') }}</span>
-            <input v-model="accountForm.host" type="text" placeholder="smtp.example.com" required />
-          </label>
-          
-          <!-- Port (only for SMTP methods) -->
-          <label class="field" v-if="!accountForm.authMethod || !accountForm.authMethod.startsWith('api_key')">
-            <span>{{ t('admin_mail_transports_account_port') }}</span>
-            <input v-model.number="accountForm.port" type="number" min="1" max="65535" required />
-          </label>
-          
-          <!-- Encryption (only for SMTP methods) -->
-          <label class="field" v-if="!accountForm.authMethod || !accountForm.authMethod.startsWith('api_key')">
-            <span>{{ t('admin_mail_transports_account_encryption') }}</span>
-            <select v-model="accountForm.encryption">
-              <option value="tls">{{ t('encryption_tls') }}</option>
-              <option value="ssl">{{ t('encryption_ssl') }}</option>
-              <option value="none">{{ t('encryption_none') }}</option>
-            </select>
-          </label>
-          
-          <!-- Auth Method -->
-          <label class="field">
-            <span>{{ t('admin_mail_transports_account_auth_method') }}</span>
-            <select v-model="accountForm.authMethod">
-              <option value="plain">{{ t('auth_method_plain') }}</option>
-              <option value="login">{{ t('auth_method_login') }}</option>
-              <option value="crammd5">{{ t('auth_method_crammd5') }}</option>
-              <option value="oauth2_exchange">{{ t('auth_method_oauth2_exchange') }}</option>
-              <option value="oauth2_google">{{ t('auth_method_oauth2_google') }}</option>
-              <option value="api_key_sendgrid">{{ t('auth_method_api_key_sendgrid') }}</option>
-              <option value="api_key_mailgun">{{ t('auth_method_api_key_mailgun') }}</option>
-              <option value="api_key_postmark">{{ t('auth_method_api_key_postmark') }}</option>
-            </select>
-          </label>
-          
-          <!-- Username / API Key -->
-          <label class="field">
-            <span v-if="accountForm.authMethod && accountForm.authMethod.startsWith('api_key')">
-              {{ getApiKeyLabel() }}
-            </span>
-            <span v-else>{{ t('admin_mail_transports_account_username') }}</span>
-            <input 
-              v-model="accountForm.username" 
-              type="text"
-              :placeholder="accountForm.authMethod && accountForm.authMethod.startsWith('api_key') ? 'API Key' : ''"
-            />
-          </label>
-          
-          <!-- Password / Secret (only for non-API methods) -->
-          <label class="field" v-if="accountForm.authMethod && !accountForm.authMethod.startsWith('api_key')">
-            <span>{{ t('admin_mail_transports_account_password') }}</span>
-            <SecretField v-model="accountForm.password" :placeholder="editingAccount ? '••••••••' : ''" />
-          </label>
-          
-          <!-- API Key Secret (only for API key methods) -->
-          <label class="field" v-if="accountForm.authMethod && accountForm.authMethod.startsWith('api_key')">
-            <span>{{ t('admin_mail_transports_account_password') }}</span>
-            <SecretField v-model="accountForm.password" :placeholder="editingAccount ? '••••••••' : ''" />
-          </label>
-          
-          <!-- Ignore Self-Signed -->
-          <label class="field">
-            <input type="checkbox" v-model="accountForm.ignoreSelfSigned" id="ignoreSelfSigned" />
-            <label for="ignoreSelfSigned">{{ t('admin_mail_transports_account_ignore_self_signed') }}</label>
-          </label>
-          
-          <!-- Timeout (only for SMTP methods) -->
-          <label class="field" v-if="!accountForm.authMethod || !accountForm.authMethod.startsWith('api_key')">
-            <span>{{ t('admin_mail_transports_account_timeout') }}</span>
-            <input v-model.number="accountForm.timeout" type="number" min="1" max="300" />
-          </label>
-          
-          <!-- Rate Limit Toggle -->
-          <label class="field checkbox-field">
-            <input type="checkbox" v-model="accountForm.rateLimitEnabled" id="rateLimitEnabled" />
-            <label for="rateLimitEnabled">{{ t('admin_mail_transports_account_rate_limit_enabled') }}</label>
-          </label>
-          
-          <!-- Rate Limit Per Minute (only shown when enabled) -->
-          <label class="field" v-if="accountForm.rateLimitEnabled">
-            <span>{{ t('admin_mail_transports_account_rate_limit_minute') }}</span>
-            <input v-model.number="accountForm.rateLimitPerMinute" type="number" min="1" max="9999" placeholder="Unlimited (default)" />
-          </label>
-          
-          <!-- Rate Limit Per Hour (only shown when enabled) -->
-          <label class="field" v-if="accountForm.rateLimitEnabled">
-            <span>{{ t('admin_mail_transports_account_rate_limit_hour') }}</span>
-            <input v-model.number="accountForm.rateLimitPerHour" type="number" min="1" max="99999" placeholder="Unlimited (default)" />
-          </label>
-          
-          <!-- Active -->
-          <label class="field">
-            <input type="checkbox" v-model="accountForm.isActive" id="isActive" />
-            <label for="isActive">{{ t('admin_mail_transports_account_active') }}</label>
-          </label>
-          
-          <!-- Send As Address (From) -->
-          <label class="field">
-            <span>{{ t('admin_mail_transports_account_from_address') }}</span>
-            <input v-model="accountForm.fromAddress" type="email" placeholder="sender@example.com" />
-          </label>
-          
-          <!-- Reply-To Address -->
-          <label class="field">
-            <span>{{ t('admin_mail_transports_account_reply_to_address') }}</span>
-            <input v-model="accountForm.replyToAddress" type="email" placeholder="replyto@example.com" />
-          </label>
-          
-          <!-- Return-Path (Bounce) Address -->
-          <label class="field">
-            <span>{{ t('admin_mail_transports_account_return_path_address') }}</span>
-            <input v-model="accountForm.returnPathAddress" type="email" placeholder="bounces@example.com" />
-          </label>
-          
-          <!-- TLS Version -->
-          <label class="field">
-            <span>{{ t('admin_mail_transports_account_tls_version') }}</span>
-            <select v-model="accountForm.tlsVersion">
-              <option value="auto">{{ t('tls_version_auto') }}</option>
-              <option value="1.2">TLS 1.2</option>
-              <option value="1.3">TLS 1.3</option>
-            </select>
-          </label>
-          
-          <!-- Persistent Connection -->
-          <label class="field checkbox-field">
-            <input type="checkbox" v-model="accountForm.usePersistentConnection" id="usePersistentConnection" />
-            <label for="usePersistentConnection">{{ t('admin_mail_transports_account_persistent_connection') }}</label>
-          </label>
-        </div>
-        
-        <div class="modal-actions">
-          <IconButton variant="ghost" @click="showAccountDialog = false" :label="tr('cancel')" icon="close" />
-          <IconButton 
-            icon="save" 
-            :label="editingAccount ? tr('save') : tr('create')" 
-            @click="saveAccount"
-            :disabled="loading || !accountForm.name || (!accountForm.host && !accountForm.authMethod.startsWith('api_key')) || !accountForm.port"
-          />
-        </div>
-      </div>
-    </div>
-    
-    <!-- Group Form Dialog -->
-    <div v-if="showGroupDialog" class="modal-backdrop" @click.self="showGroupDialog = false">
-      <div class="modal">
-        <h3>{{ editingGroup ? t('admin_mail_transports_edit_group') : t('admin_mail_transports_add_group') }}</h3>
-        
-        <div class="form-grid">
-          <!-- Name -->
-          <label class="field">
-            <span>{{ t('admin_mail_transports_group_name') }}</span>
-            <input v-model="groupForm.name" type="text" required />
-          </label>
-          
-          <!-- Description -->
-          <label class="field">
-            <span>{{ t('admin_mail_transports_group_description') }}</span>
-            <textarea v-model="groupForm.description" rows="2"></textarea>
-          </label>
-          
-          <!-- Rate Limit Toggle -->
-          <label class="field checkbox-field">
-            <input type="checkbox" v-model="groupForm.rateLimitEnabled" id="groupRateLimitEnabled" />
-            <label for="groupRateLimitEnabled">{{ t('admin_mail_transports_group_rate_limit_enabled') }}</label>
-          </label>
-          
-          <!-- Rate Limit Per Minute (only shown when enabled) -->
-          <label class="field" v-if="groupForm.rateLimitEnabled">
-            <span>{{ t('admin_mail_transports_group_rate_limit_minute') }}</span>
-            <input v-model.number="groupForm.rateLimitPerMinute" type="number" min="1" max="9999" placeholder="Unlimited (default)" />
-          </label>
-          
-          <!-- Rate Limit Per Hour (only shown when enabled) -->
-          <label class="field" v-if="groupForm.rateLimitEnabled">
-            <span>{{ t('admin_mail_transports_group_rate_limit_hour') }}</span>
-            <input v-model.number="groupForm.rateLimitPerHour" type="number" min="1" max="99999" placeholder="Unlimited (default)" />
-          </label>
-          
-          <!-- Failover Strategy -->
-          <label class="field">
-            <span>{{ t('admin_mail_transports_group_failover_strategy') }}</span>
-            <select v-model="groupForm.failoverStrategy">
-              <option value="sequential">{{ t('failover_sequential') }}</option>
-              <option value="round_robin">{{ t('failover_round_robin') }}</option>
-              <option value="random">{{ t('failover_random') }}</option>
-            </select>
-          </label>
-          
-          <!-- Max Retries -->
-          <label class="field">
-            <span>{{ t('admin_mail_transports_group_max_retries') }}</span>
-            <input v-model.number="groupForm.maxRetriesPerAccount" type="number" min="1" max="10" />
-          </label>
-          
-          <!-- Active -->
-          <label class="field">
-            <input type="checkbox" v-model="groupForm.isActive" id="groupIsActive" />
-            <label for="groupIsActive">{{ t('admin_mail_transports_group_active') }}</label>
-          </label>
-        </div>
-        
-        <div class="modal-actions">
-          <IconButton variant="ghost" @click="showGroupDialog = false" :label="tr('cancel')" icon="close" />
-          <IconButton 
-            icon="save" 
-            :label="editingGroup ? tr('save') : tr('create')" 
-            @click="saveGroup"
-            :disabled="loading || !groupForm.name"
-          />
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -780,26 +607,23 @@ onUnmounted(() => {
 
 .content-section { display: flex; flex-direction: column; gap: 1rem; }
 
+.form-card { 
+  background: var(--app-card-bg, var(--surface)); 
+  padding: 1.5rem; 
+  border-radius: 8px; 
+  border: 1px solid var(--border);
+}
+.form-card h3 { margin-top: 0; font-size: 1.25rem; color: var(--text); }
+
 .action-buttons { display: flex; gap: 0.5rem; }
 .action-buttons .ghost { background: var(--surface-muted); color: var(--text-primary); border-color: var(--border); }
 .action-buttons .danger { background: var(--danger); color: #fff; }
-
-.modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.6); display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 40; }
-.modal { background: var(--app-card-bg, var(--surface)); color: var(--text); border-radius: 12px; padding: 1.5rem; width: min(720px, 100%); box-shadow: 0 20px 50px var(--shadow); border: 1px solid var(--border-strong); display: flex; flex-direction: column; gap: 1rem; max-height: 90vh; overflow-y: auto; }
-.modal h3 { margin: 0; font-size: 1.25rem; color: var(--text); }
-
-.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
-.field { display: flex; flex-direction: column; gap: 0.35rem; font-weight: 600; color: var(--text); }
-.field input, .field select, .field textarea { padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; width: 100%; box-sizing: border-box; background: var(--surface); color: var(--text); }
-.field input[type="checkbox"] { width: auto; }
-
-.modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; padding-top: 1rem; border-top: 1px solid var(--border); }
 
 .message { color: #065f46; background: #ecfdf3; border: 1px solid #a7f3d0; padding: 0.75rem; border-radius: 8px; }
 .error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; padding: 0.75rem; border-radius: 8px; }
 
 /* Responsive adjustments */
 @media (max-width: 640px) {
-  .form-grid { grid-template-columns: 1fr; }
+  .form-card { padding: 1rem; }
 }
 </style>

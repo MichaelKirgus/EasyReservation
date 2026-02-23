@@ -93,7 +93,7 @@ const failoverStrategyOptions = [
       <label class="field" v-if="form.rateLimitEnabled">
         <span>Rate Limit per Minute</span>
         <input 
-          v-model.number "form.rateLimitPerMinute" 
+          v-model.number="form.rateLimitPerMinute" 
           type="number" 
           min="1" 
           max="9999"
@@ -105,10 +105,10 @@ const failoverStrategyOptions = [
       <!-- Rate Limit Per Hour (only shown when enabled) -->
       <label class="field" v-if="form.rateLimitEnabled">
         <span>Rate Limit per Hour</span>
-        <input 
-          v-model.number "form.rateLimitPerHour" 
-          type="number" 
-          min="1" 
+        <input
+          v-model.number="form.rateLimitPerHour"
+          type="number"
+          min="1"
           max="99999"
           placeholder="Unlimited (default)"
           @update:model-value="updateField('rateLimitPerHour', $event)"
@@ -131,10 +131,10 @@ const failoverStrategyOptions = [
       <!-- Max Retries -->
       <label class="field">
         <span>Max Retries per Account</span>
-        <input 
-          v-model.number "form.maxRetriesPerAccount" 
-          type="number" 
-          min="1" 
+        <input
+          v-model.number="form.maxRetriesPerAccount"
+          type="number"
+          min="1"
           max="10"
           @update:model-value="updateField('maxRetriesPerAccount', $event)"
         />

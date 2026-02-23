@@ -22,7 +22,6 @@ const props = defineProps({
       replyToAddress: '', // Reply-to address
       returnPathAddress: '', // Bounce address
       tlsVersion: 'auto', // TLS version: auto, 1.2, 1.3
-      usePersistentConnection: false, // Keep-Alive connections
       isActive: true,
     }),
   },
@@ -32,20 +31,10 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['update:modelValue', 'save', 'cancel'])
+const emit = defineEmits(['save', 'cancel'])
 
+// Create a local reactive copy for two-way binding
 const form = reactive({ ...props.modelValue })
-
-// Watch for modelValue changes to sync with parent
-watch(() => props.modelValue, (newValue) => {
-  Object.assign(form, newValue)
-}, { deep: true })
-
-// Emit updates when form changes
-function updateField(key, value) {
-  form[key] = value
-  emit('update:modelValue', { ...form })
-}
 
 // Save handler
 function handleSave() {
@@ -98,43 +87,39 @@ function getApiKeyLabel() {
       <!-- Name -->
       <label class="field">
         <span>Name</span>
-        <input 
-          v-model="form.name" 
-          type="text" 
+        <input
+          v-model="form.name"
+          type="text"
           placeholder="My Mail Account"
-          @update:model-value="updateField('name', $event)"
         />
       </label>
       
       <!-- Host (only for SMTP methods) -->
       <label class="field" v-if="!form.authMethod || !form.authMethod.startsWith('api_key')">
         <span>SMTP Host</span>
-        <input 
-          v-model="form.host" 
-          type="text" 
+        <input
+          v-model="form.host"
+          type="text"
           placeholder="smtp.example.com"
-          @update:model-value="updateField('host', $event)"
         />
       </label>
       
       <!-- Port (only for SMTP methods) -->
       <label class="field" v-if="!form.authMethod || !form.authMethod.startsWith('api_key')">
         <span>Port</span>
-        <input 
-          v-model.number="form.port" 
-          type="number" 
-          min="1" 
+        <input
+          v-model.number="form.port"
+          type="number"
+          min="1"
           max="65535"
-          @update:model-value="updateField('port', $event)"
         />
       </label>
       
       <!-- Encryption (only for SMTP methods) -->
       <label class="field" v-if="!form.authMethod || !form.authMethod.startsWith('api_key')">
         <span>Encryption</span>
-        <select 
+        <select
           v-model="form.encryption"
-          @update:model-value="updateField('encryption', $event)"
         >
           <option value="tls">TLS (Recommended)</option>
           <option value="ssl">SSL</option>
@@ -145,9 +130,8 @@ function getApiKeyLabel() {
       <!-- Auth Method -->
       <label class="field">
         <span>Authentication Method</span>
-        <select 
+        <select
           v-model="form.authMethod"
-          @update:model-value="updateField('authMethod', $event)"
         >
           <option value="plain">Plain (Standard SMTP)</option>
           <option value="login">Login</option>
@@ -164,40 +148,36 @@ function getApiKeyLabel() {
       <label class="field">
         <span v-if="form.authMethod && form.authMethod.startsWith('api_key')">{{ getApiKeyLabel() }}</span>
         <span v-else>Username / Email</span>
-        <input 
-          v-model="form.username" 
+        <input
+          v-model="form.username"
           type="text"
-          :placeholder="form.authMethod && form.authMethod.startsWith('api_key') ? 'API Key' : 'user@example.com'"
-          @update:model-value="updateField('username', $event)"
+          :placeholder="form.authMethod && form.authMethod.startsWith('api_key') ? 'API Key' : ''"
         />
       </label>
       
       <!-- Password / Secret (only for non-API methods) -->
       <label class="field" v-if="form.authMethod && !form.authMethod.startsWith('api_key')">
         <span>Password / App Password</span>
-        <SecretField 
+        <SecretField
           v-model="form.password"
           :placeholder="isEditing ? '••••••••' : ''"
-          @update:model-value="updateField('password', $event)"
         />
       </label>
       
       <!-- API Key Secret (only for API key methods) -->
       <label class="field" v-if="form.authMethod && form.authMethod.startsWith('api_key')">
         <span>Secret / Password</span>
-        <SecretField 
+        <SecretField
           v-model="form.password"
           :placeholder="isEditing ? '••••••••' : ''"
-          @update:model-value="updateField('password', $event)"
         />
       </label>
       
       <!-- Ignore Self-Signed -->
       <label class="field checkbox-field">
-        <input 
-          type="checkbox" 
+        <input
+          type="checkbox"
           v-model="form.ignoreSelfSigned"
-          @update:model-value="updateField('ignoreSelfSigned', $event)"
         />
         <span>Ignore Self-Signed Certificates</span>
       </label>
@@ -205,21 +185,19 @@ function getApiKeyLabel() {
       <!-- Timeout (only for SMTP methods) -->
       <label class="field" v-if="!form.authMethod || !form.authMethod.startsWith('api_key')">
         <span>Timeout (seconds)</span>
-        <input 
-          v-model.number "form.timeout" 
-          type="number" 
-          min="1" 
+        <input
+          v-model.number="form.timeout"
+          type="number"
+          min="1"
           max="300"
-          @update:model-value="updateField('timeout', $event)"
         />
       </label>
       
       <!-- Rate Limit Toggle -->
       <label class="field checkbox-field">
-        <input 
-          type="checkbox" 
+        <input
+          type="checkbox"
           v-model="form.rateLimitEnabled"
-          @update:model-value="updateField('rateLimitEnabled', $event)"
         />
         <span>Enable Rate Limiting</span>
       </label>
@@ -227,26 +205,24 @@ function getApiKeyLabel() {
       <!-- Rate Limit Per Minute (only shown when enabled) -->
       <label class="field" v-if="form.rateLimitEnabled">
         <span>Rate Limit per Minute</span>
-        <input 
-          v-model.number "form.rateLimitPerMinute" 
-          type="number" 
-          min="1" 
+        <input
+          v-model.number="form.rateLimitPerMinute"
+          type="number"
+          min="1"
           max="9999"
           placeholder="Unlimited (default)"
-          @update:model-value="updateField('rateLimitPerMinute', $event)"
         />
       </label>
       
       <!-- Rate Limit Per Hour (only shown when enabled) -->
       <label class="field" v-if="form.rateLimitEnabled">
         <span>Rate Limit per Hour</span>
-        <input 
-          v-model.number "form.rateLimitPerHour" 
-          type="number" 
-          min="1" 
+        <input
+          v-model.number="form.rateLimitPerHour"
+          type="number"
+          min="1"
           max="99999"
           placeholder="Unlimited (default)"
-          @update:model-value="updateField('rateLimitPerHour', $event)"
         />
       </label>
       
@@ -255,7 +231,6 @@ function getApiKeyLabel() {
         <input
           type="checkbox"
           v-model="form.isActive"
-          @update:model-value="updateField('isActive', $event)"
         />
         <span>Active</span>
       </label>
@@ -267,7 +242,6 @@ function getApiKeyLabel() {
           v-model="form.fromAddress"
           type="email"
           placeholder="sender@example.com"
-          @update:model-value="updateField('fromAddress', $event)"
         />
       </label>
       
@@ -278,7 +252,6 @@ function getApiKeyLabel() {
           v-model="form.replyToAddress"
           type="email"
           placeholder="replyto@example.com"
-          @update:model-value="updateField('replyToAddress', $event)"
         />
       </label>
       
@@ -289,7 +262,6 @@ function getApiKeyLabel() {
           v-model="form.returnPathAddress"
           type="email"
           placeholder="bounces@example.com"
-          @update:model-value="updateField('returnPathAddress', $event)"
         />
       </label>
       
@@ -298,28 +270,17 @@ function getApiKeyLabel() {
         <span>TLS Version</span>
         <select
           v-model="form.tlsVersion"
-          @update:model-value="updateField('tlsVersion', $event)"
         >
           <option value="auto">Auto (Negotiate)</option>
           <option value="1.2">TLS 1.2</option>
           <option value="1.3">TLS 1.3</option>
         </select>
       </label>
-      
-      <!-- Persistent Connection -->
-      <label class="field checkbox-field">
-        <input
-          type="checkbox"
-          v-model="form.usePersistentConnection"
-          @update:model-value="updateField('usePersistentConnection', $event)"
-        />
-        <span>Use Persistent Connections (Keep-Alive)</span>
-      </label>
     </div>
     
     <div class="form-actions">
       <button type="button" @click="handleCancel">Cancel</button>
-      <button type="button" @click="handleSave" :disabled="!form.name || (!form.host && !form.authMethod.startsWith('api_key')) || !form.port">
+      <button type="button" @click="handleSave" :disabled="!form.name || (!form.host && !form.authMethod?.startsWith('api_key')) || !form.port">
         {{ isEditing ? 'Update Account' : 'Create Account' }}
       </button>
     </div>
