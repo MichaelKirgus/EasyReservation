@@ -19,6 +19,7 @@ import SurveyQuestionManager from '../components/SurveyQuestionManager.vue'
 import AdminAuditLog from '../components/AdminAuditLog.vue'
 import TwoFactorSettings from '../components/TwoFactorSettings.vue'
 import PublicSurvey from '../components/PublicSurvey.vue'
+import AdminMailTransports from '../components/AdminMailTransports.vue'
 
 const routes = [
   { path: '/', name: 'reservation', component: PublicReservation },
@@ -40,6 +41,7 @@ const routes = [
   { path: '/admin/archives', name: 'admin-archives', component: AdminArchives },
   { path: '/admin/custom-placeholders', name: 'admin-custom-placeholders', component: AdminCustomPlaceholders },
   { path: '/admin/surveys', name: 'admin-surveys', component: AdminSurveys },
+  { path: '/admin/mail-transports', name: 'admin-mail-transports', component: AdminMailTransports },
   { path: '/moderation/surveys/:id/questions', name: 'survey-questions', component: SurveyQuestionManager, props: true },
   { path: '/admin/auditlog', name: 'superadmin-auditlog', component: AdminAuditLog },
   // User settings

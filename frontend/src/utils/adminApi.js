@@ -71,3 +71,96 @@ export async function adminFetchJson(relativeOrAbsolute, opts = {}, config = {})
   }
   return text
 }
+
+// ============================================================================
+// Mail Transport API Functions
+// ============================================================================
+
+/**
+ * Get all mail transport accounts
+ */
+export async function getMailAccounts(config = {}) {
+  return adminFetchJson('mail-accounts', { method: 'GET' }, config)
+}
+
+/**
+ * Create a new mail transport account
+ */
+export async function createMailAccount(data, config = {}) {
+  return adminFetchJson('mail-accounts', {
+    method: 'POST',
+    body: JSON.stringify({ account: data }),
+  }, config)
+}
+
+/**
+ * Update an existing mail transport account
+ */
+export async function updateMailAccount(id, data, config = {}) {
+  return adminFetchJson(`mail-accounts/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ account: data }),
+  }, config)
+}
+
+/**
+ * Delete a mail transport account
+ */
+export async function deleteMailAccount(id, config = {}) {
+  return adminFetchJson(`mail-accounts/${id}`, { method: 'DELETE' }, config)
+}
+
+/**
+ * Test a mail transport account connection
+ */
+export async function testMailAccount(id, config = {}) {
+  return adminFetchJson(`mail-accounts/${id}/test`, { method: 'POST' }, config)
+}
+
+/**
+ * Get all mail transport groups
+ */
+export async function getMailGroups(config = {}) {
+  return adminFetchJson('mail-groups', { method: 'GET' }, config)
+}
+
+/**
+ * Create a new mail transport group
+ */
+export async function createMailGroup(data, config = {}) {
+  return adminFetchJson('mail-groups', {
+    method: 'POST',
+    body: JSON.stringify({ group: data }),
+  }, config)
+}
+
+/**
+ * Update an existing mail transport group
+ */
+export async function updateMailGroup(id, data, config = {}) {
+  return adminFetchJson(`mail-groups/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ group: data }),
+  }, config)
+}
+
+/**
+ * Delete a mail transport group
+ */
+export async function deleteMailGroup(id, config = {}) {
+  return adminFetchJson(`mail-groups/${id}`, { method: 'DELETE' }, config)
+}
+
+/**
+ * Test a mail transport group (tries all accounts in the group)
+ */
+export async function testMailGroup(id, config = {}) {
+  return adminFetchJson(`mail-groups/${id}/test`, { method: 'POST' }, config)
+}
+
+/**
+ * Get available mail transport groups for template assignment
+ */
+export async function getAvailableMailGroups(config = {}) {
+  return adminFetchJson('mail-groups/available', { method: 'GET' }, config)
+}
