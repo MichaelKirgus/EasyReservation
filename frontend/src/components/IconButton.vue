@@ -43,6 +43,7 @@ const ICONS = {
   eyeOff: { viewBox: '0 0 24 24', paths: ['M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.81 21.81 0 0 1 5.06-6.06', 'M1 1l22 22', 'M9.53 9.53A3 3 0 0 0 12 15a3 3 0 0 0 2.47-5.47'] },
   copy: { viewBox: '0 0 24 24', paths: ['M16 1H4a2 2 0 0 0-2 2v14', 'M8 5h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5z'] },
   upload: { viewBox: '0 0 24 24', paths: ['M12 3v14', 'M6 9l6-6 6 6', 'M5 21h14'] },
+  list: { viewBox: '0 0 24 24', paths: ['M8 6h13', 'M8 12h13', 'M8 18h13', 'M3 6h.01', 'M3 12h.01', 'M3 18h.01'] },
 }
 
 const iconDef = computed(() => ICONS[props.icon] || ICONS.plus)

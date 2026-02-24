@@ -71,7 +71,11 @@ class MailGroupController extends Controller
      */
     public function show(MailTransportGroup $group)
     {
-        return response()->json($group->load('accounts'));
+        $group->load(['accounts.account']);
+
+        return response()->json([
+            'data' => $group,
+        ]);
     }
 
     /**
@@ -90,7 +94,10 @@ class MailGroupController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
-        $group->update($validated);
+        // Use fill+save to guarantee timestamps and events fire, then return fresh state
+        $group->fill($validated);
+        $group->save();
+        $group->refresh();
 
         return response()->json([
             'data' => $group,
@@ -105,11 +112,18 @@ class MailGroupController extends Controller
     {
         // Delete pivot table entries first
         MailGroupAccount::where('group_id', $group->id)->delete();
-        
-        $group->delete();
+
+        $deleted = $group->delete();
+        if (! $deleted) {
+            return response()->json([
+                'message' => __('mail_group_deleted'),
+                'deleted' => false,
+            ], 500);
+        }
 
         return response()->json([
             'message' => __('mail_group_deleted'),
+            'deleted' => true,
         ]);
     }
 
@@ -144,6 +158,34 @@ class MailGroupController extends Controller
             'data' => $group->load('accounts'),
             'message' => __('mail_account_added_to_group'),
         ], 201);
+    }
+
+    /**
+     * Update the priority of an account within a transport group.
+     */
+    public function updateAccountPriority(Request $request, MailTransportGroup $group, MailAccount $account)
+    {
+        $validated = $request->validate([
+            'priority' => 'required|integer|min:0',
+        ]);
+
+        $pivot = MailGroupAccount::where('group_id', $group->id)
+            ->where('account_id', $account->id)
+            ->first();
+
+        if (! $pivot) {
+            return response()->json([
+                'error' => __('mail_account_not_in_group'),
+            ], 404);
+        }
+
+        $pivot->priority = $validated['priority'];
+        $pivot->save();
+
+        return response()->json([
+            'data' => $group->load('accounts.account'),
+            'message' => __('mail_account_priority_updated'),
+        ]);
     }
 
     /**

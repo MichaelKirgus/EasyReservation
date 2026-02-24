@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\MailAccount;
+use App\Models\MailGroupAccount;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Log;
 
@@ -107,7 +109,9 @@ class MailAccountController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
 
-        $account->update($validated);
+        $account->fill($validated);
+        $account->save();
+        $account->refresh();
 
         return response()->json([
             'data' => $account,
@@ -120,11 +124,67 @@ class MailAccountController extends Controller
      */
     public function destroy(MailAccount $account)
     {
-        $account->delete();
+        $id = $account->id;
+        try {
+            $countBefore = DB::table('mail_transport_accounts')->where('id', $id)->count();
+            $modelExistsBefore = MailAccount::where('id', $id)->exists();
+            // Remove pivot rows first to avoid FK issues
+            $pivotDeleted = MailGroupAccount::where('account_id', $id)->delete();
 
-        return response()->json([
-            'message' => __('mail_account_deleted'),
-        ]);
+            // First try eloquent delete on the bound model
+            $account->delete();
+            $stillExists = MailAccount::where('id', $id)->exists();
+            $countAfterEloquent = DB::table('mail_transport_accounts')->where('id', $id)->count();
+
+            // If it still exists, fall back to a direct delete
+            $deletedRows = 0;
+            if ($stillExists || $countAfterEloquent > 0) {
+                $deletedRows = DB::table('mail_transport_accounts')->where('id', $id)->delete();
+                $stillExists = MailAccount::where('id', $id)->exists();
+                $countAfterEloquent = DB::table('mail_transport_accounts')->where('id', $id)->count();
+            }
+
+            $countAfter = $countAfterEloquent;
+
+            if ($stillExists || $countAfter > 0) {
+                \Log::warning('MailAccount delete verification failed', [
+                    'id' => $id,
+                    'deletedRows' => $deletedRows,
+                    'stillExists' => $stillExists,
+                    'countBefore' => $countBefore,
+                    'countAfter' => $countAfter,
+                    'modelExistsBefore' => $modelExistsBefore,
+                    'pivotDeleted' => $pivotDeleted,
+                ]);
+                return response()->json([
+                    'message' => __('mail_account_deleted'),
+                    'deleted' => false,
+                    'pivot_deleted' => $pivotDeleted,
+                    'still_exists' => $stillExists,
+                    'deleted_rows' => $deletedRows,
+                    'count_before' => $countBefore,
+                    'model_exists_before' => $modelExistsBefore,
+                    'count_after' => $countAfter,
+                ], 500);
+            }
+
+            return response()->json([
+                'message' => __('mail_account_deleted'),
+                'deleted' => true,
+                'pivot_deleted' => $pivotDeleted,
+                'deleted_rows' => $deletedRows,
+                'count_before' => $countBefore,
+                'model_exists_before' => $modelExistsBefore,
+                'count_after' => $countAfter,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('MailAccount delete exception', ['id' => $id, 'error' => $e->getMessage()]);
+            return response()->json([
+                'message' => __('mail_account_deleted'),
+                'deleted' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

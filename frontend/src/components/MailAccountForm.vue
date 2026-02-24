@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { reactive, watch } from 'vue'
 import SecretField from './SecretField.vue'
 
 const props = defineProps({
@@ -31,17 +31,25 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['save', 'cancel'])
+const emit = defineEmits(['update:modelValue', 'save', 'cancel'])
 
-// Create a local reactive copy for two-way binding
+// Local reactive copy for two-way binding
 const form = reactive({ ...props.modelValue })
 
-// Save handler
+// Keep local form in sync when parent model changes
+watch(() => props.modelValue, (next) => {
+  Object.assign(form, next || {})
+}, { deep: true })
+
+// Emit updates so parent state stays current
+watch(form, (next) => {
+  emit('update:modelValue', { ...next })
+}, { deep: true })
+
 function handleSave() {
   emit('save', { ...form })
 }
 
-// Cancel handler
 function handleCancel() {
   emit('cancel')
 }

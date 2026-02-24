@@ -5,7 +5,7 @@ import SecretField from './SecretField.vue'
 import AdminDataTable from './AdminDataTable.vue'
 import MailAccountForm from './MailAccountForm.vue'
 import MailGroupForm from './MailGroupForm.vue'
-import { getMailAccounts, createMailAccount, updateMailAccount, deleteMailAccount, testMailAccount, getMailGroups, createMailGroup, updateMailGroup, deleteMailGroup, testMailGroup } from '../utils/adminApi'
+import { getMailAccounts, createMailAccount, updateMailAccount, deleteMailAccount, testMailAccount, getMailGroups, createMailGroup, updateMailGroup, deleteMailGroup, testMailGroup, getMailGroup, addAccountToGroup, removeAccountFromGroup, updateAccountPriority } from '../utils/adminApi'
 import { useTranslation } from '../composables/useTranslation'
 
 const props = defineProps({ langCode: { type: String, default: 'de' } })
@@ -14,6 +14,12 @@ const { tr } = useTranslation()
 const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const currentUser = ref(JSON.parse(localStorage.getItem('admin_user') || sessionStorage.getItem('admin_user') || 'null'))
+
+// Reusable auth config for admin API calls
+const adminConfig = () => ({ routePrefixRef: routePrefix, apiKeyRef: apiKey })
+
+// Normalize id comparison across number/string variants
+const sameId = (a, b) => String(a) === String(b)
 
 // State
 const accounts = ref([])
@@ -25,6 +31,10 @@ const editingAccount = ref(null)
 const editingGroup = ref(null)
 const showAddAccountForm = ref(false)
 const showAddGroupForm = ref(false)
+const managingGroupAccounts = ref(null) // The group whose accounts are being managed
+const groupAccounts = ref([]) // Accounts currently assigned to the managed group
+const addAccountId = ref(null) // Selected account id for adding to group
+const addAccountPriority = ref(0) // Priority for the new account
 
 // Tabs
 const tabs = [
@@ -75,8 +85,18 @@ const accountColumns = computed(() => [
   { key: 'host', label: tr('admin_mail_transports_columns_host'), sortable: true },
   { key: 'port', label: tr('admin_mail_transports_columns_port'), sortable: true },
   { key: 'encryption', label: tr('admin_mail_transports_columns_encryption'), sortable: true },
-  { key: 'rateLimitEnabled', label: tr('admin_mail_transports_columns_rate_limit'), sortable: true, type: 'boolean' },
-  { key: 'isActive', label: tr('admin_mail_transports_columns_active'), sortable: true, type: 'boolean' },
+  { key: 'auth_method', label: tr('admin_mail_transports_columns_auth_method'), sortable: true },
+  { key: 'username', label: tr('admin_mail_transports_columns_username'), sortable: true },
+  { key: 'timeout', label: tr('admin_mail_transports_columns_timeout'), sortable: true, type: 'number' },
+  { key: 'rate_limit_enabled', label: tr('admin_mail_transports_columns_rate_limit'), sortable: true, type: 'boolean' },
+  { key: 'rate_limit_per_minute', label: tr('admin_mail_transports_columns_rate_limit_minute'), sortable: true, type: 'number' },
+  { key: 'rate_limit_per_hour', label: tr('admin_mail_transports_columns_rate_limit_hour'), sortable: true, type: 'number' },
+  { key: 'ignore_self_signed', label: tr('admin_mail_transports_columns_ignore_self_signed'), sortable: true, type: 'boolean' },
+  { key: 'tls_version', label: tr('admin_mail_transports_columns_tls_version'), sortable: true },
+  { key: 'from_address', label: tr('admin_mail_transports_columns_from_address'), sortable: true },
+  { key: 'reply_to_address', label: tr('admin_mail_transports_columns_reply_to_address'), sortable: true },
+  { key: 'return_path_address', label: tr('admin_mail_transports_columns_return_path_address'), sortable: true },
+  { key: 'is_active', label: tr('admin_mail_transports_columns_active'), sortable: true, type: 'boolean' },
 ])
 
 // Group table columns
@@ -84,11 +104,18 @@ const groupColumns = computed(() => [
   { key: 'id', label: tr('admin_mail_transports_columns_id'), sortable: true },
   { key: 'name', label: tr('admin_mail_transports_columns_name'), sortable: true },
   { key: 'description', label: tr('admin_mail_transports_columns_description'), sortable: false },
-  { key: 'failoverStrategy', label: tr('admin_mail_transports_columns_failover_strategy'), sortable: true },
-  { key: 'rateLimitEnabled', label: tr('admin_mail_transports_columns_rate_limit'), sortable: true, type: 'boolean' },
-  { key: 'accountCount', label: tr('admin_mail_transports_columns_accounts'), sortable: true, type: 'number' },
-  { key: 'isActive', label: tr('admin_mail_transports_columns_active'), sortable: true, type: 'boolean' },
+  { key: 'failover_strategy', label: tr('admin_mail_transports_columns_failover_strategy'), sortable: true },
+  { key: 'rate_limit_enabled', label: tr('admin_mail_transports_columns_rate_limit'), sortable: true, type: 'boolean' },
+  { key: 'accounts_count', label: tr('admin_mail_transports_columns_accounts'), sortable: true, type: 'number' },
+  { key: 'is_active', label: tr('admin_mail_transports_columns_active'), sortable: true, type: 'boolean' },
 ])
+
+// Accounts available to assign (not yet in the managed group)
+const availableAccountsForGroup = computed(() => {
+  if (!managingGroupAccounts.value) return []
+  const assignedIds = new Set(groupAccounts.value.map(ga => String(ga.account_id)))
+  return accounts.value.filter(a => !assignedIds.has(String(a.id)))
+})
 
 // Computed properties
 const visibleAccounts = computed(() => {
@@ -112,7 +139,17 @@ function t(key) {
     admin_mail_transports_columns_host: tr('admin_mail_transports_columns_host', 'Host'),
     admin_mail_transports_columns_port: tr('admin_mail_transports_columns_port', 'Port'),
     admin_mail_transports_columns_encryption: tr('admin_mail_transports_columns_encryption', 'Encryption'),
+    admin_mail_transports_columns_auth_method: tr('admin_mail_transports_columns_auth_method', 'Auth Method'),
+    admin_mail_transports_columns_username: tr('admin_mail_transports_columns_username', 'Username'),
+    admin_mail_transports_columns_timeout: tr('admin_mail_transports_columns_timeout', 'Timeout (s)'),
     admin_mail_transports_columns_rate_limit: tr('admin_mail_transports_columns_rate_limit', 'Rate Limiting'),
+    admin_mail_transports_columns_rate_limit_minute: tr('admin_mail_transports_columns_rate_limit_minute', 'Rate/Min'),
+    admin_mail_transports_columns_rate_limit_hour: tr('admin_mail_transports_columns_rate_limit_hour', 'Rate/Hour'),
+    admin_mail_transports_columns_ignore_self_signed: tr('admin_mail_transports_columns_ignore_self_signed', 'Ignore Self-Signed'),
+    admin_mail_transports_columns_tls_version: tr('admin_mail_transports_columns_tls_version', 'TLS Version'),
+    admin_mail_transports_columns_from_address: tr('admin_mail_transports_columns_from_address', 'From Address'),
+    admin_mail_transports_columns_reply_to_address: tr('admin_mail_transports_columns_reply_to_address', 'Reply-To'),
+    admin_mail_transports_columns_return_path_address: tr('admin_mail_transports_columns_return_path_address', 'Return-Path'),
     admin_mail_transports_columns_active: tr('admin_mail_transports_columns_active', 'Active'),
     admin_mail_transports_columns_description: tr('admin_mail_transports_columns_description', 'Description'),
     admin_mail_transports_columns_failover_strategy: tr('admin_mail_transports_columns_failover_strategy', 'Failover Strategy'),
@@ -194,7 +231,11 @@ async function loadAccounts() {
   if (!apiKey.value) return
   loading.value = true
   try {
-    accounts.value = await getMailAccounts()
+    const res = await getMailAccounts(adminConfig())
+    // API may return a paginated object { data: { data: [...] } }
+    accounts.value = Array.isArray(res)
+      ? res
+      : res?.data?.data || res?.data || []
   } catch (e) {
     setError(t('admin_mail_transports_error_loading_accounts') + ': ' + e)
   } finally {
@@ -206,7 +247,10 @@ async function loadGroups() {
   if (!apiKey.value) return
   loading.value = true
   try {
-    groups.value = await getMailGroups()
+    const res = await getMailGroups(adminConfig())
+    groups.value = Array.isArray(res)
+      ? res
+      : res?.data?.data || res?.data || []
   } catch (e) {
     setError(t('admin_mail_transports_error_loading_groups') + ': ' + e)
   } finally {
@@ -238,6 +282,11 @@ function openAccountForm(account = null) {
     accountForm.rateLimitEnabled = !!account.rate_limit_enabled
     accountForm.rateLimitPerMinute = account.rate_limit_per_minute || null
     accountForm.rateLimitPerHour = account.rate_limit_per_hour || null
+    accountForm.fromAddress = account.from_address || ''
+    accountForm.replyToAddress = account.reply_to_address || ''
+    accountForm.returnPathAddress = account.return_path_address || ''
+    accountForm.tlsVersion = account.tls_version || 'auto'
+    accountForm.usePersistentConnection = !!account.use_persistent_connection
     accountForm.isActive = !!account.is_active
   } else {
     // New account
@@ -253,15 +302,23 @@ function openAccountForm(account = null) {
     accountForm.rateLimitEnabled = false
     accountForm.rateLimitPerMinute = null
     accountForm.rateLimitPerHour = null
+    accountForm.fromAddress = ''
+    accountForm.replyToAddress = ''
+    accountForm.returnPathAddress = ''
+    accountForm.tlsVersion = 'auto'
+    accountForm.usePersistentConnection = false
     accountForm.isActive = true
   }
 }
 
-async function saveAccount() {
+async function saveAccount(formData = null) {
   if (!apiKey.value) { setError(tr('api_key_missing')); return }
   
   loading.value = true
   try {
+    // Prefer payload from child emit to avoid stale state
+    if (formData) Object.assign(accountForm, formData)
+
     const accountData = {
       name: accountForm.name,
       host: accountForm.host,
@@ -275,14 +332,22 @@ async function saveAccount() {
       rate_limit_enabled: accountForm.rateLimitEnabled ? 1 : 0,
       rate_limit_per_minute: accountForm.rateLimitPerMinute || null,
       rate_limit_per_hour: accountForm.rateLimitPerHour || null,
+      from_address: accountForm.fromAddress || null,
+      reply_to_address: accountForm.replyToAddress || null,
+      return_path_address: accountForm.returnPathAddress || null,
+      tls_version: accountForm.tlsVersion || 'auto',
       is_active: accountForm.isActive ? 1 : 0,
     }
     
     if (editingAccount.value) {
-      await updateMailAccount(editingAccount.value.id, accountData)
+      const res = await updateMailAccount(editingAccount.value.id, accountData, adminConfig())
+      const saved = res?.data?.data || res?.data || res
+      accounts.value = accounts.value.map(acc => sameId(acc.id, saved?.id) ? saved : acc)
       setMessage(t('admin_mail_transports_account_saved'))
     } else {
-      await createMailAccount(accountData)
+      const res = await createMailAccount(accountData, adminConfig())
+      const saved = res?.data?.data || res?.data || res
+      if (saved) accounts.value = [saved, ...accounts.value]
       setMessage(t('admin_mail_transports_account_saved'))
     }
     
@@ -311,6 +376,11 @@ function cancelAccountForm() {
   accountForm.rateLimitEnabled = false
   accountForm.rateLimitPerMinute = null
   accountForm.rateLimitPerHour = null
+  accountForm.fromAddress = ''
+  accountForm.replyToAddress = ''
+  accountForm.returnPathAddress = ''
+  accountForm.tlsVersion = 'auto'
+  accountForm.usePersistentConnection = false
   accountForm.isActive = true
 }
 
@@ -321,8 +391,15 @@ async function deleteAccount(id) {
   
   loading.value = true
   try {
-    await deleteMailAccount(id)
-    setMessage(t('admin_mail_transports_account_deleted'))
+    const res = await deleteMailAccount(id, adminConfig())
+    // Optimistically remove from local list to reflect deletion immediately
+    accounts.value = accounts.value.filter(acc => !sameId(acc.id, id))
+    const deleted = res?.deleted
+    if (deleted === false) {
+      setError((res?.message || t('admin_mail_transports_error_deleting_account')) + ' (backend could not delete)')
+    } else {
+      setMessage(t('admin_mail_transports_account_deleted'))
+    }
     await loadAccounts()
   } catch (e) {
     setError(e.message || t('admin_mail_transports_error_deleting_account'))
@@ -336,7 +413,7 @@ async function testAccountConnection(id) {
   
   loading.value = true
   try {
-    const result = await testMailAccount(id)
+    const result = await testMailAccount(id, adminConfig())
     setMessage(t('admin_mail_transports_test_success') + ' ' + (result.message || ''))
   } catch (e) {
     setError(t('admin_mail_transports_test_failed') + e.message)
@@ -372,11 +449,14 @@ function openGroupForm(group = null) {
   }
 }
 
-async function saveGroup() {
+async function saveGroup(formData = null) {
   if (!apiKey.value) { setError(tr('api_key_missing')); return }
   
   loading.value = true
   try {
+    // Prefer payload from child emit to avoid stale state
+    if (formData) Object.assign(groupForm, formData)
+
     const groupData = {
       name: groupForm.name,
       description: groupForm.description,
@@ -389,10 +469,14 @@ async function saveGroup() {
     }
     
     if (editingGroup.value) {
-      await updateMailGroup(editingGroup.value.id, groupData)
+      const res = await updateMailGroup(editingGroup.value.id, groupData, adminConfig())
+      const saved = res?.data?.data || res?.data || res
+      groups.value = groups.value.map(g => sameId(g.id, saved?.id) ? saved : g)
       setMessage(t('admin_mail_transports_group_saved'))
     } else {
-      await createMailGroup(groupData)
+      const res = await createMailGroup(groupData, adminConfig())
+      const saved = res?.data?.data || res?.data || res
+      if (saved) groups.value = [saved, ...groups.value]
       setMessage(t('admin_mail_transports_group_saved'))
     }
     
@@ -426,7 +510,8 @@ async function deleteGroup(id) {
   
   loading.value = true
   try {
-    await deleteMailGroup(id)
+    await deleteMailGroup(id, adminConfig())
+    groups.value = groups.value.filter(g => !sameId(g.id, id))
     setMessage(t('admin_mail_transports_group_deleted'))
     await loadGroups()
   } catch (e) {
@@ -441,13 +526,93 @@ async function testGroupConnection(id) {
   
   loading.value = true
   try {
-    const result = await testMailGroup(id)
+    const result = await testMailGroup(id, adminConfig())
     setMessage(t('admin_mail_transports_test_success') + ' ' + (result.message || ''))
   } catch (e) {
     setError(t('admin_mail_transports_test_failed') + e.message)
   } finally {
     loading.value = false
   }
+}
+
+// Group account management operations
+async function openGroupAccountManager(group) {
+  managingGroupAccounts.value = group
+  addAccountId.value = null
+  addAccountPriority.value = 0
+  await loadGroupAccounts(group.id)
+}
+
+function closeGroupAccountManager() {
+  managingGroupAccounts.value = null
+  groupAccounts.value = []
+  addAccountId.value = null
+  addAccountPriority.value = 0
+}
+
+async function loadGroupAccounts(groupId) {
+  loading.value = true
+  try {
+    const res = await getMailGroup(groupId, adminConfig())
+    const group = res?.data?.data || res?.data || res
+    groupAccounts.value = (group?.accounts || []).sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0))
+  } catch (e) {
+    setError(e.message || 'Failed to load group accounts')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleAddAccountToGroup() {
+  if (!managingGroupAccounts.value || !addAccountId.value) return
+  loading.value = true
+  try {
+    await addAccountToGroup(managingGroupAccounts.value.id, addAccountId.value, addAccountPriority.value || 0, adminConfig())
+    setMessage(t('admin_mail_transports_account_added_to_group'))
+    addAccountId.value = null
+    addAccountPriority.value = 0
+    await loadGroupAccounts(managingGroupAccounts.value.id)
+    await loadGroups()
+  } catch (e) {
+    setError(e.message || 'Failed to add account to group')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleRemoveAccountFromGroup(accountId) {
+  if (!managingGroupAccounts.value) return
+  if (!confirm(t('admin_mail_transports_confirm_remove_account_from_group'))) return
+  loading.value = true
+  try {
+    await removeAccountFromGroup(managingGroupAccounts.value.id, accountId, adminConfig())
+    setMessage(t('admin_mail_transports_account_removed_from_group'))
+    await loadGroupAccounts(managingGroupAccounts.value.id)
+    await loadGroups()
+  } catch (e) {
+    setError(e.message || 'Failed to remove account from group')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleUpdatePriority(accountId, newPriority) {
+  if (!managingGroupAccounts.value) return
+  loading.value = true
+  try {
+    await updateAccountPriority(managingGroupAccounts.value.id, accountId, newPriority, adminConfig())
+    setMessage(t('admin_mail_transports_priority_updated'))
+    await loadGroupAccounts(managingGroupAccounts.value.id)
+  } catch (e) {
+    setError(e.message || 'Failed to update priority')
+  } finally {
+    loading.value = false
+  }
+}
+
+function getAccountName(accountId) {
+  const acc = accounts.value.find(a => sameId(a.id, accountId))
+  return acc ? `${acc.name} (${acc.host})` : `Account #${accountId}`
 }
 
 // Helper functions
@@ -503,31 +668,32 @@ onUnmounted(() => {
         <h3>{{ editingAccount ? t('admin_mail_transports_edit_account') : t('admin_mail_transports_add_account') }}</h3>
         
         <MailAccountForm 
-          v-model="accountForm"
+          :model-value="accountForm"
           :is-editing="!!editingAccount"
-          @save="saveAccount"
+          @update:model-value="(val) => Object.assign(accountForm, val)"
+          @save="(payload) => saveAccount(payload)"
           @cancel="cancelAccountForm"
         />
       </div>
       
       <AdminDataTable 
         :columns="accountColumns"
-        :data="visibleAccounts"
+        :rows="visibleAccounts"
         :loading="loading"
         :empty-message="t('admin_mail_transports_no_accounts')"
-        @row-action="handleAccountRowAction"
+        :initial-hidden-columns="['id']"
       >
         <!-- Actions column -->
-        <template #actions="{ row }">
+        <template #row-actions="{ row }">
           <div class="action-buttons">
             <IconButton 
-              icon="test" 
+              icon="play" 
               :label="t('admin_mail_transports_test_connection')" 
               variant="ghost"
               @click="testAccountConnection(row.id)"
             />
             <IconButton 
-              icon="edit" 
+              icon="pencil" 
               :label="t('admin_mail_transports_edit')" 
               variant="ghost"
               @click="openAccountForm(row)"
@@ -554,31 +720,38 @@ onUnmounted(() => {
         <h3>{{ editingGroup ? t('admin_mail_transports_edit_group') : t('admin_mail_transports_add_group') }}</h3>
         
         <MailGroupForm 
-          v-model="groupForm"
+          :model-value="groupForm"
           :is-editing="!!editingGroup"
-          @save="saveGroup"
+          @update:model-value="(val) => Object.assign(groupForm, val)"
+          @save="(payload) => saveGroup(payload)"
           @cancel="cancelGroupForm"
         />
       </div>
       
       <AdminDataTable 
         :columns="groupColumns"
-        :data="visibleGroups"
+        :rows="visibleGroups"
         :loading="loading"
         :empty-message="t('admin_mail_transports_no_groups')"
-        @row-action="handleGroupRowAction"
+        :initial-hidden-columns="['id']"
       >
         <!-- Actions column -->
-        <template #actions="{ row }">
+        <template #row-actions="{ row }">
           <div class="action-buttons">
             <IconButton 
-              icon="test" 
+              icon="list" 
+              :label="t('admin_mail_transports_manage_accounts')" 
+              variant="ghost"
+              @click="openGroupAccountManager(row)"
+            />
+            <IconButton 
+              icon="play" 
               :label="t('admin_mail_transports_test_connection')" 
               variant="ghost"
               @click="testGroupConnection(row.id)"
             />
             <IconButton 
-              icon="edit" 
+              icon="pencil" 
               :label="t('admin_mail_transports_edit')" 
               variant="ghost"
               @click="openGroupForm(row)"
@@ -592,6 +765,78 @@ onUnmounted(() => {
           </div>
         </template>
       </AdminDataTable>
+      
+      <!-- Group Account Manager -->
+      <div v-if="managingGroupAccounts" class="form-card group-account-manager">
+        <div class="manager-header">
+          <h3>{{ t('admin_mail_transports_manage_accounts_for') }} "{{ managingGroupAccounts.name }}"</h3>
+          <IconButton icon="close" :label="t('admin_mail_transports_close')" variant="ghost" @click="closeGroupAccountManager" />
+        </div>
+        
+        <!-- Add Account Row -->
+        <div class="add-account-row">
+          <label class="field">
+            <span>{{ t('admin_mail_transports_select_account') }}</span>
+            <select v-model="addAccountId" :disabled="!availableAccountsForGroup.length">
+              <option :value="null" disabled>{{ availableAccountsForGroup.length ? t('admin_mail_transports_choose_account') : t('admin_mail_transports_no_available_accounts') }}</option>
+              <option v-for="acc in availableAccountsForGroup" :key="acc.id" :value="acc.id">{{ acc.name }} ({{ acc.host }})</option>
+            </select>
+          </label>
+          <label class="field priority-field">
+            <span>{{ t('admin_mail_transports_priority') }}</span>
+            <input v-model.number="addAccountPriority" type="number" min="0" max="999" placeholder="0" />
+          </label>
+          <div class="field add-btn-field">
+            <span>&nbsp;</span>
+            <IconButton icon="plus" :label="t('admin_mail_transports_add_to_group')" @click="handleAddAccountToGroup" :disabled="!addAccountId" />
+          </div>
+        </div>
+        
+        <!-- Assigned Accounts List -->
+        <div v-if="groupAccounts.length" class="assigned-accounts">
+          <table class="accounts-table">
+            <thead>
+              <tr>
+                <th>{{ t('admin_mail_transports_priority') }}</th>
+                <th>{{ t('admin_mail_transports_columns_name') }}</th>
+                <th>{{ t('admin_mail_transports_columns_host') }}</th>
+                <th>{{ t('admin_mail_transports_columns_active') }}</th>
+                <th>{{ t('admin_mail_transports_actions') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="ga in groupAccounts" :key="ga.id">
+                <td>
+                  <input 
+                    type="number" 
+                    :value="ga.priority" 
+                    min="0" 
+                    max="999" 
+                    class="priority-input"
+                    @change="handleUpdatePriority(ga.account_id, parseInt($event.target.value) || 0)"
+                  />
+                </td>
+                <td>{{ ga.account?.name || getAccountName(ga.account_id) }}</td>
+                <td>{{ ga.account?.host || '—' }}</td>
+                <td>
+                  <span :class="['status-badge', ga.account?.is_active ? 'active' : 'inactive']">{{ ga.account?.is_active ? '✓' : '✗' }}</span>
+                </td>
+                <td>
+                  <IconButton 
+                    icon="trash" 
+                    :label="t('admin_mail_transports_remove_from_group')" 
+                    variant="danger"
+                    @click="handleRemoveAccountFromGroup(ga.account_id)"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-else class="empty-accounts">
+          {{ t('admin_mail_transports_no_accounts_in_group') }}
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -626,4 +871,29 @@ onUnmounted(() => {
 @media (max-width: 640px) {
   .form-card { padding: 1rem; }
 }
+
+/* Group Account Manager */
+.group-account-manager { margin-top: 1rem; }
+.manager-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.manager-header h3 { margin: 0; }
+
+.add-account-row { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.add-account-row .field { display: flex; flex-direction: column; gap: 0.35rem; font-weight: 600; color: var(--text); }
+.add-account-row .field select,
+.add-account-row .field input { padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
+.add-account-row .field select { min-width: 250px; }
+.priority-field input { width: 80px; }
+.add-btn-field { display: flex; flex-direction: column; justify-content: flex-end; }
+
+.assigned-accounts { overflow-x: auto; }
+.accounts-table { width: 100%; border-collapse: collapse; }
+.accounts-table th,
+.accounts-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); color: var(--text); }
+.accounts-table th { font-weight: 600; background: var(--surface-muted); font-size: 0.85rem; }
+.accounts-table tbody tr:hover { background: var(--surface-muted); }
+.priority-input { width: 70px; padding: 0.35rem; border: 1px solid var(--border); border-radius: 4px; text-align: center; background: var(--surface); color: var(--text); }
+.status-badge { font-weight: 700; }
+.status-badge.active { color: #059669; }
+.status-badge.inactive { color: #dc2626; }
+.empty-accounts { padding: 1rem; text-align: center; color: var(--text-muted); font-style: italic; }
 </style>

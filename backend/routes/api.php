@@ -234,11 +234,12 @@ Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
     Route::apiResource('/moderator/locations', LocationController::class);
 
     // Mail transport routes
-    Route::apiResource('/admin/mail-accounts', MailAccountController::class);
+    Route::apiResource('/admin/mail-accounts', MailAccountController::class)->parameters(['mail-accounts' => 'account']);
     Route::post('/admin/mail-accounts/{account}/test', [MailAccountController::class, 'testConnection']);
 
-    Route::apiResource('/admin/mail-groups', MailGroupController::class);
+    Route::apiResource('/admin/mail-groups', MailGroupController::class)->parameters(['mail-groups' => 'group']);
     Route::post('/admin/mail-groups/{group}/add-account', [MailGroupController::class, 'addAccount']);
+    Route::put('/admin/mail-groups/{group}/update-priority/{account}', [MailGroupController::class, 'updateAccountPriority']);
     Route::delete('/admin/mail-groups/{group}/remove-account/{account}', [MailGroupController::class, 'removeAccount']);
     Route::post('/admin/mail-groups/{group}/test', [MailGroupController::class, 'testConnection']);
 });

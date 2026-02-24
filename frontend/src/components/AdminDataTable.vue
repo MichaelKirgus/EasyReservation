@@ -306,7 +306,12 @@ function onDrop(globalIndex) {
             <td v-if="selectable"><input type="checkbox" :checked="selected.includes(row[rowKey])" @change="toggleRow(row[rowKey])" /></td>
             <td v-for="col in displayColumns" :key="col.key">
               <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
-                {{ row[col.key] ?? '–' }}
+                <template v-if="col.type === 'boolean'">
+                  <input type="checkbox" class="table-checkbox" :checked="!!row[col.key]" disabled />
+                </template>
+                <template v-else>
+                  {{ row[col.key] ?? '–' }}
+                </template>
               </slot>
             </td>
             <td v-if="$slots['row-actions']" class="actions" @click.stop>
@@ -338,6 +343,7 @@ function onDrop(globalIndex) {
 th, td { border-bottom: 1px solid var(--border-strong); padding: 0.5rem; text-align: left; vertical-align: top; color: var(--text); }
 th.sortable { cursor: pointer; }
 .sort-indicator { margin-left: 0.25rem; font-size: 0.8em; color: var(--text-muted); }
+.table-checkbox { pointer-events: none; width: 16px; height: 16px; }
 .search { flex: 1 1 110px; display: none; min-width: 0; }
 .search input { padding: 0.4rem 0.5rem; border: 1px solid var(--border); border-radius: 6px; width: 92%; background: var(--surface); color: var(--text); }
 @media (min-width: 768px) { .search { display: block; max-width: 260px; } }

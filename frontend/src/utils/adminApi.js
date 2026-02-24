@@ -42,7 +42,8 @@ export async function adminFetch(relativeOrAbsolute, opts = {}, { apiKeyRef, rou
   const url = absolute ? relativeOrAbsolute : `${apiBase}/${prefix}/${relativeOrAbsolute}`
   const usesJson = includeJsonFromOptions(opts)
   const headers = buildAdminHeaders({ apiKeyRef, includeJson: usesJson, extraHeaders: opts.headers || {} })
-  const response = await fetch(url, { ...opts, headers, credentials: 'same-origin' })
+  // Use include so httpOnly session cookies are sent even across ports/subdomains during development
+  const response = await fetch(url, { ...opts, headers, credentials: 'include' })
 
   if (!absolute && response.status === 403 && !triedFallback && prefix === 'admin') {
     if (routePrefixRef && typeof routePrefixRef === 'object' && 'value' in routePrefixRef) {
@@ -89,7 +90,7 @@ export async function getMailAccounts(config = {}) {
 export async function createMailAccount(data, config = {}) {
   return adminFetchJson('mail-accounts', {
     method: 'POST',
-    body: JSON.stringify({ account: data }),
+    body: JSON.stringify(data),
   }, config)
 }
 
@@ -99,7 +100,7 @@ export async function createMailAccount(data, config = {}) {
 export async function updateMailAccount(id, data, config = {}) {
   return adminFetchJson(`mail-accounts/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ account: data }),
+    body: JSON.stringify(data),
   }, config)
 }
 
@@ -130,7 +131,7 @@ export async function getMailGroups(config = {}) {
 export async function createMailGroup(data, config = {}) {
   return adminFetchJson('mail-groups', {
     method: 'POST',
-    body: JSON.stringify({ group: data }),
+    body: JSON.stringify(data),
   }, config)
 }
 
@@ -140,7 +141,7 @@ export async function createMailGroup(data, config = {}) {
 export async function updateMailGroup(id, data, config = {}) {
   return adminFetchJson(`mail-groups/${id}`, {
     method: 'PUT',
-    body: JSON.stringify({ group: data }),
+    body: JSON.stringify(data),
   }, config)
 }
 
@@ -163,4 +164,38 @@ export async function testMailGroup(id, config = {}) {
  */
 export async function getAvailableMailGroups(config = {}) {
   return adminFetchJson('mail-groups/available', { method: 'GET' }, config)
+}
+
+/**
+ * Get a single mail transport group with its accounts
+ */
+export async function getMailGroup(id, config = {}) {
+  return adminFetchJson(`mail-groups/${id}`, { method: 'GET' }, config)
+}
+
+/**
+ * Add an account to a transport group
+ */
+export async function addAccountToGroup(groupId, accountId, priority = 0, config = {}) {
+  return adminFetchJson(`mail-groups/${groupId}/add-account`, {
+    method: 'POST',
+    body: JSON.stringify({ account_id: accountId, priority }),
+  }, config)
+}
+
+/**
+ * Remove an account from a transport group
+ */
+export async function removeAccountFromGroup(groupId, accountId, config = {}) {
+  return adminFetchJson(`mail-groups/${groupId}/remove-account/${accountId}`, { method: 'DELETE' }, config)
+}
+
+/**
+ * Update the priority of an account within a transport group
+ */
+export async function updateAccountPriority(groupId, accountId, priority, config = {}) {
+  return adminFetchJson(`mail-groups/${groupId}/update-priority/${accountId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ priority }),
+  }, config)
 }

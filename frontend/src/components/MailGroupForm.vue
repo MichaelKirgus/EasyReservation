@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { reactive, watch } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -25,23 +25,20 @@ const emit = defineEmits(['update:modelValue', 'save', 'cancel'])
 
 const form = reactive({ ...props.modelValue })
 
-// Watch for modelValue changes to sync with parent
-watch(() => props.modelValue, (newValue) => {
-  Object.assign(form, newValue)
+// Keep local form synced with parent updates
+watch(() => props.modelValue, (next) => {
+  Object.assign(form, next || {})
 }, { deep: true })
 
-// Emit updates when form changes
-function updateField(key, value) {
-  form[key] = value
-  emit('update:modelValue', { ...form })
-}
+// Emit updates whenever fields change so parent model stays current
+watch(form, (next) => {
+  emit('update:modelValue', { ...next })
+}, { deep: true })
 
-// Save handler
 function handleSave() {
   emit('save', { ...form })
 }
 
-// Cancel handler
 function handleCancel() {
   emit('cancel')
 }
@@ -64,7 +61,6 @@ const failoverStrategyOptions = [
           v-model="form.name" 
           type="text" 
           placeholder="My Transport Group"
-          @update:model-value="updateField('name', $event)"
         />
       </label>
       
@@ -75,7 +71,6 @@ const failoverStrategyOptions = [
           v-model="form.description" 
           rows="2"
           placeholder="Optional description..."
-          @update:model-value="updateField('description', $event)"
         ></textarea>
       </label>
       
@@ -84,7 +79,6 @@ const failoverStrategyOptions = [
         <input 
           type="checkbox" 
           v-model="form.rateLimitEnabled"
-          @update:model-value="updateField('rateLimitEnabled', $event)"
         />
         <span>Enable Rate Limiting</span>
       </label>
@@ -98,7 +92,6 @@ const failoverStrategyOptions = [
           min="1" 
           max="9999"
           placeholder="Unlimited (default)"
-          @update:model-value="updateField('rateLimitPerMinute', $event)"
         />
       </label>
       
@@ -111,7 +104,6 @@ const failoverStrategyOptions = [
           min="1"
           max="99999"
           placeholder="Unlimited (default)"
-          @update:model-value="updateField('rateLimitPerHour', $event)"
         />
       </label>
       
@@ -120,7 +112,6 @@ const failoverStrategyOptions = [
         <span>Failover Strategy</span>
         <select 
           v-model="form.failoverStrategy"
-          @update:model-value="updateField('failoverStrategy', $event)"
         >
           <option value="sequential">Sequential (Failover)</option>
           <option value="round_robin">Round Robin</option>
@@ -136,7 +127,6 @@ const failoverStrategyOptions = [
           type="number"
           min="1"
           max="10"
-          @update:model-value="updateField('maxRetriesPerAccount', $event)"
         />
       </label>
       
@@ -145,7 +135,6 @@ const failoverStrategyOptions = [
         <input 
           type="checkbox" 
           v-model="form.isActive"
-          @update:model-value="updateField('isActive', $event)"
         />
         <span>Active</span>
       </label>
