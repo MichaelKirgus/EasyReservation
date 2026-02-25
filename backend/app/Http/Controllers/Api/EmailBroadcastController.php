@@ -17,6 +17,7 @@ class EmailBroadcastController extends Controller
     {
         $data = $request->validate([
             'template_id' => ['required', 'integer', 'exists:email_templates,id'],
+            'transport_group_id' => ['nullable', 'integer', 'exists:mail_transport_groups,id'],
             'scope' => ['required', 'in:reservations,waitlist,both,selection,internal_users'],
             'send_to_all' => ['sometimes', 'boolean'],
             'deduplicate' => ['sometimes', 'boolean'],
@@ -38,6 +39,7 @@ class EmailBroadcastController extends Controller
         $waitlistIds = $data['waitlist_ids'] ?? [];
         $customRecipients = $data['custom_recipients'] ?? [];
         $userRoles = $data['user_roles'] ?? [];
+        $transportGroupId = $data['transport_group_id'] ?? null;
 
         try {
             $result = $this->service->queueBroadcast(
@@ -49,6 +51,7 @@ class EmailBroadcastController extends Controller
                 $customRecipients,
                 $deduplicate,
                 $userRoles,
+                $transportGroupId,
             );
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);

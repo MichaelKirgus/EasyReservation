@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Jobs\SendMailJob;
 use App\Models\EmailTemplate;
 use App\Models\EmailValidation;
+use App\Models\MailTransportGroup;
 use App\Models\Reservation;
 use App\Models\WaitlistEntry;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Request;
 use App\Services\PlaceholderService;
 use App\Services\EmailService;
+use App\Services\MailTransportService;
 use App\Services\RateLimitCacheService;
 
 class EmailValidationService
@@ -27,6 +29,7 @@ class EmailValidationService
         private readonly IcsService $ics,
         private readonly PlaceholderService $placeholders,
         private readonly EmailService $emailService,
+        private readonly MailTransportService $mailTransportService,
         private readonly RateLimitCacheService $rateLimitCache,
     ) {
     }
@@ -94,13 +97,17 @@ class EmailValidationService
         try {
             $this->checkAdminApprovalRateLimit();
 
-            $mailerConfig = $this->buildMailerConfig();
-            if (! $mailerConfig) {
-                Log::warning('EmailValidationService: Mail server not configured, cannot send admin approval email');
+            // Get transport group ID from admin approval template setting
+            $templateId = (int) ($this->settings->get('email_validation_admin_template_id') ?? 0);
+            $transportGroupId = $this->getTransportGroupIdFromSetting($templateId);
+
+            if (!$transportGroupId) {
+                Log::error('EmailValidationService: No transport group ID found for admin approval email');
                 return;
             }
 
-            $this->emailService->sendAdminApprovalEmail($mailerConfig, $validation);
+            // Use MailTransportService for failover support
+            $this->emailService->sendAdminApprovalEmail($transportGroupId, $validation);
         } catch (\Throwable $e) {
             Log::warning('Admin approval notification email failed', [
                 'error' => $e->getMessage(),
@@ -387,14 +394,30 @@ class EmailValidationService
         $this->sendValidationEmail($validation);
     }
 
+    private function getTransportGroupIdFromSetting(?int $templateId): ?int
+    {
+        if (! $templateId) {
+            return null;
+        }
+        
+        // Get the template to check for transport_group_id
+        $template = EmailTemplate::query()->with('transportGroup')->find($templateId);
+        return $template && $template->transport_group_id ? $template->transport_group_id : null;
+    }
+
     private function sendValidationEmail(EmailValidation $validation): void
     {
-        $mailerConfig = $this->buildMailerConfig();
-        if (! $mailerConfig) {
+        // Get transport group ID from validation template setting
+        $templateId = (int) ($this->settings->get('email_validation_template_id') ?? 0);
+        $transportGroupId = $this->getTransportGroupIdFromSetting($templateId);
+        
+        if (!$transportGroupId) {
+            Log::error('EmailValidationService: No transport group ID found for validation email');
             throw new \RuntimeException(__('mail_server_not_configured'));
         }
-
-        $this->emailService->sendValidationEmail($mailerConfig, $validation);
+        
+        // Use MailTransportService for failover support
+        $this->emailService->sendValidationEmail($transportGroupId, $validation);
     }
 
 
@@ -456,25 +479,42 @@ HTML;
             'timeout' => null,
         ];
     }
+private function buildMailerConfigWithTransportGroup(?int $transportGroupId): ?array
+{
+    if (!$transportGroupId) {
+        Log::error('EmailValidationService: No transport group ID provided for mailer config');
+        return null;
+    }
+    
+    // Use MailTransportService to get config from transport group
+    return $this->mailTransportService->buildMailerConfigFromTransportGroup($transportGroupId);
+}
+
 
 
     public function sendReservationNotification(Reservation $reservation, string $templateSettingKey, bool $includeUndoLink): void
     {
         if (! $reservation->email) {
+            Log::debug('EmailValidationService: Reservation has no email, skipping notification');
             return;
         }
 
         $templateId = (int) ($this->settings->get($templateSettingKey, 0) ?? 0);
         if ($templateId <= 0) {
+            Log::warning('EmailValidationService: No template configured for reservation notification');
+            return;
+        }
+        
+        // Get transport group ID from template
+        $transportGroupId = $this->getTransportGroupIdFromSetting($templateId);
+
+        if (!$transportGroupId) {
+            Log::error('EmailValidationService: No transport group ID found for reservation notification');
             return;
         }
 
-        $mailerConfig = $this->buildMailerConfig();
-        if (! $mailerConfig) {
-            return;
-        }
-
-        $this->emailService->sendReservationNotification($mailerConfig, $reservation, $templateSettingKey, $includeUndoLink);
+        // Use MailTransportService for failover support
+        $this->emailService->sendReservationNotification($transportGroupId, $reservation, $templateSettingKey, $includeUndoLink);
     }
 
     private function baseReplacements(array $overrides = []): array

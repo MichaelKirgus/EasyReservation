@@ -21,6 +21,10 @@ const error = ref('')
 
 const activeSubTab = ref(props.defaultSubTab === 'templates' ? 'templates' : 'send')
 
+// Transport group options (accounts and groups)
+const transportGroups = ref([])
+const transportAccounts = ref([])
+
 const form = reactive({
   templateId: null,
   mode: 'both',
@@ -29,13 +33,100 @@ const form = reactive({
   selectedReservations: [],
   selectedWaitlist: [],
   customRecipients: [{ name: '', email: '' }],
+  transportGroupId: null, // Transport group/account ID for failover/rate limiting
 })
 
-const templateForm = reactive({ name: '', subject: '', body: '', cc: '', bcc: '', type: 'generic' })
+const templateForm = reactive({ name: '', subject: '', body: '', cc: '', bcc: '', type: 'generic', transportGroupId: null })
+
+// User role computed property
 const userRole = computed(() => currentUser.value?.role?.toLowerCase?.() || '')
+
+// Check if user is admin or superadmin (can edit transport group selection)
+const isAdminOrSuperAdmin = computed(() =>
+  routePrefix.value === 'admin' || userRole.value === 'admin' || userRole.value === 'superadmin'
+)
+
+// Can manage templates - same logic as before
 const canManageTemplates = computed(() =>
   routePrefix.value === 'admin' || userRole.value === 'admin' || userRole.value === 'superadmin'
 )
+
+// Transport group options for combobox
+const transportGroupOptions = computed(() => {
+  const options = []
+  
+  // Add groups first (with their accounts)
+  transportGroups.value.forEach(group => {
+    options.push({
+      value: `group_${group.id}`,
+      label: `${group.name} (${tr('admin_email_broadcast_transport_group')})`,
+      type: 'group',
+      id: group.id,
+      failoverStrategy: group.failover_strategy,
+      rateLimitEnabled: group.rate_limit_enabled,
+      rateLimitPerMinute: group.rate_limit_per_minute,
+      rateLimitPerHour: group.rate_limit_per_hour,
+    })
+    
+    // Add accounts from this group
+    if (group.accounts && group.accounts.length > 0) {
+      group.accounts.forEach(account => {
+        options.push({
+          value: `account_${account.id}`,
+          label: `  ${account.name} (${tr('admin_email_broadcast_transport_account')})`,
+          type: 'account',
+          id: account.id,
+          rateLimitEnabled: account.rate_limit_enabled,
+          rateLimitPerMinute: account.rate_limit_per_minute,
+          rateLimitPerHour: account.rate_limit_per_hour,
+        })
+      })
+    }
+  })
+  
+  // Add standalone accounts (not in any group)
+  transportAccounts.value.forEach(account => {
+    options.push({
+      value: `account_${account.id}`,
+      label: `${account.name} (${tr('admin_email_broadcast_transport_account')})`,
+      type: 'account',
+      id: account.id,
+      rateLimitEnabled: account.rate_limit_enabled,
+      rateLimitPerMinute: account.rate_limit_per_minute,
+      rateLimitPerHour: account.rate_limit_per_hour,
+    })
+  })
+  
+  return options
+})
+
+// Get current transport group/account info for display
+const currentTransportInfo = computed(() => {
+  if (!form.transportGroupId) return null
+  
+  const type = form.transportGroupId.toString().startsWith('group_') ? 'group' : 'account'
+  const id = parseInt(form.transportGroupId.toString().replace('group_', '').replace('account_', ''))
+  
+  if (type === 'group') {
+    const group = transportGroups.value.find(g => g.id === id)
+    return group ? {
+      name: group.name,
+      strategy: group.failover_strategy,
+      rateLimitEnabled: group.rate_limit_enabled,
+      rateLimitPerMinute: group.rate_limit_per_minute,
+      rateLimitPerHour: group.rate_limit_per_hour,
+    } : null
+  } else {
+    const account = transportAccounts.value.find(a => a.id === id)
+    return account ? {
+      name: account.name,
+      strategy: 'single_account',
+      rateLimitEnabled: account.rate_limit_enabled,
+      rateLimitPerMinute: account.rate_limit_per_minute,
+      rateLimitPerHour: account.rate_limit_per_hour,
+    } : null
+  }
+})
 
 const templateColumns = computed(() => [
   { key: 'id', label: tr('admin_email_broadcast_columns_id'), sortable: true },
@@ -94,11 +185,26 @@ async function loadPlaceholders() {
   placeholders.value = await res.json()
 }
 
+async function loadTransportOptions() {
+  try {
+    // Use moderator endpoint for transport options (read-only access for moderators)
+    const res = await fetchWithAuth('moderator/mail-transport-options')
+    if (res.ok) {
+      const data = await res.json()
+      transportGroups.value = data.groups || []
+      transportAccounts.value = data.accounts || []
+    }
+  } catch (e) {
+    // Silently fail - transport options are optional
+    console.warn('Failed to load transport options:', e)
+  }
+}
+
 async function loadAll() {
   if (!apiKey.value) { setError(tr('please_login_api_key_missing')); return }
   loading.value = true
   try {
-    await Promise.all([loadTemplates(), loadRecipients(), loadPlaceholders()])
+    await Promise.all([loadTemplates(), loadRecipients(), loadPlaceholders(), loadTransportOptions()])
     setMessage(tr('data_loaded'))
   } catch (e) {
     setError(tr('error_loading') + ': ' + e)
@@ -131,6 +237,11 @@ async function sendBroadcast() {
     scope: form.mode,
     send_to_all: form.mode !== 'selection',
     deduplicate: form.deduplicate,
+  }
+
+  // Add transport group ID to payload if selected
+  if (form.transportGroupId) {
+    payload.transport_group_id = parseInt(form.transportGroupId.toString().replace('group_', '').replace('account_', ''))
   }
 
   // Add user roles if selected
@@ -178,7 +289,15 @@ async function saveTemplate(tpl) {
   try {
     const res = await fetchWithAuth(`email-templates/${tpl.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ name: tpl.name, subject: tpl.subject, body: tpl.body, cc: tpl.cc || '', bcc: tpl.bcc || '', type: tpl.type || 'generic' }),
+      body: JSON.stringify({
+        name: tpl.name,
+        subject: tpl.subject,
+        body: tpl.body,
+        cc: tpl.cc || '',
+        bcc: tpl.bcc || '',
+        type: tpl.type || 'generic',
+        transport_group_id: tpl.transportGroupId,
+      }),
     })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
@@ -207,7 +326,10 @@ async function createTemplate() {
   try {
     const res = await fetchWithAuth('email-templates', {
       method: 'POST',
-      body: JSON.stringify({ ...templateForm }),
+      body: JSON.stringify({
+        ...templateForm,
+        transport_group_id: templateForm.transportGroupId || null,
+      }),
     })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
@@ -218,6 +340,7 @@ async function createTemplate() {
     templateForm.cc = ''
     templateForm.bcc = ''
     templateForm.type = 'generic'
+    templateForm.transportGroupId = null
     await loadTemplates()
   } catch (e) {
     setError(tr('creating_failed') + ': ' + e)
@@ -275,6 +398,7 @@ watch(() => props.defaultSubTab, (val) => {
           <h3>{{ tr('admin_email_broadcast_send_tab') }}</h3>
         </div>
         <div class="grid">
+          <!-- Template selection -->
           <label>
             {{ tr('admin_email_broadcast_columns_name') }}
             <select v-model.number="form.templateId">
@@ -284,6 +408,41 @@ watch(() => props.defaultSubTab, (val) => {
               </option>
             </select>
           </label>
+
+          <!-- Transport group combobox - visible to all, editable only for admins -->
+          <label>
+            {{ tr('admin_email_broadcast_transport_group_label') }}
+            <select
+              v-model="form.transportGroupId"
+              :disabled="!isAdminOrSuperAdmin"
+              :title="isAdminOrSuperAdmin ? '' : tr('admin_email_broadcast_transport_group_moderator_hint')"
+            >
+              <option value="" disabled>{{ tr('admin_email_broadcast_select_transport_placeholder') }}</option>
+              <template v-for="opt in transportGroupOptions" :key="opt.value">
+                <option :value="opt.value">{{ opt.label }}</option>
+              </template>
+            </select>
+          </label>
+
+          <!-- Transport info display (read-only) -->
+          <div v-if="currentTransportInfo && !isAdminOrSuperAdmin" class="transport-info-display">
+            <span>{{ tr('admin_email_broadcast_transport_info') }}:</span>
+            <strong>{{ currentTransportInfo.name }}</strong>
+            <span v-if="currentTransportInfo.strategy === 'round_robin'"> ({{ tr('admin_email_broadcast_strategy_round_robin') }})</span>
+            <span v-else-if="currentTransportInfo.strategy !== 'single_account'"> ({{ tr('admin_email_broadcast_strategy_failover') }})</span>
+          </div>
+
+          <!-- Rate limit info for admins -->
+          <div v-if="isAdminOrSuperAdmin && currentTransportInfo" class="rate-limit-info">
+            <template v-if="currentTransportInfo.rateLimitEnabled">
+              <span>{{ tr('admin_email_broadcast_rate_limit_per_minute') }}: {{ currentTransportInfo.rateLimitPerMinute }}</span>
+              <span v-if="currentTransportInfo.rateLimitPerHour">{{ tr('admin_email_broadcast_rate_limit_per_hour') }}: {{ currentTransportInfo.rateLimitPerHour }}</span>
+            </template>
+            <template v-else>
+              <em>{{ tr('admin_email_broadcast_rate_limit_disabled') }}</em>
+            </template>
+          </div>
+
           <label class="inline">
             <input type="checkbox" v-model="form.deduplicate" /> {{ tr('admin_email_broadcast_deduplicate_label') }}
           </label>
@@ -442,6 +601,21 @@ watch(() => props.defaultSubTab, (val) => {
               <span class="placeholder-indicator" :title="tr('admin_email_broadcast_cc_title_hint')" aria-hidden="true">⧉</span>
             </div>
           </label>
+          <!-- Transport group combobox for template - visible to all, editable only for admins -->
+          <label>
+            {{ tr('admin_email_broadcast_transport_group_label') }}
+            <select
+              v-model.number="templateForm.transportGroupId"
+              :disabled="!isAdminOrSuperAdmin"
+              :title="isAdminOrSuperAdmin ? '' : tr('admin_email_broadcast_transport_group_moderator_hint')"
+            >
+              <option value="" disabled>{{ tr('admin_email_broadcast_select_transport_placeholder') }}</option>
+              <template v-for="opt in transportGroupOptions" :key="opt.value">
+                <option :value="opt.value">{{ opt.label }}</option>
+              </template>
+            </select>
+          </label>
+
           <label class="with-placeholder-icon">{{ tr('admin_email_broadcast_bcc_label') }}
             <div class="input-wrap">
               <input v-model="templateForm.bcc" :title="tr('admin_email_broadcast_bcc_title_hint')" />
@@ -504,6 +678,29 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .input-wrap { position: relative; display: flex; align-items: center; gap: 0.35rem; width: 100%; }
 .input-wrap input, .input-wrap textarea { flex: 1; width: 100%; }
 .placeholder-indicator { color: var(--primary); font-size: 0.9rem; cursor: help; }
-:deep(.table td input), :deep(.table td textarea) { width: 100%; max-width: 100%; box-sizing: border-box; }
-:deep(.table td textarea) { min-height: 120px; }
+
+/* Transport group combobox styles */
+.transport-info-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--surface-muted);
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+.rate-limit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--surface-muted);
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+.rate-limit-info span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
 </style>

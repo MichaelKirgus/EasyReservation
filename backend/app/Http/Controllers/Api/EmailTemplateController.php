@@ -13,7 +13,27 @@ class EmailTemplateController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(EmailTemplate::query()->orderBy('id')->get());
+        $templates = EmailTemplate::query()
+            ->with('transportGroup')
+            ->orderBy('id')
+            ->get();
+        
+        // Transform to include transport group info in a flat structure
+        $templates = $templates->map(function ($template) {
+            return [
+                'id' => $template->id,
+                'name' => $template->name,
+                'type' => $template->type,
+                'subject' => $template->subject,
+                'body' => $template->body,
+                'cc' => $template->cc,
+                'bcc' => $template->bcc,
+                'transport_group_id' => $template->transport_group_id,
+                'transport_group_name' => $template->transportGroup?->name,
+            ];
+        });
+        
+        return response()->json($templates);
     }
 
     public function store(Request $request): JsonResponse
@@ -23,6 +43,7 @@ class EmailTemplateController extends Controller
             'type' => ['nullable', 'string', 'max:50'],
             'subject' => ['required', 'string'],
             'body' => ['required', 'string'],
+            'transport_group_id' => ['nullable', 'integer', 'exists:mail_transport_groups,id'],
         ]);
 
         $template = EmailTemplate::create([
@@ -30,6 +51,7 @@ class EmailTemplateController extends Controller
             'type' => $data['type'] ?? 'validation',
             'subject' => $data['subject'],
             'body' => $data['body'],
+            'transport_group_id' => $data['transport_group_id'] ?? null,
         ]);
 
         return response()->json($template, 201);
@@ -42,6 +64,7 @@ class EmailTemplateController extends Controller
             'type' => ['sometimes', 'string', 'max:50'],
             'subject' => ['sometimes', 'string'],
             'body' => ['sometimes', 'string'],
+            'transport_group_id' => ['nullable', 'integer', 'exists:mail_transport_groups,id'],
         ]);
 
         $emailTemplate->fill($data);

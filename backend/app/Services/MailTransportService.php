@@ -230,6 +230,36 @@ class MailTransportService
     }
 
     /**
+     * Build mailer config from transport group for use with EmailService methods.
+     */
+    public function buildMailerConfigFromTransportGroup(int $transportGroupId): ?array
+    {
+        // Get the transport group with its accounts
+        $group = MailTransportGroup::query()->with('accounts')->find($transportGroupId);
+        
+        if (! $group) {
+            return null;
+        }
+
+        // Use the first active account from the group as primary
+        $account = $group->accounts()->where('is_active', 1)->first();
+        
+        if (! $account) {
+            return null;
+        }
+
+        return [
+            'transport' => 'smtp',
+            'host' => $account->host,
+            'port' => (int) ($account->port ?? 587),
+            'username' => $account->username,
+            'password' => $account->password,
+            'encryption' => $account->encryption ?: null,
+            'timeout' => (int) ($account->timeout ?? 30),
+        ];
+    }
+
+    /**
      * Send email using a transport group with failover support.
      */
     public function sendWithFailover(

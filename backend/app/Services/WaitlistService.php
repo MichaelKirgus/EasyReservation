@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Reservation;
+use App\Models\MailTransportGroup;
 use App\Models\WaitlistEntry;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -14,6 +15,7 @@ class WaitlistService
         private readonly SettingsService $settings,
         private readonly EmailBroadcastService $mailer,
         private readonly EmailService $emailService,
+        private readonly MailTransportService $mailTransportService,
     ) {
     }
 
@@ -196,21 +198,73 @@ class WaitlistService
         return $reservation;
     }
 
+    private function getTransportGroupIdFromTemplate(?int $templateId): ?int
+    {
+        if (! $templateId) {
+            return null;
+        }
+        
+        // Get the template to check for transport_group_id
+        $template = \App\Models\EmailTemplate::query()->with('transportGroup')->find($templateId);
+        return $template && $template->transport_group_id ? $template->transport_group_id : null;
+    }
+
+    private function buildMailerConfig(?int $transportGroupId = null): ?array
+    {
+        if ($transportGroupId) {
+            // Use MailTransportService to get config from transport group
+            return $this->mailTransportService->buildMailerConfigFromTransportGroup($transportGroupId);
+        }
+        
+        // Fallback to global settings
+        $host = $this->settings->get('mail_host');
+        $port = (int) ($this->settings->get('mail_port') ?? 0);
+        $username = $this->settings->get('mail_username');
+        $password = $this->settings->get('mail_password');
+        $encryption = $this->settings->get('mail_encryption', null);
+
+        if (! $host || ! $port) {
+            return null;
+        }
+
+        return [
+            'transport' => 'smtp',
+            'host' => $host,
+            'port' => $port,
+            'username' => $username,
+            'password' => $password,
+            'encryption' => $encryption,
+            'timeout' => null,
+        ];
+    }
+
     public function sendWaitlistValidationSuccessEmail(WaitlistEntry $entry): void
     {
+        \Illuminate\Support\Facades\Log::debug('WaitlistService: Starting waitlist validation success email sending', [
+            'waitlist_entry_id' => $entry->id,
+            'email' => $entry->email ?? 'unknown',
+        ]);
+
         $templateId = (int) ($this->settings->get('email_waitlist_validation_success_template_id', 0) ?? 0);
         if ($templateId <= 0) {
+            \Illuminate\Support\Facades\Log::warning('WaitlistService: No waitlist validation success template configured');
             return;
         }
         if (empty($entry->email)) {
+            \Illuminate\Support\Facades\Log::debug('WaitlistService: Waitlist entry has no email, skipping');
+            return;
+        }
+
+        // Get transport group ID from template
+        $transportGroupId = $this->getTransportGroupIdFromTemplate($templateId);
+
+        if (!$transportGroupId) {
+            \Illuminate\Support\Facades\Log::error('WaitlistService: No transport group ID found for waitlist validation success email');
             return;
         }
 
         try {
-            $mailerConfig = $this->buildMailerConfig();
-            if ($mailerConfig) {
-                $this->emailService->sendWaitlistValidationSuccessEmail($mailerConfig, $entry);
-            }
+            $this->emailService->sendWaitlistValidationSuccessEmail($transportGroupId, $entry);
         } catch (\Throwable $e) {
             Log::warning('Waitlist validation success email failed', [
                 'error' => $e->getMessage(),
@@ -221,19 +275,31 @@ class WaitlistService
 
     public function sendWaitlistCancelledEmail(WaitlistEntry $entry): void
     {
+        \Illuminate\Support\Facades\Log::debug('WaitlistService: Starting waitlist cancelled email sending', [
+            'waitlist_entry_id' => $entry->id,
+            'email' => $entry->email ?? 'unknown',
+        ]);
+
         $templateId = (int) ($this->settings->get('email_waitlist_cancel_template_id', 0) ?? 0);
         if ($templateId <= 0) {
+            \Illuminate\Support\Facades\Log::warning('WaitlistService: No waitlist cancel template configured');
             return;
         }
         if (empty($entry->email)) {
+            \Illuminate\Support\Facades\Log::debug('WaitlistService: Waitlist entry has no email, skipping');
+            return;
+        }
+
+        // Get transport group ID from template
+        $transportGroupId = $this->getTransportGroupIdFromTemplate($templateId);
+
+        if (!$transportGroupId) {
+            \Illuminate\Support\Facades\Log::error('WaitlistService: No transport group ID found for waitlist cancelled email');
             return;
         }
 
         try {
-            $mailerConfig = $this->buildMailerConfig();
-            if ($mailerConfig) {
-                $this->emailService->sendWaitlistCancelledEmail($mailerConfig, $entry);
-            }
+            $this->emailService->sendWaitlistCancelledEmail($transportGroupId, $entry);
         } catch (\Throwable $e) {
             Log::warning('Waitlist cancel email failed', [
                 'error' => $e->getMessage(),
@@ -244,11 +310,18 @@ class WaitlistService
 
     private function sendPromotedEmail(Reservation $reservation): void
     {
+        \Illuminate\Support\Facades\Log::debug('WaitlistService: Starting waitlist promoted email sending', [
+            'reservation_id' => $reservation->id,
+            'email' => $reservation->email ?? 'unknown',
+        ]);
+
         $templateId = (int) ($this->settings->get('email_waitlist_promoted_template_id', 0) ?? 0);
         if ($templateId <= 0) {
+            \Illuminate\Support\Facades\Log::warning('WaitlistService: No waitlist promoted template configured');
             return;
         }
         if (empty($reservation->email)) {
+            \Illuminate\Support\Facades\Log::debug('WaitlistService: Reservation has no email, skipping');
             return;
         }
 
@@ -257,11 +330,16 @@ class WaitlistService
             $reservation->save();
         }
 
+        // Get transport group ID from template
+        $transportGroupId = $this->getTransportGroupIdFromTemplate($templateId);
+
+        if (!$transportGroupId) {
+            \Illuminate\Support\Facades\Log::error('WaitlistService: No transport group ID found for waitlist promoted email');
+            return;
+        }
+
         try {
-            $mailerConfig = $this->buildMailerConfig();
-            if ($mailerConfig) {
-                $this->emailService->sendWaitlistPromotedEmail($mailerConfig, $reservation);
-            }
+            $this->emailService->sendWaitlistPromotedEmail($transportGroupId, $reservation);
         } catch (\Throwable $e) {
             Log::warning('Waitlist promotion email failed', [
                 'error' => $e->getMessage(),

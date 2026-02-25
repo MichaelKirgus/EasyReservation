@@ -6,10 +6,14 @@ use App\Jobs\SendMailJob;
 use App\Models\EmailTemplate;
 use App\Models\EmailValidation;
 use App\Models\JobLog;
+use App\Models\MailAccount;
+use App\Models\MailGroupAccount;
+use App\Models\MailTransportGroup;
 use App\Models\Reservation;
 use App\Models\Survey;
 use App\Models\WaitlistEntry;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class EmailService
@@ -19,7 +23,60 @@ class EmailService
         private readonly IcsService $ics,
         private readonly PlaceholderService $placeholders,
         private readonly LinkBuildingService $linkBuilder,
+        private readonly MailTransportService $mailTransportService,
     ) {
+    }
+
+    /**
+     * Get mailer config from transport group with debug logging.
+     */
+    private function getMailerConfigFromTransportGroup(?int $transportGroupId): ?array
+    {
+        if (!$transportGroupId) {
+            Log::error('EmailService: No transport group ID provided for email sending');
+            return null;
+        }
+
+        $group = MailTransportGroup::query()->with('accounts.account')->find($transportGroupId);
+        
+        if (!$group) {
+            Log::error('EmailService: Transport group not found', ['transport_group_id' => $transportGroupId]);
+            return null;
+        }
+
+        // Get next account based on failover strategy
+        $account = $this->mailTransportService->getNextAccount($group);
+        
+        if (!$account) {
+            Log::error('EmailService: No available accounts in transport group', [
+                'transport_group_id' => $transportGroupId,
+                'group_name' => $group->name,
+            ]);
+            return null;
+        }
+
+        // Check rate limit
+        if (!$this->mailTransportService->checkRateLimit($account)) {
+            Log::warning('EmailService: Rate limit exceeded for account', [
+                'account_id' => $account->id,
+                'account_name' => $account->name,
+                'transport_group_id' => $transportGroupId,
+            ]);
+            return null;
+        }
+
+        // Get mailer config
+        $mailerConfig = $this->mailTransportService->getMailerConfig($account);
+        
+        Log::info('EmailService: Using transport group for email', [
+            'transport_group_id' => $transportGroupId,
+            'group_name' => $group->name,
+            'account_id' => $account->id,
+            'account_name' => $account->name,
+            'host' => $account->host,
+        ]);
+
+        return $mailerConfig;
     }
 
     /**
@@ -47,7 +104,7 @@ class EmailService
     /**
      * Send a validation email for email verification
      */
-    public function sendValidationEmail(array $mailerConfig, EmailValidation $validation): void
+    public function sendValidationEmail(?int $transportGroupId, EmailValidation $validation): void
     {
         if (! $validation->email) {
             throw new \RuntimeException(__('validation_invalid_email'));
@@ -55,6 +112,17 @@ class EmailService
 
         // Check if email is blacklisted
         if ($this->isDebugBlacklistedEmail($validation->email)) {
+            return;
+        }
+
+        // Get mailer config from transport group
+        $mailerConfig = $this->getMailerConfigFromTransportGroup($transportGroupId);
+        
+        if (!$mailerConfig) {
+            Log::error('EmailService: Cannot send validation email - no valid mailer config', [
+                'email' => $validation->email,
+                'transport_group_id' => $transportGroupId,
+            ]);
             return;
         }
 
@@ -74,7 +142,7 @@ class EmailService
         $template = $this->resolveTemplate();
         
         if (!$template) {
-            \Illuminate\Support\Facades\Log::error('EmailService: Could not resolve validation template');
+            Log::error('EmailService: Could not resolve validation template');
             return;
         }
 
@@ -97,6 +165,12 @@ class EmailService
 
         $attachments = $this->attachmentsForTemplate($template);
 
+        Log::info('EmailService: Dispatching validation email', [
+            'to_email' => $validation->email,
+            'subject' => $subject,
+            'transport_group_id' => $transportGroupId,
+        ]);
+
         SendMailJob::dispatch($mailerConfig, $validation->email, $validation->display_name, $subject, $body, $fromAddress, $fromName, $attachments, $cc, $bcc);
     }
 
@@ -105,8 +179,14 @@ class EmailService
      * This is triggered when a user verifies their email and admin approval is required,
      * or when admin-only approval is active (no email validation step).
      */
-    public function sendAdminApprovalEmail(array $mailerConfig, EmailValidation $validation): void
+    public function sendAdminApprovalEmail(?int $transportGroupId, EmailValidation $validation): void
     {
+        \Illuminate\Support\Facades\Log::debug('EmailService: Starting admin approval email sending', [
+            'transport_group_id' => $transportGroupId,
+            'validation_id' => $validation->id,
+            'email' => $validation->email ?? 'unknown',
+        ]);
+
         $adminEmail = trim((string) ($this->settings->get('email_validation_admin_email', '') ?? ''));
         if ($adminEmail === '' || !filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
             \Illuminate\Support\Facades\Log::warning('EmailService: No valid admin approval email address configured');
@@ -115,6 +195,7 @@ class EmailService
 
         // Check if email is blacklisted
         if ($this->isDebugBlacklistedEmail($adminEmail)) {
+            \Illuminate\Support\Facades\Log::debug('EmailService: Admin approval email blacklisted, skipping');
             return;
         }
 
@@ -164,25 +245,47 @@ class EmailService
 
         $attachments = $this->attachmentsForTemplate($template);
 
+        if (!$transportGroupId) {
+            \Illuminate\Support\Facades\Log::error('EmailService: No transport group ID provided for admin approval email');
+            return;
+        }
+
+        // Use MailTransportService with failover
+        $mailerConfig = $this->getMailerConfigFromTransportGroup($transportGroupId);
+        if (!$mailerConfig) {
+            \Illuminate\Support\Facades\Log::error('EmailService: Could not build mailer config from transport group ' . $transportGroupId);
+            return;
+        }
+
         SendMailJob::dispatch($mailerConfig, $adminEmail, 'Admin', $subject, $body, $fromAddress, $fromName, $attachments, $cc, $bcc);
     }
 
     /**
      * Send reservation notification email
      */
-    public function sendReservationNotification(array $mailerConfig, Reservation $reservation, string $templateSettingKey, bool $includeUndoLink): void
+    public function sendReservationNotification(?int $transportGroupId, Reservation $reservation, string $templateSettingKey, bool $includeUndoLink): void
     {
+        \Illuminate\Support\Facades\Log::debug('EmailService: Starting reservation notification email sending', [
+            'transport_group_id' => $transportGroupId,
+            'reservation_id' => $reservation->id,
+            'email' => $reservation->email ?? 'unknown',
+            'template_setting_key' => $templateSettingKey,
+        ]);
+
         if (! $reservation->email) {
+            \Illuminate\Support\Facades\Log::debug('EmailService: Reservation has no email, skipping');
             return;
         }
 
         // Check if email is blacklisted
         if ($this->isDebugBlacklistedEmail($reservation->email)) {
+            \Illuminate\Support\Facades\Log::debug('EmailService: Reservation email blacklisted, skipping');
             return;
         }
 
         $templateId = (int) ($this->settings->get($templateSettingKey, 0) ?? 0);
         if ($templateId <= 0) {
+            \Illuminate\Support\Facades\Log::warning('EmailService: No template configured for reservation notification');
             return;
         }
 
@@ -223,30 +326,60 @@ class EmailService
 
         $attachments = $this->attachmentsForTemplate($template);
 
+        if (!$transportGroupId) {
+            \Illuminate\Support\Facades\Log::error('EmailService: No transport group ID provided for reservation notification');
+            return;
+        }
+
+        // Use MailTransportService with failover
+        $mailerConfig = $this->getMailerConfigFromTransportGroup($transportGroupId);
+        if (!$mailerConfig) {
+            \Illuminate\Support\Facades\Log::error('EmailService: Could not build mailer config from transport group ' . $transportGroupId);
+            return;
+        }
+
         SendMailJob::dispatch($mailerConfig, $reservation->email, $reservation->display_name, $subject, $body, $fromAddress, $fromName, $attachments, $cc, $bcc);
     }
 
     /**
      * Send waitlist validation success email
      */
-    public function sendWaitlistValidationSuccessEmail(array $mailerConfig, WaitlistEntry $entry): void
+    public function sendWaitlistValidationSuccessEmail(?int $transportGroupId, WaitlistEntry $entry): void
     {
+        \Illuminate\Support\Facades\Log::debug('EmailService: Starting waitlist validation success email sending', [
+            'transport_group_id' => $transportGroupId,
+            'waitlist_entry_id' => $entry->id,
+            'email' => $entry->email ?? 'unknown',
+        ]);
+
         $templateId = (int) ($this->settings->get('email_waitlist_validation_success_template_id', 0) ?? 0);
         if ($templateId <= 0) {
+            \Illuminate\Support\Facades\Log::warning('EmailService: No waitlist validation success template configured');
             return;
         }
         if (empty($entry->email)) {
+            \Illuminate\Support\Facades\Log::debug('EmailService: Waitlist entry has no email, skipping');
             return;
         }
 
         // Check if email is blacklisted
         if ($this->isDebugBlacklistedEmail($entry->email)) {
+            \Illuminate\Support\Facades\Log::debug('EmailService: Waitlist validation success email blacklisted, skipping');
+            return;
+        }
+
+        if (!$transportGroupId) {
+            \Illuminate\Support\Facades\Log::error('EmailService: No transport group ID provided for waitlist validation success email');
+            return;
+        }
+
+        $mailerConfig = $this->getMailerConfigFromTransportGroup($transportGroupId);
+        if (!$mailerConfig) {
+            \Illuminate\Support\Facades\Log::error('EmailService: Could not build mailer config from transport group ' . $transportGroupId);
             return;
         }
 
         try {
-            // This would be handled by EmailBroadcastService in the current implementation
-            // For now, we'll dispatch directly to SendMailJob with proper parameters
             $this->sendEmailFromTemplate($mailerConfig, $templateId, $entry);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('Waitlist validation success email failed', [
@@ -259,24 +392,42 @@ class EmailService
     /**
      * Send waitlist cancelled email
      */
-    public function sendWaitlistCancelledEmail(array $mailerConfig, WaitlistEntry $entry): void
+    public function sendWaitlistCancelledEmail(?int $transportGroupId, WaitlistEntry $entry): void
     {
+        \Illuminate\Support\Facades\Log::debug('EmailService: Starting waitlist cancelled email sending', [
+            'transport_group_id' => $transportGroupId,
+            'waitlist_entry_id' => $entry->id,
+            'email' => $entry->email ?? 'unknown',
+        ]);
+
         $templateId = (int) ($this->settings->get('email_waitlist_cancel_template_id', 0) ?? 0);
         if ($templateId <= 0) {
+            \Illuminate\Support\Facades\Log::warning('EmailService: No waitlist cancel template configured');
             return;
         }
         if (empty($entry->email)) {
+            \Illuminate\Support\Facades\Log::debug('EmailService: Waitlist entry has no email, skipping');
             return;
         }
 
         // Check if email is blacklisted
         if ($this->isDebugBlacklistedEmail($entry->email)) {
+            \Illuminate\Support\Facades\Log::debug('EmailService: Waitlist cancelled email blacklisted, skipping');
+            return;
+        }
+
+        if (!$transportGroupId) {
+            \Illuminate\Support\Facades\Log::error('EmailService: No transport group ID provided for waitlist cancelled email');
+            return;
+        }
+
+        $mailerConfig = $this->getMailerConfigFromTransportGroup($transportGroupId);
+        if (!$mailerConfig) {
+            \Illuminate\Support\Facades\Log::error('EmailService: Could not build mailer config from transport group ' . $transportGroupId);
             return;
         }
 
         try {
-            // This would be handled by EmailBroadcastService in the current implementation
-            // For now, we'll dispatch directly to SendMailJob with proper parameters
             $this->sendEmailFromTemplate($mailerConfig, $templateId, $entry);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('Waitlist cancel email failed', [
@@ -289,18 +440,27 @@ class EmailService
     /**
      * Send waitlist promoted email
      */
-    public function sendWaitlistPromotedEmail(array $mailerConfig, Reservation $reservation): void
+    public function sendWaitlistPromotedEmail(?int $transportGroupId, Reservation $reservation): void
     {
+        \Illuminate\Support\Facades\Log::debug('EmailService: Starting waitlist promoted email sending', [
+            'transport_group_id' => $transportGroupId,
+            'reservation_id' => $reservation->id,
+            'email' => $reservation->email ?? 'unknown',
+        ]);
+
         $templateId = (int) ($this->settings->get('email_waitlist_promoted_template_id', 0) ?? 0);
         if ($templateId <= 0) {
+            \Illuminate\Support\Facades\Log::warning('EmailService: No waitlist promoted template configured');
             return;
         }
         if (empty($reservation->email)) {
+            \Illuminate\Support\Facades\Log::debug('EmailService: Reservation has no email, skipping');
             return;
         }
 
         // Check if email is blacklisted
         if ($this->isDebugBlacklistedEmail($reservation->email)) {
+            \Illuminate\Support\Facades\Log::debug('EmailService: Waitlist promoted email blacklisted, skipping');
             return;
         }
 
@@ -309,9 +469,18 @@ class EmailService
             $reservation->save();
         }
 
+        if (!$transportGroupId) {
+            \Illuminate\Support\Facades\Log::error('EmailService: No transport group ID provided for waitlist promoted email');
+            return;
+        }
+
+        $mailerConfig = $this->getMailerConfigFromTransportGroup($transportGroupId);
+        if (!$mailerConfig) {
+            \Illuminate\Support\Facades\Log::error('EmailService: Could not build mailer config from transport group ' . $transportGroupId);
+            return;
+        }
+
         try {
-            // This would be handled by EmailBroadcastService in the current implementation
-            // For now, we'll dispatch directly to SendMailJob with proper parameters
             $this->sendEmailFromTemplate($mailerConfig, $templateId, $reservation);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('Waitlist promotion email failed', [
@@ -465,9 +634,16 @@ class EmailService
     /**
      * Send survey email to a recipient using the template system
      */
-    public function sendSurveyEmail(array $mailerConfig, Survey $survey, string $recipientEmail, ?string $recipientName = null, ?int $templateId = null): void
+    public function sendSurveyEmail(?int $transportGroupId, Survey $survey, string $recipientEmail, ?string $recipientName = null, ?int $templateId = null): void
     {
+        \Illuminate\Support\Facades\Log::debug('EmailService: Starting survey email sending', [
+            'transport_group_id' => $transportGroupId,
+            'survey_id' => $survey->id,
+            'email' => $recipientEmail,
+        ]);
+
         if ($this->isDebugBlacklistedEmail($recipientEmail)) {
+            \Illuminate\Support\Facades\Log::debug('EmailService: Survey email blacklisted, skipping');
             return;
         }
 
@@ -499,6 +675,17 @@ class EmailService
 
         if (!$template) {
             \Illuminate\Support\Facades\Log::error('EmailService: Could not resolve survey email template');
+            return;
+        }
+
+        if (!$transportGroupId) {
+            \Illuminate\Support\Facades\Log::error('EmailService: No transport group ID provided for survey email');
+            return;
+        }
+
+        $mailerConfig = $this->getMailerConfigFromTransportGroup($transportGroupId);
+        if (!$mailerConfig) {
+            \Illuminate\Support\Facades\Log::error('EmailService: Could not build mailer config from transport group ' . $transportGroupId);
             return;
         }
 

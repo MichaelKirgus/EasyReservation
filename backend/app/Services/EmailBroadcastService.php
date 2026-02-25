@@ -6,10 +6,12 @@ use App\Jobs\SendMailJob;
 use App\Models\JobLog;
 use Illuminate\Support\Str;
 use App\Models\EmailTemplate;
+use App\Models\MailTransportGroup;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Models\WaitlistEntry;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class EmailBroadcastService
 {
@@ -18,6 +20,7 @@ class EmailBroadcastService
         private readonly IcsService $ics,
         private readonly PlaceholderService $placeholders,
         private readonly LinkBuildingService $linkBuilder,
+        private readonly MailTransportService $mailTransportService,
     ) {
     }
 
@@ -36,15 +39,18 @@ class EmailBroadcastService
         array $customRecipients = [],
         bool $deduplicate = true,
         array $userRoles = [],
+        ?int $transportGroupId = null,
     ): array {
-        $template = EmailTemplate::query()->find($templateId);
+        $template = EmailTemplate::query()->with('transportGroup')->find($templateId);
         if (! $template) {
             throw new \RuntimeException(__('email_template_not_found'));
         }
 
-        $mailerConfig = $this->buildMailerConfig();
-        if (! $mailerConfig) {
-            throw new \RuntimeException(__('mail_server_not_configured'));
+        // Get transport group for failover support
+        $transportGroup = $transportGroupId ? MailTransportGroup::query()->with('accounts')->find($transportGroupId) : null;
+        
+        if ($transportGroupId && !$transportGroup) {
+            throw new \RuntimeException(__('mail_transport_group_not_found'));
         }
 
         $recipients = $this->collectRecipients($scope, $sendToAll, $reservationIds, $waitlistIds, $customRecipients, $userRoles);
@@ -112,8 +118,42 @@ class EmailBroadcastService
                 $attachments[] = $icsAttachment;
             }
 
-            SendMailJob::dispatch($mailerConfig, $recipient['email'], $recipient['name'] ?? $recipient['email'], $subject, $body, $fromAddress, $fromName, $attachments, $cc, $bcc);
-            $queued++;
+            // Use MailTransportService for failover/rate limiting when transport group is specified
+            if ($transportGroupId) {
+                try {
+                    $group = MailTransportGroup::query()->with('accounts')->find($transportGroupId);
+                    if ($group) {
+                        $this->mailTransportService->sendWithFailover(
+                            $group,
+                            $recipient['email'],
+                            $recipient['name'] ?? null,
+                            $subject,
+                            $body,
+                            $fromAddress,
+                            $fromName,
+                            $attachments,
+                            $cc,
+                            $bcc
+                        );
+                        $queued++;
+                    } else {
+                        // Transport group not found - log error and skip this recipient
+                        Log::error('EmailBroadcastService: Transport group ' . $transportGroupId . ' not found, skipping recipient ' . $recipient['email']);
+                        continue;
+                    }
+                } catch (\Exception $e) {
+                    Log::error('EmailBroadcastService: Failed to send via transport group ' . $transportGroupId, [
+                        'error' => $e->getMessage(),
+                        'email' => $recipient['email']
+                    ]);
+                    // Continue with next recipient even if one fails
+                    continue;
+                }
+            } else {
+                // No transport group specified - log error and skip this recipient
+                Log::error('EmailBroadcastService: No transport group ID provided, skipping recipient ' . $recipient['email']);
+                continue;
+            }
         }
 
         return [
@@ -275,6 +315,32 @@ class EmailBroadcastService
         ];
     }
 
+    private function buildMailerConfigFromTransportGroup(int $transportGroupId): ?array
+    {
+        // Get the transport group with its accounts
+        $group = \App\Models\MailTransportGroup::query()->with('accounts')->find($transportGroupId);
+        
+        if (! $group) {
+            return null;
+        }
+
+        // Use the first active account from the group as primary
+        $account = $group->accounts()->where('is_active', 1)->first();
+        
+        if (! $account) {
+            return null;
+        }
+
+        return [
+            'transport' => 'smtp',
+            'host' => $account->host,
+            'port' => (int) ($account->port ?? 587),
+            'username' => $account->username,
+            'password' => $account->password,
+            'encryption' => $account->encryption ?: null,
+            'timeout' => (int) ($account->timeout ?? 30),
+        ];
+    }
 
     private function buildWaitlistUndoLink(WaitlistEntry $entry): string
     {

@@ -242,6 +242,9 @@ Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
     Route::put('/admin/mail-groups/{group}/update-priority/{account}', [MailGroupController::class, 'updateAccountPriority']);
     Route::delete('/admin/mail-groups/{group}/remove-account/{account}', [MailGroupController::class, 'removeAccount']);
     Route::post('/admin/mail-groups/{group}/test', [MailGroupController::class, 'testConnection']);
+
+    // Moderator endpoint for fetching transport groups with accounts (read-only)
+    Route::get('/moderator/mail-transport-options', [\App\Http\Controllers\Api\MailTransportOptionsController::class, 'index']);
 });
 
 Route::middleware(['role:superadmin'])->group(function () {
