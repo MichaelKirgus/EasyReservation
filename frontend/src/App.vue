@@ -315,6 +315,10 @@ async function login() {
     if (data.user) {
       Object.assign(currentUser, data.user)
       storage.setItem('admin_user', JSON.stringify(data.user))
+      // Set route prefix based on user role
+      const userRole = data.user.role?.toLowerCase() || 'user'
+      const routePrefix = userRole === 'moderator' ? 'moderator' : 'admin'
+      storage.setItem('admin_route_prefix', routePrefix)
       otherStorage.removeItem('admin_user')
     }
     window.dispatchEvent(new CustomEvent('api-key-updated', { detail: sessionMarker }))

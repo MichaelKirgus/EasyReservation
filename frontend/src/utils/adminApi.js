@@ -24,7 +24,7 @@ export function resolveRoutePrefix(routePrefixRef) {
   const current = getRefValue(routePrefixRef)
   // Always use 'admin' for AdminMailTransports.vue - moderators don't have access to mail transport routes
   const stored = localStorage.getItem('admin_route_prefix')
-  const resolved = current || (stored === 'moderator' ? defaultRoutePrefix : stored) || defaultRoutePrefix
+  const resolved = current || stored || defaultRoutePrefix
   if (routePrefixRef && typeof routePrefixRef === 'object' && 'value' in routePrefixRef) {
     routePrefixRef.value = resolved
   }

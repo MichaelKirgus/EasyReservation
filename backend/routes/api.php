@@ -246,6 +246,9 @@ Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
 
     // Moderator endpoint for fetching transport groups with accounts (read-only)
     Route::get('/moderator/mail-transport-options', [\App\Http\Controllers\Api\MailTransportOptionsController::class, 'index']);
+
+    // Admin endpoint for fetching transport groups with accounts (read-only)
+    Route::get('/admin/mail-transport-options', [\App\Http\Controllers\Api\MailTransportOptionsController::class, 'index']);
 });
 
 Route::middleware(['role:superadmin'])->group(function () {

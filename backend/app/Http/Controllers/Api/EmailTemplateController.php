@@ -18,8 +18,15 @@ class EmailTemplateController extends Controller
             ->orderBy('id')
             ->get();
         
-        // Transform to include transport group info in a flat structure
+        // Transform to include transport group/account info in a flat structure
         $templates = $templates->map(function ($template) {
+            // Determine transport_type from frontend or fallback logic
+            $transportType = $template->transport_type ?? null;
+            if (!$transportType && $template->transport_group_id) {
+                // If transport_group_id matches a MailTransportGroup, it's a group; otherwise, account
+                $isGroup = \App\Models\MailTransportGroup::find($template->transport_group_id) !== null;
+                $transportType = $isGroup ? 'group' : 'account';
+            }
             return [
                 'id' => $template->id,
                 'name' => $template->name,
@@ -29,6 +36,7 @@ class EmailTemplateController extends Controller
                 'cc' => $template->cc,
                 'bcc' => $template->bcc,
                 'transport_group_id' => $template->transport_group_id,
+                'transport_type' => $transportType,
                 'transport_group_name' => $template->transportGroup?->name,
             ];
         });
@@ -43,7 +51,8 @@ class EmailTemplateController extends Controller
             'type' => ['nullable', 'string', 'max:50'],
             'subject' => ['required', 'string'],
             'body' => ['required', 'string'],
-            'transport_group_id' => ['nullable', 'integer', 'exists:mail_transport_groups,id'],
+            'transport_group_id' => ['nullable', 'integer'],
+            'transport_type' => ['nullable', 'string', 'in:group,account'],
         ]);
 
         $template = EmailTemplate::create([
@@ -52,6 +61,7 @@ class EmailTemplateController extends Controller
             'subject' => $data['subject'],
             'body' => $data['body'],
             'transport_group_id' => $data['transport_group_id'] ?? null,
+            'transport_type' => $data['transport_type'] ?? null,
         ]);
 
         return response()->json($template, 201);
@@ -64,7 +74,8 @@ class EmailTemplateController extends Controller
             'type' => ['sometimes', 'string', 'max:50'],
             'subject' => ['sometimes', 'string'],
             'body' => ['sometimes', 'string'],
-            'transport_group_id' => ['nullable', 'integer', 'exists:mail_transport_groups,id'],
+            'transport_group_id' => ['nullable', 'integer'],
+            'transport_type' => ['nullable', 'string', 'in:group,account'],
         ]);
 
         $emailTemplate->fill($data);

@@ -1162,6 +1162,7 @@
   "nav_tab_archives": "Archive",
   "nav_tab_audit_log": "Audit-Log",
   "nav_tab_surveys": "Umfragen",
+  "nav_tab_mail_transports": "E-Mail Transporte",
   "scheduled_tasks_type_survey_sendout": "Umfrage-E-Mails senden",
   "surveys": "Umfragen",
   "survey": "Umfrage",

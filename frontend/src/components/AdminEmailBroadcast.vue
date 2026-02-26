@@ -54,8 +54,7 @@ const canManageTemplates = computed(() =>
 // Transport group options for combobox
 const transportGroupOptions = computed(() => {
   const options = []
-  
-  // Add groups first (with their accounts)
+  // Add groups first
   transportGroups.value.forEach(group => {
     options.push({
       value: `group_${group.id}`,
@@ -67,23 +66,7 @@ const transportGroupOptions = computed(() => {
       rateLimitPerMinute: group.rate_limit_per_minute,
       rateLimitPerHour: group.rate_limit_per_hour,
     })
-    
-    // Add accounts from this group
-    if (group.accounts && group.accounts.length > 0) {
-      group.accounts.forEach(account => {
-        options.push({
-          value: `account_${account.id}`,
-          label: `  ${account.name} (${tr('admin_email_broadcast_transport_account')})`,
-          type: 'account',
-          id: account.id,
-          rateLimitEnabled: account.rate_limit_enabled,
-          rateLimitPerMinute: account.rate_limit_per_minute,
-          rateLimitPerHour: account.rate_limit_per_hour,
-        })
-      })
-    }
   })
-  
   // Add standalone accounts (not in any group)
   transportAccounts.value.forEach(account => {
     options.push({
@@ -96,7 +79,6 @@ const transportGroupOptions = computed(() => {
       rateLimitPerHour: account.rate_limit_per_hour,
     })
   })
-  
   return options
 })
 
@@ -131,10 +113,11 @@ const currentTransportInfo = computed(() => {
 const templateColumns = computed(() => [
   { key: 'id', label: tr('admin_email_broadcast_columns_id'), sortable: true },
   { key: 'name', label: tr('admin_email_broadcast_columns_name'), sortable: true },
+  { key: 'transportGroupId', label: tr('admin_email_broadcast_transport_group_label'), sortable: false },
   { key: 'subject', label: tr('admin_email_broadcast_columns_subject'), sortable: true },
   { key: 'cc', label: tr('admin_email_broadcast_columns_cc'), sortable: false },
   { key: 'bcc', label: tr('admin_email_broadcast_columns_bcc'), sortable: false },
-  { key: 'body', label: tr('admin_email_broadcast_columns_body'), sortable: false },
+  { key: 'body', label: tr('admin_email_broadcast_columns_body'), sortable: false }
 ])
 
 const reservationsWithEmail = computed(() => reservations.value.filter(r => !!r.email))
@@ -163,7 +146,16 @@ const fetchWithAuth = (relative, opts = {}) => adminFetch(relative, opts, { apiK
 async function loadTemplates() {
   const res = await fetchWithAuth('email-templates')
   if (!res.ok) throw new Error(await res.text())
-  templates.value = await res.json()
+  const loadedTemplates = await res.json()
+  // Map transport_group_id and transport_type to string value for combobox
+  loadedTemplates.forEach(tpl => {
+    if (tpl.transport_group_id && tpl.transport_type) {
+      tpl.transportGroupId = `${tpl.transport_type}_${tpl.transport_group_id}`;
+    } else {
+      tpl.transportGroupId = '';
+    }
+  });
+  templates.value = loadedTemplates;
 }
 
 async function loadRecipients() {
@@ -188,7 +180,7 @@ async function loadPlaceholders() {
 async function loadTransportOptions() {
   try {
     // Use moderator endpoint for transport options (read-only access for moderators)
-    const res = await fetchWithAuth('moderator/mail-transport-options')
+    const res = await fetchWithAuth('mail-transport-options')
     if (res.ok) {
       const data = await res.json()
       transportGroups.value = data.groups || []
@@ -204,7 +196,10 @@ async function loadAll() {
   if (!apiKey.value) { setError(tr('please_login_api_key_missing')); return }
   loading.value = true
   try {
-    await Promise.all([loadTemplates(), loadRecipients(), loadPlaceholders(), loadTransportOptions()])
+    // Load transport options first, then templates, then others
+    await loadTransportOptions();
+    await loadTemplates();
+    await Promise.all([loadRecipients(), loadPlaceholders()]);
     setMessage(tr('data_loaded'))
   } catch (e) {
     setError(tr('error_loading') + ': ' + e)
@@ -287,6 +282,17 @@ async function sendBroadcast() {
 async function saveTemplate(tpl) {
   if (!canManageTemplates.value) { setError(tr('templates_can_only_be_edited_by_admin')); return }
   try {
+    // Parse transport group/account id to integer for backend
+    let transportGroupId = tpl.transportGroupId;
+    let transportType = '';
+    if (typeof transportGroupId === 'string') {
+      if (transportGroupId.startsWith('group_')) {
+        transportType = 'group';
+      } else if (transportGroupId.startsWith('account_')) {
+        transportType = 'account';
+      }
+      transportGroupId = parseInt(transportGroupId.replace('group_', '').replace('account_', '')) || null;
+    }
     const res = await fetchWithAuth(`email-templates/${tpl.id}`, {
       method: 'PATCH',
       body: JSON.stringify({
@@ -296,7 +302,8 @@ async function saveTemplate(tpl) {
         cc: tpl.cc || '',
         bcc: tpl.bcc || '',
         type: tpl.type || 'generic',
-        transport_group_id: tpl.transportGroupId,
+        transport_group_id: transportGroupId,
+        transport_type: transportType,
       }),
     })
     const text = await res.text()
@@ -328,7 +335,8 @@ async function createTemplate() {
       method: 'POST',
       body: JSON.stringify({
         ...templateForm,
-        transport_group_id: templateForm.transportGroupId || null,
+        transport_group_id: typeof templateForm.transportGroupId === 'string' ? parseInt(templateForm.transportGroupId.replace('group_', '').replace('account_', '')) : templateForm.transportGroupId || null,
+        transport_type: typeof templateForm.transportGroupId === 'string' ? (templateForm.transportGroupId.startsWith('group_') ? 'group' : 'account') : '',
       }),
     })
     const text = await res.text()
@@ -355,11 +363,25 @@ function customList() {
 
 onMounted(() => {
   window.addEventListener('api-key-updated', handleKeyUpdate)
-  if ((userRole.value === 'admin' || userRole.value === 'superadmin') && routePrefix.value !== 'admin') {
-    // Ensure elevated users use the admin routes so template write actions are allowed
+  
+  // Set route prefix based on user role
+  const storedRoutePrefix = localStorage.getItem('admin_route_prefix') || sessionStorage.getItem('admin_route_prefix')
+  if (storedRoutePrefix) {
+    routePrefix.value = storedRoutePrefix
+  } else if (userRole.value === 'moderator') {
+    routePrefix.value = 'moderator'
+    localStorage.setItem('admin_route_prefix', 'moderator')
+  } else {
     routePrefix.value = 'admin'
     localStorage.setItem('admin_route_prefix', 'admin')
   }
+  
+  // Ensure elevated users use the admin routes so template write actions are allowed
+  if ((userRole.value === 'admin' || userRole.value === 'superadmin') && routePrefix.value !== 'admin') {
+    routePrefix.value = 'admin'
+    localStorage.setItem('admin_route_prefix', 'admin')
+  }
+  
   if (apiKey.value) {
     loadAll()
   }
@@ -367,9 +389,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('api-key-updated', handleKeyUpdate)
-})
 
+})
 watch(() => props.defaultSubTab, (val) => {
+
   if (val === 'templates' || val === 'send') {
     activeSubTab.value = val
   }
@@ -575,10 +598,25 @@ watch(() => props.defaultSubTab, (val) => {
             <input v-model="row.bcc" :disabled="!canManageTemplates" @change="saveTemplate(row)" placeholder="kommagetrennt" />
           </template>
           <template #cell-body="{ row }">
-            <div class="with-placeholder-icon">
-              <textarea v-model="row.body" rows="4" class="body-input" :disabled="!canManageTemplates" @change="saveTemplate(row)" :title="placeholderText || tr('admin_email_broadcast_columns_placeholder')"></textarea>
-              <span class="placeholder-indicator" :title="placeholderText || tr('admin_email_broadcast_columns_placeholder')" aria-hidden="true">⧉</span>
+            <div class="body-row">
+              <div class="with-placeholder-icon">
+                <textarea v-model="row.body" rows="6" class="body-input" :disabled="!canManageTemplates" @change="saveTemplate(row)" :title="placeholderText || tr('admin_email_broadcast_columns_placeholder')"></textarea>
+                <span class="placeholder-indicator" :title="placeholderText || tr('admin_email_broadcast_columns_placeholder')" aria-hidden="true">⧉</span>
+              </div>
             </div>
+          </template>
+          <template #cell-transportGroupId="{ row }">
+            <select
+              v-model="row.transportGroupId"
+              :disabled="!isAdminOrSuperAdmin"
+              @change="saveTemplate(row)"
+              :title="isAdminOrSuperAdmin ? '' : tr('admin_email_broadcast_transport_group_moderator_hint')"
+            >
+              <option value="" disabled>{{ tr('admin_email_broadcast_select_transport_placeholder') }}</option>
+              <template v-for="opt in transportGroupOptions" :key="opt.value">
+                <option :value="opt.value">{{ opt.label }}</option>
+              </template>
+            </select>
           </template>
           <template #row-actions="{ row }">
             <IconButton variant="primary" icon="eye" v-if="canManageTemplates" label="Vorschau" @click="openPreview(row)" />
@@ -641,6 +679,12 @@ watch(() => props.defaultSubTab, (val) => {
 </template>
 
 <style scoped>
+/* Make body column span full width and add spacing */
+.body-row {
+  grid-column: 1 / -1;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
 .stack { display: flex; flex-direction: column; gap: 0.75rem; }
 .top-bar { display: flex; justify-content: space-between; align-items: center; }
 .left-actions { display: flex; gap: 0.5rem; }
