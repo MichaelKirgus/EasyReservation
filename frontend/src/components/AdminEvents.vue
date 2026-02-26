@@ -17,7 +17,11 @@ const selectedEvents = ref([])
 const lastAutoErrorAt = ref(0)
 
 // Tab state
+
 const activeTab = ref('events')
+// Show add form toggles
+const showAddEventForm = ref(false)
+const showAddLocationForm = ref(false)
 
 // Location list state
 const locations = ref([])
@@ -123,6 +127,7 @@ async function loadEvents(opts = {}) {
   } catch (e) { setError(e.message || String(e), opts) } finally { loading.value = false }
 }
 
+
 function resetEventForm() {
   eventForm.id = null
   eventForm.title = ''
@@ -132,6 +137,7 @@ function resetEventForm() {
   eventForm.capacity_override = null
   eventForm.active = true
   eventForm.notes = ''
+  showAddEventForm.value = false
 }
 
 function editEvent(ev) {
@@ -224,6 +230,7 @@ async function loadLocations(opts = {}) {
   } catch (e) { setError(e.message || String(e), opts) } finally { loading.value = false }
 }
 
+
 function resetLocationForm() {
   locationForm.id = null
   locationForm.name = ''
@@ -237,6 +244,7 @@ function resetLocationForm() {
   locationForm.public_transport = ''
   locationForm.notes = ''
   locationForm.capacity_override = null
+  showAddLocationForm.value = false
 }
 
 function editLocation(loc) {
@@ -340,16 +348,18 @@ onMounted(() => {
       </button>
     </div>
 
+
     <!-- Events Tab -->
     <div v-if="activeTab === 'events'" class="tab-content">
-      <div class="controls">
-        <IconButton icon="save" :label="tr('admin_events_save_button')" @click="saveEvent" :disabled="loading" />
-        <IconButton v-if="eventForm.id" icon="x" :label="tr('admin_events_new_button')" variant="ghost" @click="resetEventForm" />
+      <div class="tab-header-row">
+        <div></div>
+        <IconButton icon="plus" :label="tr('admin_events_new_button')" class="add-btn" @click="showAddEventForm = !showAddEventForm" style="margin-left:auto;" />
       </div>
-      <div v-if="error" class="error">{{ error }}</div>
-      <div v-if="message" class="message">{{ message }}</div>
 
-      <div class="form-grid">
+      <div v-if="(showAddEventForm || eventForm.id) && error" class="error">{{ error }}</div>
+      <div v-if="(showAddEventForm || eventForm.id) && message" class="message">{{ message }}</div>
+
+      <div v-if="showAddEventForm || eventForm.id" class="form-grid form-with-actions">
         <label> {{ tr('admin_events_columns_title') }} <input v-model="eventForm.title" /></label>
         <label> {{ tr('admin_events_start_label') }} <input v-model="eventForm.start_at" type="datetime-local" /></label>
         <label> {{ tr('admin_events_end_label') }} <input v-model="eventForm.end_at" type="datetime-local" /></label>
@@ -364,6 +374,10 @@ onMounted(() => {
         <label> {{ tr('admin_events_columns_capacity_override') }} (optional) <input v-model.number="eventForm.capacity_override" type="number" min="0" /></label>
         <label class="checkbox-row"><input type="checkbox" v-model="eventForm.active" /> {{ tr('admin_events_columns_active') }}</label>
         <label> {{ tr('admin_events_notes_label') }} <textarea v-model="eventForm.notes" rows="3"></textarea></label>
+        <div class="form-actions">
+          <IconButton icon="save" :label="tr('admin_events_save_button')" @click="saveEvent" :disabled="loading" />
+          <IconButton v-if="eventForm.id || showAddEventForm" icon="close" :label="tr('admin_events_cancel_button')" variant="ghost" @click="resetEventForm" />
+        </div>
       </div>
 
       <AdminDataTable
@@ -397,22 +411,24 @@ onMounted(() => {
         </template>
         <template #cell-active="{ value }">{{ value ? tr('admin_events_yes_text') : tr('admin_events_no_text') }}</template>
         <template #row-actions="{ row }">
-          <IconButton icon="pencil" :label="tr('admin_events_edit_button')" variant="ghost" @click="editEvent(row)" />
+          <IconButton icon="pencil" :label="tr('admin_events_edit_button')" variant="ghost" @click="editEvent(row); showAddEventForm = true" />
           <IconButton icon="trash" :label="tr('admin_events_delete_button')" variant="danger" @click="removeEvent(row.id)" />
         </template>
       </AdminDataTable>
     </div>
 
+
     <!-- Locations Tab -->
     <div v-if="activeTab === 'locations'" class="tab-content">
-      <div class="controls">
-        <IconButton icon="save" :label="tr('admin_events_save_button')" @click="saveLocation" :disabled="loading" />
-        <IconButton v-if="locationForm.id" icon="x" :label="tr('admin_events_new_button')" variant="ghost" @click="resetLocationForm" />
+      <div class="tab-header-row">
+        <div></div>
+        <IconButton icon="plus" :label="tr('admin_locations_new_button')" class="add-btn" @click="showAddLocationForm = !showAddLocationForm" style="margin-left:auto;" />
       </div>
-      <div v-if="error" class="error">{{ error }}</div>
-      <div v-if="message" class="message">{{ message }}</div>
 
-      <div class="form-grid">
+      <div v-if="(showAddLocationForm || locationForm.id) && error" class="error">{{ error }}</div>
+      <div v-if="(showAddLocationForm || locationForm.id) && message" class="message">{{ message }}</div>
+
+      <div v-if="showAddLocationForm || locationForm.id" class="form-grid form-with-actions">
         <label> {{ tr('admin_locations_columns_name') }} * <input v-model="locationForm.name" /></label>
         <label> {{ tr('admin_locations_columns_city') }} <input v-model="locationForm.city" /></label>
         <label> {{ tr('admin_locations_columns_address') }} <input v-model="locationForm.address" :placeholder="tr('admin_locations_address_placeholder')" /></label>
@@ -422,10 +438,14 @@ onMounted(() => {
         <label> {{ tr('admin_locations_columns_capacity') }} (optional) <input v-model.number="locationForm.capacity_override" type="number" min="0" /></label>
         <label class="checkbox-row"><input type="checkbox" v-model="locationForm.active" /> {{ tr('admin_locations_columns_active') }}</label>
         <label style="grid-column: 1 / -1"> {{ tr('admin_locations_columns_notes') }} <textarea v-model="locationForm.notes" rows="3"></textarea></label>
+        <div class="form-actions">
+          <IconButton icon="save" :label="tr('admin_events_save_button')" @click="saveLocation" :disabled="loading" />
+          <IconButton v-if="locationForm.id || showAddLocationForm" icon="close" :label="tr('admin_events_cancel_button')" variant="ghost" @click="resetLocationForm" />
+        </div>
       </div>
 
       <!-- Latitude/Longitude read-only fields -->
-      <div class="form-grid">
+      <div v-if="showAddLocationForm || locationForm.id" class="form-grid">
         <label> {{ tr('admin_locations_latitude_readonly') }} <input type="text" :value="locationForm.latitude !== null ? locationForm.latitude.toFixed(6) : ''" readonly /></label>
         <label> {{ tr('admin_locations_longitude_readonly') }} <input type="text" :value="locationForm.longitude !== null ? locationForm.longitude.toFixed(6) : ''" readonly /></label>
       </div>
@@ -455,7 +475,7 @@ onMounted(() => {
         <template #cell-notes="{ value }">{{ value || tr('admin_events_dash_text') }}</template>
         <template #cell-active="{ value }">{{ value ? tr('admin_events_yes_text') : tr('admin_events_no_text') }}</template>
         <template #row-actions="{ row }">
-          <IconButton icon="pencil" :label="tr('admin_events_edit_button')" variant="ghost" @click="editLocation(row)" />
+          <IconButton icon="pencil" :label="tr('admin_events_edit_button')" variant="ghost" @click="editLocation(row); showAddLocationForm = true" />
           <IconButton icon="trash" :label="tr('admin_events_delete_button')" variant="danger" @click="removeLocation(row.id)" />
         </template>
       </AdminDataTable>
@@ -490,7 +510,17 @@ onMounted(() => {
 .tabs button.active { color: #2563eb; border-bottom-color: #2563eb; }
 .tab-content { display: flex; flex-direction: column; gap: 0.75rem; }
 .controls { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.tab-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+.add-btn { margin-left: auto; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.5rem; }
+.form-with-actions { position: relative; }
+.form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
 label { display: flex; flex-direction: column; gap: 0.15rem; font-weight: 600; }
 label select { padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; font: inherit; }
 .checkbox-row { flex-direction: row; align-items: center; gap: 0.5rem; font-weight: 600; }
