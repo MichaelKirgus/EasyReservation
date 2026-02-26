@@ -622,16 +622,15 @@ async function purgeAllData() {
       <div class="left-actions">
         <label class="inline"><input type="checkbox" v-model="notifyOnChange" /> {{ tr('admin_reservations_send_email_to_participants') }}</label>
       </div>
-      <div class="right-actions">
-          <IconButton
-            v-if="routePrefix === 'admin'"
-            icon="trash2"
-            variant="danger"
-            label="admin_reservations_clear_all_lists"
-            style="margin-left: 8px;"
-            :disabled="loading || waitlistLoading || validationLoading"
-            @click="purgeAllData"
-          />
+      <div class="right-actions actions">
+        <IconButton
+          v-if="routePrefix === 'admin'"
+          icon="trash2"
+          variant="danger"
+          label="admin_reservations_clear_all_lists"
+          :disabled="loading || waitlistLoading || validationLoading"
+          @click="purgeAllData"
+        />
         <IconButton icon="refresh" :label="tr('admin_reservations_refresh')" @click="reloadAll" :disabled="loading || waitlistLoading || validationLoading" />
       </div>
     </div>
