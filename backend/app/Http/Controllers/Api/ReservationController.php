@@ -35,6 +35,10 @@ class ReservationController extends Controller
     }
 
     public function store(ReservationStoreRequest $request): JsonResponse
+            Log::debug('ReservationController@store called', [
+                'request' => $request->all(),
+                'ip' => $request->ip(),
+            ]);
     {
 
         $settings = $this->settings->all();
@@ -120,8 +124,22 @@ class ReservationController extends Controller
             || $this->emailValidation->adminApprovalEnabled();
 
         if ($validationFeatureEnabled) {
+
             try {
                 $validation = $this->emailValidation->createRequest($target, $name, $email, $payload, $siteToken);
+                // Extra debug: log type and value of $validation after createRequest
+                if (is_array($validation)) {
+                    Log::error('ReservationController: $validation is array after createRequest', [
+                        'validation' => $validation,
+                        'trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10),
+                    ]);
+                } else {
+                    Log::debug('ReservationController: $validation is object after createRequest', [
+                        'class' => get_class($validation),
+                        'id' => $validation->id ?? null,
+                        'validation' => method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
+                    ]);
+                }
                 // Add debug log for validation creation
                 Log::debug('Reservation validation triggered', [
                     'target' => $target,
@@ -130,7 +148,7 @@ class ReservationController extends Controller
                     'site_token' => $siteToken,
                     'validation_id' => $validation->id ?? null,
                     'validation_status' => $validation->status ?? null,
-                    'validation' => $validation->toArray(),
+                    'validation' => method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
                 ]);
             } catch (\Throwable $e) {
                 Log::error('Reservation validation error', [
