@@ -11,10 +11,12 @@ const { tr } = useTranslation()
 const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const currentUser = ref(JSON.parse(localStorage.getItem('admin_user') || sessionStorage.getItem('admin_user') || 'null'))
+
 const templates = ref([])
 const reservations = ref([])
 const waitlist = ref([])
 const placeholders = ref([])
+const surveys = ref([]) // List of surveys for dropdown
 const loading = ref(false)
 const message = ref('')
 const error = ref('')
@@ -27,6 +29,7 @@ const transportAccounts = ref([])
 
 const form = reactive({
   templateId: null,
+  surveyId: null, // Optional survey selection
   mode: 'both',
   deduplicate: true,
   userRoles: [], // New: for internal user roles
@@ -35,6 +38,18 @@ const form = reactive({
   customRecipients: [{ name: '', email: '' }],
   transportGroupId: null, // Transport group/account ID for failover/rate limiting
 })
+// Load surveys for dropdown
+async function loadSurveys() {
+  try {
+    const res = await fetchWithAuth('surveys')
+    if (!res.ok) throw new Error(await res.text())
+    const data = await res.json()
+    surveys.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    surveys.value = []
+    // Optionally log error
+  }
+}
 
 const templateForm = reactive({ name: '', subject: '', body: '', cc: '', bcc: '', type: 'generic', transportGroupId: null })
 
@@ -199,7 +214,7 @@ async function loadAll() {
     // Load transport options first, then templates, then others
     await loadTransportOptions();
     await loadTemplates();
-    await Promise.all([loadRecipients(), loadPlaceholders()]);
+    await Promise.all([loadRecipients(), loadPlaceholders(), loadSurveys()]);
     setMessage(tr('data_loaded'))
   } catch (e) {
     setError(tr('error_loading') + ': ' + e)
@@ -232,6 +247,11 @@ async function sendBroadcast() {
     scope: form.mode,
     send_to_all: form.mode !== 'selection',
     deduplicate: form.deduplicate,
+  }
+
+  // Add surveyId if selected
+  if (form.surveyId) {
+    payload.survey_id = form.surveyId
   }
 
   // Add transport group ID to payload if selected
@@ -428,6 +448,17 @@ watch(() => props.defaultSubTab, (val) => {
               <option value="" disabled>{{ tr('admin_email_broadcast_select_template_placeholder') }}</option>
               <option v-for="tpl in templates" :key="tpl.id" :value="tpl.id">
                 {{ tpl.name }} – {{ tpl.subject }}
+              </option>
+            </select>
+          </label>
+
+          <!-- Survey selection (optional) -->
+          <label>
+            {{ tr('admin_email_broadcast_select_survey_label') }}
+            <select v-model.number="form.surveyId">
+              <option value="">{{ tr('admin_email_broadcast_select_survey_placeholder') }}</option>
+              <option v-for="survey in surveys" :key="survey.id" :value="survey.id">
+                {{ survey.title }}
               </option>
             </select>
           </label>

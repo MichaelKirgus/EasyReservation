@@ -30,6 +30,7 @@ class EmailBroadcastController extends Controller
             'custom_recipients.*.name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'user_roles' => ['sometimes', 'array'],
             'user_roles.*' => ['in:admin,moderator,user'],
+            'survey_id' => ['nullable', 'integer', 'exists:surveys,id'],
         ]);
 
         $scope = $data['scope'];
@@ -41,6 +42,7 @@ class EmailBroadcastController extends Controller
         $userRoles = $data['user_roles'] ?? [];
         $transportGroupId = $data['transport_group_id'] ?? null;
 
+        $surveyId = $data['survey_id'] ?? null;
         try {
             $result = $this->service->queueBroadcast(
                 (int) $data['template_id'],
@@ -52,6 +54,7 @@ class EmailBroadcastController extends Controller
                 $deduplicate,
                 $userRoles,
                 $transportGroupId,
+                $surveyId,
             );
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);

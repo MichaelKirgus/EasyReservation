@@ -40,6 +40,7 @@ class EmailBroadcastService
         bool $deduplicate = true,
         array $userRoles = [],
         ?int $transportGroupId = null,
+        ?int $surveyId = null,
     ): array {
         $template = EmailTemplate::query()->with('transportGroup')->find($templateId);
         if (! $template) {
@@ -89,12 +90,25 @@ class EmailBroadcastService
                 $skippedBlacklisted++;
                 continue;
             }
-            $replacements = $this->placeholders->replacements([
+
+            // If surveyId is provided, inject personalized survey link
+            $replacements = [
                 'name' => $recipient['name'] ?? '',
                 'email' => $recipient['email'] ?? '',
                 'undo_link' => $recipient['undo_link'] ?? '',
                 'validation_link' => '',
-            ]);
+            ];
+            if ($surveyId) {
+                $survey = \App\Models\Survey::find($surveyId);
+                if ($survey) {
+                    // Generate a unique token for this recipient
+                    $responseToken = (string) \Illuminate\Support\Str::uuid();
+                    $surveyLink = $this->linkBuilder->buildSurveyLink($survey->id, $responseToken);
+                    $replacements['survey_link'] = $surveyLink;
+                    $replacements['survey_link_html'] = '<a href="' . $surveyLink . '">' . $surveyLink . '</a>';
+                }
+            }
+            $replacements = $this->placeholders->replacements($replacements);
 
             $subject = $this->renderTemplate($template->subject, $replacements);
             $body = $this->renderTemplate($template->body, $replacements);
