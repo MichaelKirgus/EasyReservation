@@ -132,10 +132,14 @@ class EmailBroadcastService
                 $attachments[] = $icsAttachment;
             }
 
-            // Use MailTransportService for failover/rate limiting when transport group is specified
-            if ($transportGroupId) {
+            // Use MailTransportService for failover/rate limiting
+            $effectiveTransportGroupId = $transportGroupId;
+            if (!$effectiveTransportGroupId && $template->transport_group_id) {
+                $effectiveTransportGroupId = $template->transport_group_id;
+            }
+            if ($effectiveTransportGroupId) {
                 try {
-                    $group = MailTransportGroup::query()->with('accounts')->find($transportGroupId);
+                    $group = MailTransportGroup::query()->with('accounts')->find($effectiveTransportGroupId);
                     if ($group) {
                         $this->mailTransportService->sendWithFailover(
                             $group,
@@ -152,11 +156,11 @@ class EmailBroadcastService
                         $queued++;
                     } else {
                         // Transport group not found - log error and skip this recipient
-                        Log::error('EmailBroadcastService: Transport group ' . $transportGroupId . ' not found, skipping recipient ' . $recipient['email']);
+                        Log::error('EmailBroadcastService: Transport group ' . $effectiveTransportGroupId . ' not found, skipping recipient ' . $recipient['email']);
                         continue;
                     }
                 } catch (\Exception $e) {
-                    Log::error('EmailBroadcastService: Failed to send via transport group ' . $transportGroupId, [
+                    Log::error('EmailBroadcastService: Failed to send via transport group ' . $effectiveTransportGroupId, [
                         'error' => $e->getMessage(),
                         'email' => $recipient['email']
                     ]);
@@ -164,8 +168,8 @@ class EmailBroadcastService
                     continue;
                 }
             } else {
-                // No transport group specified - log error and skip this recipient
-                Log::error('EmailBroadcastService: No transport group ID provided, skipping recipient ' . $recipient['email']);
+                // No transport group specified or assigned to template - log error and skip this recipient
+                Log::error('EmailBroadcastService: No transport group ID provided or assigned to template, skipping recipient ' . $recipient['email']);
                 continue;
             }
         }
