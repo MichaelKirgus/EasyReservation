@@ -1394,5 +1394,9 @@
   "admin_mail_transports_no_blacklist_domains": "Keine blockierten Domains gefunden",
   "admin_mail_transports_error_loading_blacklist": "Fehler beim Laden der Blacklist-Domains",
   "admin_mail_transports_error_saving_domain": "Fehler beim Speichern der Domain",
-  "admin_mail_transports_error_deleting_domain": "Fehler beim Löschen der Domain"
-  }
+  "admin_mail_transports_error_deleting_domain": "Fehler beim Löschen der Domain",
+  "admin_events_columns_capacity": "Kapazität"
+,
+  "admin_email_broadcast_transport_group": "Transportgruppe",
+  "admin_email_broadcast_select_transport_placeholder": "Bitte wählen Sie eine Transportgruppe"
+}
