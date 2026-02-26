@@ -211,6 +211,18 @@ class EmailValidationService
             $this->finalize($validation);
         }
 
+        // Extra debug: log type of $validation before returning
+        if (is_array($validation)) {
+            Log::error('createRequest: $validation is array', [
+                'validation' => $validation,
+                'trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10),
+            ]);
+        } else {
+            Log::debug('createRequest: $validation is object', [
+                'class' => get_class($validation),
+                'id' => $validation->id ?? null,
+            ]);
+        }
         // Always return the EmailValidation Eloquent object, never an array
         return $validation;
     }
