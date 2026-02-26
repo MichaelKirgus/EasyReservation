@@ -1,5 +1,13 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+
+const showNewFieldForm = ref(false)
+
+// When a field is saved, hide the form
+async function saveAndHide() {
+  await save()
+  showNewFieldForm.value = false
+}
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 import { buildAdminHeaders } from '../utils/adminApi'
@@ -202,51 +210,11 @@ onUnmounted(() => {
     <div v-if="message" class="message">{{ message }}</div>
     <div v-if="error" class="error">{{ error }}</div>
 
-    <details v-if="placeholders.length" class="placeholder-info" aria-live="polite">
-      <summary>{{ tr('form_field_manager_show_placeholders') }}</summary>
-      <p class="placeholder-hint-text">{{ tr('form_field_manager_placeholder_hint') }}</p>
-      <div class="placeholder-list">
-        <code v-for="token in placeholders" :key="token">{{ token }}</code>
-      </div>
-    </details>
 
-    <section class="card">
-      <h3>{{ tr('form_field_manager_title_new_field') }}</h3>
-      <div class="grid">
-        <label>{{ tr('form_field_manager_label_key') }}<input v-model="form.key" /></label>
-        <label>{{ tr('form_field_manager_label_label') }}<input v-model="form.label" /></label>
-        <label>{{ tr('form_field_manager_label_type') }}
-          <select v-model="form.type">
-            <option value="text">{{ tr('form_field_manager_option_text') }}</option>
-            <option value="textarea">{{ tr('form_field_manager_option_textarea') }}</option>
-            <option value="select">{{ tr('form_field_manager_option_select') }}</option>
-            <option value="email">{{ tr('form_field_manager_option_email') }}</option>
-            <option value="checkbox">{{ tr('form_field_manager_option_checkbox') }}</option>
-          </select>
-        </label>
-        <label>{{ tr('form_field_manager_label_options') }}<input :value="form.options.join(', ')" @input="splitOptions($event.target.value)" /></label>
-        <label>{{ tr('form_field_manager_label_placeholder') }}<input v-model="form.placeholder" /></label>
-        <label>{{ tr('form_field_manager_label_help_text') }}<input v-model="form.help_text" /></label>
-        <label>{{ tr('form_field_manager_label_text_alignment') }}
-          <select v-model="form.text_align">
-            <option value="left">{{ tr('form_field_manager_option_left') }}</option>
-            <option value="center">{{ tr('form_field_manager_option_center') }}</option>
-            <option value="right">{{ tr('form_field_manager_option_right') }}</option>
-          </select>
-        </label>
-        <label>{{ tr('form_field_manager_label_min_length') }}<input v-model.number="form.min_length" type="number" min="0" /></label>
-        <label>{{ tr('form_field_manager_label_max_length') }}<input v-model.number="form.max_length" type="number" min="0" /></label>
-        <label>{{ tr('form_field_manager_label_pattern') }}<input v-model="form.pattern" /></label>
-        <label>{{ tr('form_field_manager_label_order') }}<input v-model.number="form.order" type="number" min="0" /></label>
-        <label>{{ tr('form_field_manager_label_active') }}<input type="checkbox" v-model="form.active" /></label>
-        <label>{{ tr('form_field_manager_label_visible_public') }}<input type="checkbox" v-model="form.visible_public" /></label>
-        <label>{{ tr('form_field_manager_label_visible_admin') }}<input type="checkbox" v-model="form.visible_admin" /></label>
-        <label>{{ tr('form_field_manager_label_required') }}<input type="checkbox" v-model="form.required" /></label>
-        <label>{{ tr('form_field_manager_label_is_email') }}<input type="checkbox" v-model="form.is_email" /></label>
-      </div>
-      <IconButton icon="save" :label="tr('form_field_manager_button_save')" @click="save" :disabled="loading" />
-    </section>
-
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
+      <IconButton icon="plus" :label="tr('form_field_manager_button_add_field')" @click="showNewFieldForm = true" />
+    </div>
+    <!-- Removed duplicate new field form section -->
     <section class="card">
       <h3>{{ tr('form_field_manager_title_fields') }}</h3>
       <AdminDataTable
@@ -304,6 +272,56 @@ onUnmounted(() => {
         </template>
       </AdminDataTable>
     </section>
+
+    <section v-if="showNewFieldForm" class="card">
+      <h3>{{ tr('form_field_manager_title_new_field') }}</h3>
+      <div class="grid">
+        <label>{{ tr('form_field_manager_label_key') }}<input v-model="form.key" /></label>
+        <label>{{ tr('form_field_manager_label_label') }}<input v-model="form.label" /></label>
+        <label>{{ tr('form_field_manager_label_type') }}
+          <select v-model="form.type">
+            <option value="text">{{ tr('form_field_manager_option_text') }}</option>
+            <option value="textarea">{{ tr('form_field_manager_option_textarea') }}</option>
+            <option value="select">{{ tr('form_field_manager_option_select') }}</option>
+            <option value="email">{{ tr('form_field_manager_option_email') }}</option>
+            <option value="checkbox">{{ tr('form_field_manager_option_checkbox') }}</option>
+          </select>
+        </label>
+        <label>{{ tr('form_field_manager_label_options') }}<input :value="form.options.join(', ')" @input="splitOptions($event.target.value)" /></label>
+        <label>{{ tr('form_field_manager_label_placeholder') }}<input v-model="form.placeholder" /></label>
+        <label>{{ tr('form_field_manager_label_help_text') }}<input v-model="form.help_text" /></label>
+        <label>{{ tr('form_field_manager_label_text_alignment') }}
+          <select v-model="form.text_align">
+            <option value="left">{{ tr('form_field_manager_option_left') }}</option>
+            <option value="center">{{ tr('form_field_manager_option_center') }}</option>
+            <option value="right">{{ tr('form_field_manager_option_right') }}</option>
+          </select>
+        </label>
+        <label>{{ tr('form_field_manager_label_min_length') }}<input v-model.number="form.min_length" type="number" min="0" /></label>
+        <label>{{ tr('form_field_manager_label_max_length') }}<input v-model.number="form.max_length" type="number" min="0" /></label>
+        <label>{{ tr('form_field_manager_label_pattern') }}<input v-model="form.pattern" /></label>
+        <label>{{ tr('form_field_manager_label_order') }}<input v-model.number="form.order" type="number" min="0" /></label>
+        <label>{{ tr('form_field_manager_label_active') }}<input type="checkbox" v-model="form.active" /></label>
+        <label>{{ tr('form_field_manager_label_visible_public') }}<input type="checkbox" v-model="form.visible_public" /></label>
+        <label>{{ tr('form_field_manager_label_visible_admin') }}<input type="checkbox" v-model="form.visible_admin" /></label>
+        <label>{{ tr('form_field_manager_label_required') }}<input type="checkbox" v-model="form.required" /></label>
+        <label>{{ tr('form_field_manager_label_is_email') }}<input type="checkbox" v-model="form.is_email" /></label>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <IconButton icon="save" :label="tr('form_field_manager_button_save')" @click="saveAndHide" :disabled="loading" />
+        <IconButton icon="close" variant="ghost" :label="tr('form_field_manager_button_cancel')" @click="showNewFieldForm = false" />
+      </div>
+    </section>
+
+    <details v-if="placeholders.length" class="placeholder-info" aria-live="polite">
+      <summary>{{ tr('form_field_manager_show_placeholders') }}</summary>
+      <p class="placeholder-hint-text">{{ tr('form_field_manager_placeholder_hint') }}</p>
+      <div class="placeholder-list">
+        <code v-for="token in placeholders" :key="token">{{ token }}</code>
+      </div>
+    </details>
+
+    <!-- Removed duplicate fields table section -->
   </div>
 </template>
 
