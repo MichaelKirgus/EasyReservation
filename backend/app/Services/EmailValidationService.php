@@ -118,6 +118,13 @@ class EmailValidationService
 
     public function createRequest(string $type, string $name, ?string $email, array $payload = [], ?string $siteToken = null): EmailValidation
     {
+        Log::debug('createRequest called', [
+            'type' => $type,
+            'name' => $name,
+            'email' => $email,
+            'payload' => $payload,
+            'siteToken' => $siteToken,
+        ]);
         $requiresEmail = $this->emailValidationEnabled();
         $requiresAdmin = $this->adminApprovalEnabled();
 
@@ -196,34 +203,47 @@ class EmailValidationService
             'expires_at' => $requiresEmail ? now()->addMinutes((int) ($this->settings->get('email_validation_ttl_minutes', 1440))) : null,
             'validated_at' => $requiresEmail ? null : now(),
         ]);
+        Log::debug('createRequest after EmailValidation::create', [
+            'validation_type' => gettype($validation),
+            'validation_class' => is_object($validation) ? get_class($validation) : null,
+            'validation' => is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
+        ]);
 
         if ($requiresEmail) {
+            Log::debug('createRequest before return (requiresEmail)', [
+                'validation_type' => gettype($validation),
+                'validation_class' => is_object($validation) ? get_class($validation) : null,
+                'validation' => is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
+            ]);
             $this->sendValidationEmail($validation);
         }
 
         // Admin-only mode (no email validation): send admin approval notification immediately
         if (! $requiresEmail && $requiresAdmin) {
+            Log::debug('createRequest before return (requiresAdmin)', [
+                'validation_type' => gettype($validation),
+                'validation_class' => is_object($validation) ? get_class($validation) : null,
+                'validation' => is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
+            ]);
             $this->sendAdminApprovalNotification($validation);
         }
 
         if (! $requiresEmail && ! $requiresAdmin) {
             // Only call finalize for side effects, do not return its result here
             $this->finalize($validation);
+            Log::debug('createRequest before return (no validation required)', [
+                'validation_type' => gettype($validation),
+                'validation_class' => is_object($validation) ? get_class($validation) : null,
+                'validation' => is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
+            ]);
         }
 
-        // Extra debug: log type of $validation before returning
-        if (is_array($validation)) {
-            Log::error('createRequest: $validation is array', [
-                'validation' => $validation,
-                'trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10),
-            ]);
-        } else {
-            Log::debug('createRequest: $validation is object', [
-                'class' => get_class($validation),
-                'id' => $validation->id ?? null,
-            ]);
-        }
         // Always return the EmailValidation Eloquent object, never an array
+        Log::debug('createRequest final return', [
+            'validation_type' => gettype($validation),
+            'validation_class' => is_object($validation) ? get_class($validation) : null,
+            'validation' => is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
+        ]);
         return $validation;
     }
 

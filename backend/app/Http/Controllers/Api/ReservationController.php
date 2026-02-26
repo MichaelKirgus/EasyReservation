@@ -131,7 +131,7 @@ class ReservationController extends Controller
                 if (is_array($validation)) {
                     Log::error('ReservationController: $validation is array after createRequest', [
                         'validation' => $validation,
-                        'trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10),
+                        'trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 20),
                     ]);
                 } else {
                     Log::debug('ReservationController: $validation is object after createRequest', [
@@ -139,6 +139,15 @@ class ReservationController extends Controller
                         'id' => $validation->id ?? null,
                         'validation' => method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
                     ]);
+                }
+                // Defensive: if $validation is not an object, throw and log
+                if (!is_object($validation)) {
+                    Log::error('ReservationController: $validation is not an object after createRequest', [
+                        'type' => gettype($validation),
+                        'validation' => $validation,
+                        'trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 20),
+                    ]);
+                    throw new \RuntimeException('ReservationController: $validation is not an object after createRequest');
                 }
                 // Add debug log for validation creation
                 Log::debug('Reservation validation triggered', [
@@ -150,6 +159,27 @@ class ReservationController extends Controller
                     'validation_status' => $validation->status ?? null,
                     'validation' => method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
                 ]);
+
+                // Return only necessary fields for validation
+                $validationData = [
+                    'id' => $validation->id,
+                    'status' => $validation->status,
+                    'type' => $validation->type,
+                    'display_name' => $validation->display_name,
+                    'email' => $validation->email,
+                    'expires_at' => $validation->expires_at,
+                    'requires_admin_approval' => $validation->requires_admin_approval,
+                ];
+
+                return response()->json([
+                    'message' => $target === 'waitlist'
+                        ? __('feedback_waitlist_success')
+                        : __('feedback_reservation_success'),
+                    'validation_pending' => true,
+                    'target' => $target,
+                    'pending_admin' => $this->emailValidation->adminApprovalEnabled() && ! $this->emailValidation->emailValidationEnabled(),
+                    'validation' => $validationData,
+                ], 202);
             } catch (\Throwable $e) {
                 Log::error('Reservation validation error', [
                     'error' => $e->getMessage(),
@@ -160,27 +190,6 @@ class ReservationController extends Controller
                 ]);
                 return response()->json(['message' => $e->getMessage()], 500);
             }
-
-            // Return only necessary fields for validation
-            $validationData = [
-                'id' => $validation->id,
-                'status' => $validation->status,
-                'type' => $validation->type,
-                'display_name' => $validation->display_name,
-                'email' => $validation->email,
-                'expires_at' => $validation->expires_at,
-                'requires_admin_approval' => $validation->requires_admin_approval,
-            ];
-
-            return response()->json([
-                'message' => $target === 'waitlist'
-                    ? __('feedback_waitlist_success')
-                    : __('feedback_reservation_success'),
-                'validation_pending' => true,
-                'target' => $target,
-                'pending_admin' => $this->emailValidation->adminApprovalEnabled() && ! $this->emailValidation->emailValidationEnabled(),
-                'validation' => $validationData,
-            ], 202);
         }
 
         if ($target === 'waitlist') {
