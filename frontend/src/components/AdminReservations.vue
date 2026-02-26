@@ -76,7 +76,7 @@ function formatRateLimitHour(val) {
   const fmt = (dt) => new Intl.DateTimeFormat(navigator.language, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(dt)
   const fmtTime = (dt) => new Intl.DateTimeFormat(navigator.language, { hour: '2-digit', minute: '2-digit' }).format(dt)
   const end = new Date(date.getTime() + 3600000)
-  return fmt(date) + ' â€“ ' + fmtTime(end)
+  return fmt(date) + ' – ' + fmtTime(end)
 }
 
 function formatDateTime(val) {
@@ -785,6 +785,9 @@ async function purgeAllData() {
       >
         <template #actions>
           <IconButton icon="trash2" variant="danger" :label="tr('admin_reservations_delete_all_rate_limits')" @click="clearAllRateLimits" :disabled="rateLimitLoading || !rateLimits.length" />
+        </template>
+        <template #cell-count="{ value }">
+          <span>{{ value + 1 }}</span>
         </template>
         <template #cell-hour="{ value }">
           <span>{{ formatRateLimitHour(value) }}</span>
