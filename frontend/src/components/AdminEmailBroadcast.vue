@@ -722,7 +722,7 @@ watch(() => props.defaultSubTab, (val) => {
 .card { border: 1px solid var(--border-strong); border-radius: 8px; padding: 0.75rem; background: var(--app-card-bg, var(--surface)); color: var(--text); box-shadow: 0 6px 18px var(--shadow); display: flex; flex-direction: column; gap: 0.75rem; }
 .card-header { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.5rem; align-items: center; }
-label { display: flex; flex-direction: column; gap: 0.25rem; font-weight: 600; color: var(--text); }
+label { display: flex; flex-direction: column; gap: 0.25rem; font-weight: 600; color: var(--text); text-align: center; }
 label.inline { flex-direction: row; align-items: center; font-weight: 500; }
 select, input, button { font: inherit; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
 button { background: var(--primary); color: var(--primary-contrast); cursor: pointer; }
