@@ -161,7 +161,7 @@ const failoverStrategyOptions = [
 .form-actions { display: flex; justify-content: flex-end; gap: 0.75rem; padding-top: 1rem; border-top: 1px solid var(--border); }
 button { padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font: inherit; }
 button[type="button"] { background: var(--surface-muted); color: var(--text-primary); border: 1px solid var(--border); }
-button[type="submit"] { background: var(--primary); color: white; border: none; }
+button[type="submit"] { background: var(--primary); color: var(--primary-contrast); border: 1px solid var(--primary); }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .checkbox-field { flex-direction: row; align-items: center; gap: 0.5rem; }

@@ -67,7 +67,7 @@ function copy() {
   flex: 1;
   font: inherit;
   padding: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border);
   border-radius: 6px;
   height: 40px;
   font-size: 1.05rem;
@@ -76,7 +76,7 @@ function copy() {
 .input {
   font: inherit;
   padding: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border);
   border-radius: 6px;
   height: 40px;
   font-size: 1.05rem;

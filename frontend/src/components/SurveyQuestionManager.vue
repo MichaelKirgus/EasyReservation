@@ -212,9 +212,9 @@ function getQuestionTypeLabel(type) {
 }
 
 .modal-dialog {
-  border: none;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px var(--shadow);
   max-width: 500px;
   width: 90%;
 }
@@ -234,7 +234,7 @@ function getQuestionTypeLabel(type) {
 .form-group select {
   width: 100%;
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border);
   border-radius: 4px;
 }
 </style>

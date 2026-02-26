@@ -127,8 +127,8 @@ const classes = computed(() => ['icon-btn', `variant-${props.variant}`, `size-${
   filter: brightness(0.95);
 }
 .icon-btn.variant-ghost { background: var(--surface-strong); color: var(--primary); border-color: var(--border-strong); }
-.icon-btn.variant-danger { background: #dc2626; color: #fff; border-color: #b91c1c; }
-.icon-btn.variant-success {background: #22c55e; color: #fff; border-color: #16a34a; }
+.icon-btn.variant-danger { background: var(--error-bg); color: var(--error-text, #fff); border-color: var(--error-border, var(--error-bg)); }
+.icon-btn.variant-success { background: var(--success-bg); color: var(--success-text, #fff); border-color: var(--success-border, var(--success-bg)); }
 .icon-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .size-sm { width: 34px; height: 34px; }
 .size-md { width: 40px; height: 40px; }

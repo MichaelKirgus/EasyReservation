@@ -215,7 +215,7 @@ async function submitSurvey() {
 }
 
 .description {
-  color: #666;
+  color: var(--text-muted);
   margin-bottom: 20px;
 }
 
@@ -227,18 +227,18 @@ async function submitSurvey() {
 }
 
 .status-message.info {
-  background-color: #e3f2fd;
-  color: #1976d2;
+  background: var(--info-bg, #e3f2fd);
+  color: var(--info-text, #1976d2);
 }
 
 .status-message.success {
-  background-color: #e8f5e9;
-  color: #2e7d32;
+  background: var(--success-bg, #e8f5e9);
+  color: var(--success-text, #2e7d32);
 }
 
 .status-message.error {
-  background-color: #ffebee;
-  color: #c62828;
+  background: var(--error-bg, #ffebee);
+  color: var(--error-text, #c62828);
 }
 
 .survey-form {
@@ -259,7 +259,7 @@ async function submitSurvey() {
 }
 
 .required {
-  color: #f44336;
+  color: var(--error-text, #f44336);
 }
 
 .score-input {
@@ -275,12 +275,12 @@ async function submitSurvey() {
   width: 100%;
   max-width: 200px;
   font-size: 0.8em;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .current-score {
   font-weight: bold;
-  color: #1976d2;
+  color: var(--info-text, #1976d2);
 }
 
 .multiple-choice {
@@ -294,42 +294,42 @@ async function submitSurvey() {
   align-items: center;
   gap: 8px;
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border);
   border-radius: 4px;
 }
 
 textarea {
   width: 100%;
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border);
   border-radius: 4px;
   resize: vertical;
   font-family: inherit;
 }
 
 .error-message {
-  color: #f44336;
+  color: var(--error-text, #f44336);
   font-size: 0.9em;
   margin-top: 5px;
 }
 
 .btn-submit {
   padding: 12px 24px;
-  background-color: #4caf50;
-  color: white;
-  border: none;
+  background: var(--success-bg, #4caf50);
+  color: var(--success-text, #fff);
+  border: 1px solid var(--success-bg, #4caf50);
   border-radius: 4px;
   font-size: 1.1em;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background 0.2s;
 }
 
 .btn-submit:hover:not(:disabled) {
-  background-color: #388e3c;
+  background: var(--success-bg-hover, #388e3c);
 }
 
 .btn-submit:disabled {
-  background-color: #bdbdbd;
+  background: var(--surface-muted, #bdbdbd);
   cursor: not-allowed;
 }
 
@@ -340,7 +340,7 @@ textarea {
 
 .no-questions {
   text-align: center;
-  color: #666;
+  color: var(--text-muted);
   padding: 40px 20px;
 }
 </style>

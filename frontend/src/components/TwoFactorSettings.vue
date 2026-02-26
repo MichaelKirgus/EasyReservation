@@ -211,18 +211,18 @@ async function confirmTwoFactor() {
 
 <style scoped>
 .card {
-    background: var(--app-card-bg, rgba(255,255,255,0.9));
-    border: 1px solid #e5e7eb;
+    background: var(--app-card-bg, var(--surface));
+    border: 1px solid var(--border-strong);
     border-radius: 10px;
     padding: 1.25rem;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 10px 30px var(--shadow);
     margin: 1rem 0;
 }
 
 .btn-primary {
-    background: #2563eb;
-    color: white;
-    border: none;
+    background: var(--primary);
+    color: var(--primary-contrast);
+    border: 1px solid var(--primary);
     padding: 0.75rem 1.25rem;
     border-radius: 8px;
     cursor: pointer;
@@ -231,9 +231,9 @@ async function confirmTwoFactor() {
 }
 
 .btn-danger {
-    background: #dc2626;
-    color: white;
-    border: none;
+    background: var(--error-bg);
+    color: var(--error-text, #fff);
+    border: 1px solid var(--error-border, var(--error-bg));
     padding: 0.75rem 1.25rem;
     border-radius: 8px;
     cursor: pointer;
@@ -242,9 +242,9 @@ async function confirmTwoFactor() {
 }
 
 .btn-secondary {
-    background: #64748b;
-    color: white;
-    border: none;
+    background: var(--surface-muted);
+    color: var(--text);
+    border: 1px solid var(--border);
     padding: 0.75rem 1.25rem;
     border-radius: 8px;
     cursor: pointer;
@@ -260,7 +260,7 @@ async function confirmTwoFactor() {
 .confirm-form {
     margin-top: 1rem;
     padding: 1rem;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border-strong);
     border-radius: 8px;
 }
 
@@ -272,7 +272,7 @@ async function confirmTwoFactor() {
 }
 
 .recovery-code {
-    background: #f1f5f9;
+    background: var(--surface-muted);
     padding: 0.5rem;
     border-radius: 4px;
     font-family: monospace;

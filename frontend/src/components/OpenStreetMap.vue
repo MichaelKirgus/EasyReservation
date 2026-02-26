@@ -228,22 +228,22 @@ onUnmounted(() => {
 .address-search input {
   flex: 1;
   padding: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border);
   border-radius: 6px;
 }
 
 .address-search button {
   padding: 0.5rem 1rem;
-  background: #2563eb;
-  color: white;
-  border: none;
+  background: var(--primary);
+  color: var(--primary-contrast);
+  border: 1px solid var(--primary);
   border-radius: 6px;
   cursor: pointer;
 }
 
 .marker-info {
   padding: 0.75rem;
-  background: #f3f4f6;
+  background: var(--surface-muted);
   border-radius: 6px;
   font-size: 0.875rem;
 }

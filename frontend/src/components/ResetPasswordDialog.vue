@@ -65,7 +65,7 @@ watch(() => props.loading, l => {
 </script>
 
 <style scoped>
-.modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+.modal-backdrop { position: fixed; inset: 0; background: var(--backdrop-bg, rgba(15,23,42,0.6)); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
 .modal { background: var(--app-card-bg, var(--surface)); color: var(--text); border-radius: 12px; padding: 1.5rem; min-width: 320px; max-width: 95vw; border: 1px solid var(--border-strong); box-shadow: 0 20px 50px var(--shadow); }
 .actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
 .error { color: var(--error-text); background: var(--error-bg); border: 1px solid var(--error-border); padding: 0.5rem; border-radius: 6px; margin-top: 0.5rem; }
