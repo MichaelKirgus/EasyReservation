@@ -124,23 +124,13 @@ class ReservationController extends Controller
             || $this->emailValidation->adminApprovalEnabled();
 
         if ($validationFeatureEnabled) {
-
             try {
                 $validation = $this->emailValidation->createRequest($target, $name, $email, $payload, $siteToken);
-                // Extra debug: log type and value of $validation after createRequest
-                if (is_array($validation)) {
-                    Log::error('ReservationController: $validation is array after createRequest', [
-                        'validation' => $validation,
-                        'trace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 20),
-                    ]);
-                } else {
-                    Log::debug('ReservationController: $validation is object after createRequest', [
-                        'class' => get_class($validation),
-                        'id' => $validation->id ?? null,
-                        'validation' => method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
-                    ]);
-                }
-                // Defensive: if $validation is not an object, throw and log
+                Log::debug('ReservationController: $validation after createRequest', [
+                    'type' => gettype($validation),
+                    'class' => is_object($validation) ? get_class($validation) : null,
+                    'validation' => is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
+                ]);
                 if (!is_object($validation)) {
                     Log::error('ReservationController: $validation is not an object after createRequest', [
                         'type' => gettype($validation),
@@ -155,11 +145,10 @@ class ReservationController extends Controller
                     'name' => $name,
                     'email' => $email,
                     'site_token' => $siteToken,
-                    'validation_id' => $validation->id ?? null,
-                    'validation_status' => $validation->status ?? null,
+                    'validation_id' => is_object($validation) ? ($validation->id ?? null) : (is_array($validation) ? ($validation['id'] ?? null) : null),
+                    'validation_status' => is_object($validation) ? ($validation->status ?? null) : (is_array($validation) ? ($validation['status'] ?? null) : null),
                     'validation' => method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
                 ]);
-
                 // Return only necessary fields for validation
                 $validationData = [
                     'id' => $validation->id,
@@ -170,25 +159,32 @@ class ReservationController extends Controller
                     'expires_at' => $validation->expires_at,
                     'requires_admin_approval' => $validation->requires_admin_approval,
                 ];
-
                 return response()->json([
                     'message' => $target === 'waitlist'
                         ? __('feedback_waitlist_success')
-                        : __('feedback_reservation_success'),
+                        : __('reservation_required_confirmation_missing'),
                     'validation_pending' => true,
                     'target' => $target,
                     'pending_admin' => $this->emailValidation->adminApprovalEnabled() && ! $this->emailValidation->emailValidationEnabled(),
                     'validation' => $validationData,
                 ], 202);
             } catch (\Throwable $e) {
-                Log::error('Reservation validation error', [
-                    'error' => $e->getMessage(),
-                    'target' => $target,
-                    'name' => $name,
-                    'email' => $email,
-                    'site_token' => $siteToken,
+                Log::error('ReservationController: Exception caught in store', [
+                    'exception_class' => get_class($e),
+                    'exception_message' => $e->getMessage(),
+                    'exception_trace' => $e->getTraceAsString(),
+                    'target' => $target ?? null,
+                    'name' => $name ?? null,
+                    'email' => $email ?? null,
+                    'site_token' => $siteToken ?? null,
+                    'validation_type' => isset($validation) ? gettype($validation) : null,
+                    'validation_is_object' => isset($validation) ? is_object($validation) : null,
+                    'validation_value' => isset($validation) ? (is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation) : null,
                 ]);
-                return response()->json(['message' => $e->getMessage()], 500);
+                return response()->json([
+                    'message' => __('reservation_validation_error'),
+                    'error' => $e->getMessage(),
+                ], 500);
             }
         }
 

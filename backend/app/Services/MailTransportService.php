@@ -58,7 +58,18 @@ class MailTransportService
             ->orderBy('priority', 'asc')
             ->get();
 
-        return $groupAccounts->pluck('account')->toArray();
+        // Ensure we return an array of MailAccount objects, not arrays
+        $accounts = $groupAccounts->pluck('account')->all();
+        // If any are arrays, convert to objects (should not happen, but defensive)
+        foreach ($accounts as &$account) {
+            if (is_array($account)) {
+                Log::error('MailTransportService@getGroupAccounts: account is array, not object', [
+                    'account' => $account
+                ]);
+                $account = (object) $account;
+            }
+        }
+        return $accounts;
     }
 
     /**
@@ -67,6 +78,12 @@ class MailTransportService
     public function getNextAccount(MailTransportGroup $group, array $failedAccounts = []): ?MailAccount
     {
         $accounts = $this->getGroupAccounts($group);
+        Log::debug('MailTransportService@getNextAccount: accounts before filter', [
+            'accounts_type' => gettype($accounts),
+            'accounts_count' => is_array($accounts) ? count($accounts) : null,
+            'accounts_sample' => is_array($accounts) && count($accounts) > 0 ? (is_object($accounts[0]) ? get_class($accounts[0]) : gettype($accounts[0])) : null,
+            'accounts_full' => $accounts,
+        ]);
 
         if (empty($accounts)) {
             return null;

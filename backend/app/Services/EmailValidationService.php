@@ -111,14 +111,31 @@ class EmailValidationService
         } catch (\Throwable $e) {
             Log::warning('Admin approval notification email failed', [
                 'error' => $e->getMessage(),
-                'validation_id' => $validation->id,
+                'validation_id' => is_object($validation) && isset($validation->id) ? $validation->id : null,
+                'validation_type' => gettype($validation),
+                'validation_value' => $validation,
             ]);
         }
     }
 
     public function createRequest(string $type, string $name, ?string $email, array $payload = [], ?string $siteToken = null): EmailValidation
     {
+        Log::debug('createRequest: start', [
+            'type' => $type,
+            'name' => $name,
+            'email' => $email,
+            'payload' => $payload,
+            'siteToken' => $siteToken,
+            'backtrace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10),
+        ]);
         Log::debug('createRequest called', [
+            'type' => $type,
+            'name' => $name,
+            'email' => $email,
+            'payload' => $payload,
+            'siteToken' => $siteToken,
+        ]);
+        Log::debug('createRequest: entering', [
             'type' => $type,
             'name' => $name,
             'email' => $email,
@@ -209,6 +226,14 @@ class EmailValidationService
             'validation' => is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
         ]);
 
+        // Defensive: log before every return
+        Log::debug('createRequest: about to return', [
+            'validation_type' => gettype($validation),
+            'validation_class' => is_object($validation) ? get_class($validation) : null,
+            'validation' => is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
+            'debug_backtrace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10),
+        ]);
+
         if ($requiresEmail) {
             Log::debug('createRequest before return (requiresEmail)', [
                 'validation_type' => gettype($validation),
@@ -253,23 +278,23 @@ class EmailValidationService
         $validation = EmailValidation::query()->where('token', $token)->first();
 
         if (! $validation) {
-            throw new \RuntimeException(__('validation_token_not_found'));
+            throw new \RuntimeException(__("validation_token_not_found"));
         }
 
         if ($validation->expires_at && now()->greaterThan($validation->expires_at)) {
             $validation->status = 'expired';
             $validation->last_error = 'Token abgelaufen';
             $validation->save();
-            throw new \RuntimeException(__('validation_link_expired'));
+            throw new \RuntimeException(__("validation_link_expired"));
         }
 
         if (in_array($validation->status, ['completed', 'cancelled', 'expired', 'failed'])) {
-            throw new \RuntimeException(__('validation_link_already_used'));
+            throw new \RuntimeException(__("validation_link_already_used"));
         }
 
         if ($validation->validated_at) {
             if ($validation->status === 'completed') {
-                throw new \RuntimeException(__('validation_link_already_used'));
+                throw new \RuntimeException(__("validation_link_already_used"));
             }
         }
 
@@ -278,12 +303,32 @@ class EmailValidationService
         $validation->save();
 
         if (! $validation->requires_admin_approval) {
-            return $this->finalize($validation);
+            // Finalize and return consistent array for reservation/waitlist
+            $result = $this->finalize($validation);
+            // $result may be EmailValidation (reservation) or array (waitlist)
+            if ($result instanceof \App\Models\EmailValidation) {
+                return [
+                    'reservation' => $result,
+                    'waitlist' => false,
+                    'pending_admin' => false,
+                ];
+            } elseif (is_array($result)) {
+                // Waitlist flow
+                return $result + [
+                    'pending_admin' => false,
+                ];
+            } else {
+                // Fallback
+                return [
+                    'reservation' => null,
+                    'waitlist' => false,
+                    'pending_admin' => false,
+                ];
+            }
         }
 
         // Email validated, now waiting for admin approval — send notification to admin
         $this->sendAdminApprovalNotification($validation);
-
         return [
             'pending_admin' => true,
             'validation' => $validation,
@@ -310,30 +355,55 @@ class EmailValidationService
     private function finalize(EmailValidation $validation): array
     {
         return DB::transaction(function () use ($validation) {
+            Log::debug('finalize: entered', [
+                'validation_type' => gettype($validation),
+                'validation_class' => is_object($validation) ? get_class($validation) : null,
+                'validation' => is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
+            ]);
             if ($validation->status === 'completed') {
-                return ['status' => 'completed', 'validation' => $validation];
+                Log::debug('finalize: returning completed', [
+                    'validation_type' => gettype($validation),
+                    'validation_class' => is_object($validation) ? get_class($validation) : null,
+                    'validation' => is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
+                ]);
+                return is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : (array)$validation;
             }
 
             try {
                 if ($validation->type === 'waitlist') {
                     $entry = $this->waitlist->addToWaitlist($validation->display_name, $validation->email, $validation->payload ?? []);
                     $validation->waitlist_entry_id = $entry->id;
-                    $result = ['waitlist' => true, 'entry' => $entry];
                     $this->sendWaitlistValidationSuccessEmail($entry);
+                    Log::debug('finalize: returning waitlist', [
+                        'entry_type' => gettype($entry),
+                        'entry_class' => is_object($entry) ? get_class($entry) : null,
+                        'entry' => is_object($entry) && method_exists($entry, 'toArray') ? $entry->toArray() : $entry,
+                        'validation' => is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
+                    ]);
                 } else {
                     $reservation = $this->createReservationOrWaitlist($validation);
                     if ($reservation instanceof WaitlistEntry) {
                         $validation->waitlist_entry_id = $reservation->id;
-                        $result = ['waitlist' => true, 'entry' => $reservation];
                         $this->sendWaitlistValidationSuccessEmail($reservation);
+                        Log::debug('finalize: returning reservation as waitlist', [
+                            'reservation_type' => gettype($reservation),
+                            'reservation_class' => is_object($reservation) ? get_class($reservation) : null,
+                            'reservation' => is_object($reservation) && method_exists($reservation, 'toArray') ? $reservation->toArray() : $reservation,
+                            'validation' => is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
+                        ]);
                     } else {
                         $validation->reservation_id = $reservation->id;
-                        $result = ['reservation' => $reservation];
                         $this->sendReservationNotification($reservation, 'email_reservation_success_template_id', true);
 
                         // Trigger: reservation_added (after reservation is created via email validation)
                         app(\App\Services\EventTriggerService::class)->handle('reservation_added', ['reservation' => $reservation]);
                         app(\App\Services\EventTriggerService::class)->handle('reservation_enabled', ['reservation' => $reservation]);
+                        Log::debug('finalize: returning reservation', [
+                            'reservation_type' => gettype($reservation),
+                            'reservation_class' => is_object($reservation) ? get_class($reservation) : null,
+                            'reservation' => is_object($reservation) && method_exists($reservation, 'toArray') ? $reservation->toArray() : $reservation,
+                            'validation' => is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
+                        ]);
                     }
                 }
 
@@ -342,7 +412,12 @@ class EmailValidationService
                 $validation->last_error = null;
                 $validation->save();
 
-                return $result + ['validation' => $validation];
+                Log::debug('finalize: about to return', [
+                    'validation_type' => gettype($validation),
+                    'validation_class' => is_object($validation) ? get_class($validation) : null,
+                    'validation' => is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
+                ]);
+                return is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : (array)$validation;
             } catch (\Throwable $e) {
                 $validation->last_error = $e->getMessage();
                 $validation->status = 'failed';
@@ -441,6 +516,11 @@ class EmailValidationService
 
     private function sendValidationEmail(EmailValidation $validation): void
     {
+        Log::debug('sendValidationEmail: entered', [
+            'validation_type' => gettype($validation),
+            'validation_class' => is_object($validation) ? get_class($validation) : null,
+            'validation' => is_object($validation) && method_exists($validation, 'toArray') ? $validation->toArray() : $validation,
+        ]);
         // Get transport group ID from validation template setting
         $templateId = (int) ($this->settings->get('email_validation_template_id') ?? 0);
         $transportGroupId = $this->getTransportGroupIdFromSetting($templateId);
