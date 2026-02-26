@@ -35,11 +35,11 @@ class ReservationController extends Controller
     }
 
     public function store(ReservationStoreRequest $request): JsonResponse
-            Log::debug('ReservationController@store called', [
-                'request' => $request->all(),
-                'ip' => $request->ip(),
-            ]);
     {
+        Log::debug('ReservationController@store called', [
+            'request' => $request->all(),
+            'ip' => $request->ip(),
+        ]);
 
         $settings = $this->settings->all();
         // Site-Token aus Request holen
