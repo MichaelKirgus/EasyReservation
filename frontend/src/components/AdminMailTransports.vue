@@ -815,23 +815,42 @@ onUnmounted(() => {
     <div v-if="error" class="error">{{ error }}</div>
     <div v-if="message" class="message">{{ message }}</div>
     
-    <!-- Tabs -->
-    <div class="tabs">
-      <button 
-        v-for="tab in tabs" 
-        :key="tab.id" 
-        :class="['tab', { active: selectedTab === tab.id }]" 
-        @click="selectedTab = tab.id"
-      >
-        {{ t(`admin_mail_transports_tab_${tab.id}`) }}
-      </button>
+    <!-- Tabs with Add Button on Right -->
+    <div class="tabs-row">
+      <div class="tabs">
+        <button 
+          v-for="tab in tabs" 
+          :key="tab.id" 
+          :class="['tab', { active: selectedTab === tab.id }]" 
+          @click="selectedTab = tab.id"
+        >
+          {{ t(`admin_mail_transports_tab_${tab.id}`) }}
+        </button>
+      </div>
+      <div class="tab-add-btn">
+        <IconButton
+          v-if="selectedTab === 'accounts'"
+          icon="plus"
+          :label="t('admin_mail_transports_add_account')"
+          @click="openAccountForm()"
+        />
+        <IconButton
+          v-else-if="selectedTab === 'groups'"
+          icon="plus"
+          :label="t('admin_mail_transports_add_group')"
+          @click="openGroupForm()"
+        />
+        <IconButton
+          v-else-if="selectedTab === 'blacklist'"
+          icon="plus"
+          :label="t('admin_mail_transports_add_domain')"
+          @click="openBlacklistDomainForm()"
+        />
+      </div>
     </div>
     
     <!-- Accounts Tab -->
     <div v-if="selectedTab === 'accounts'" class="content-section">
-      <div class="controls" style="margin-bottom: 1rem;">
-        <IconButton icon="plus" :label="t('admin_mail_transports_add_account')" @click="openAccountForm()" />
-      </div>
       
       <!-- Account Form (Inline) -->
       <div v-if="editingAccount || showAddAccountForm" class="form-card">
@@ -881,9 +900,6 @@ onUnmounted(() => {
     
     <!-- Groups Tab -->
     <div v-if="selectedTab === 'groups'" class="content-section">
-      <div class="controls" style="margin-bottom: 1rem;">
-        <IconButton icon="plus" :label="t('admin_mail_transports_add_group')" @click="openGroupForm()" />
-      </div>
       
       <!-- Group Form (Inline) -->
       <div v-if="editingGroup || showAddGroupForm" class="form-card">
@@ -1011,9 +1027,6 @@ onUnmounted(() => {
     
     <!-- Blacklist Tab -->
     <div v-if="selectedTab === 'blacklist'" class="content-section">
-      <div class="controls" style="margin-bottom: 1rem;">
-        <IconButton icon="plus" :label="t('admin_mail_transports_add_domain')" @click="openBlacklistDomainForm()" />
-      </div>
       
       <!-- Blacklist Domain Form (Inline) -->
       <div v-if="editingBlacklistDomain || showAddBlacklistDomainForm" class="form-card">
@@ -1147,4 +1160,16 @@ onUnmounted(() => {
 .btn-primary, .btn-secondary { padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; }
 .btn-primary { background: var(--primary); color: #fff; border: none; }
 .btn-secondary { background: var(--surface-muted); color: var(--text); border: 1px solid var(--border); }
+/* Add styles for new tab row layout */
+.tabs-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+.tab-add-btn {
+  display: flex;
+  align-items: center;
+}
 </style>
