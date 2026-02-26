@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers\Api;
 
+
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FaqRequest;
 use App\Models\Faq;
 use Illuminate\Http\JsonResponse;
+use App\Services\PlaceholderService;
 
 class FaqController extends Controller
 {
+    public function __construct(private readonly PlaceholderService $placeholders) {}
+
     public function publicIndex(): JsonResponse
     {
         $faqs = Faq::query()
@@ -21,6 +25,13 @@ class FaqController extends Controller
             ->orderBy('id')
             ->get(['id', 'question', 'answer', 'position', 'published_at']);
 
+        // Replace placeholders in question and answer
+        $faqs = $faqs->map(function ($faq) {
+            $faq->question = $this->placeholders->replaceString($faq->question);
+            $faq->answer = $this->placeholders->replaceString($faq->answer);
+            return $faq;
+        });
+
         return response()->json($faqs);
     }
 
@@ -30,7 +41,7 @@ class FaqController extends Controller
             ->orderBy('position')
             ->orderBy('id')
             ->get();
-
+        // Do NOT replace placeholders for admin/management frontend
         return response()->json($faqs);
     }
 
