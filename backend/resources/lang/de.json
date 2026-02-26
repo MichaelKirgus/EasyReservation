@@ -576,7 +576,7 @@
   "admin_faq_messages_no_entries": "Keine Einträge vorhanden.",
   "admin_faq_messages_new_faq": "Neue FAQ",
   "admin_email_broadcast_columns_id": "ID",
-  "admin_email_broadcast_columns_name": "Bezeichnung",
+  "admin_email_broadcast_columns_name": "Vorlagenname",
   "admin_email_broadcast_columns_subject": "Betreff",
   "admin_email_broadcast_columns_cc": "CC",
   "admin_email_broadcast_columns_bcc": "BCC",

@@ -579,7 +579,7 @@
   "admin_faq_messages_no_entries": "No entries yet.",
   "admin_faq_messages_new_faq": "New FAQ",
   "admin_email_broadcast_columns_id": "ID",
-  "admin_email_broadcast_columns_name": "Name",
+  "admin_email_broadcast_columns_name": "Template name",
   "admin_email_broadcast_columns_subject": "Subject",
   "admin_email_broadcast_columns_cc": "CC",
   "admin_email_broadcast_columns_bcc": "BCC",
