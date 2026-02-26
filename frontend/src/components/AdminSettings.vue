@@ -197,7 +197,6 @@ const tabFieldMap = {
     'email_waitlist_validation_success_template_id',
     'email_waitlist_cancel_template_id',
     'admin_reservation_notify_default',
-    'mail_debug_domain_blacklist',
     'moderator_reservation_notify_default',
     'ical_template',
     'mail_host',

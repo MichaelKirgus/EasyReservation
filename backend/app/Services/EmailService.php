@@ -12,6 +12,7 @@ use App\Models\MailTransportGroup;
 use App\Models\Reservation;
 use App\Models\Survey;
 use App\Models\WaitlistEntry;
+use App\Models\EmailBlacklistDomain;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -79,26 +80,22 @@ class EmailService
         return $mailerConfig;
     }
 
-    /**
-     * Prüft, ob eine E-Mail auf der Debug-Domain-Blacklist steht (mail_debug_domain_blacklist).
-     * Diese Funktion ist nur für Debug-Zwecke gedacht, um Test-Domains vom Versand auszuschließen.
-     */
     private function isDebugBlacklistedEmail(?string $email): bool
     {
         $email = trim((string) $email);
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return false;
         }
-        $domainBlacklist = $this->settings->get('mail_debug_domain_blacklist', '');
-        if (!$domainBlacklist) return false;
-        $blacklist = array_filter(array_map('trim', explode(',', $domainBlacklist)));
+
+        // Get domain from email
         $emailDomain = strtolower(substr(strrchr($email, '@'), 1));
-        foreach ($blacklist as $blockedDomain) {
-            if ($emailDomain === strtolower($blockedDomain)) {
-                return true;
-            }
-        }
-        return false;
+
+        // Check database for blacklisted domains
+        $blacklistEntry = EmailBlacklistDomain::where('domain', $emailDomain)
+            ->where('active', true)
+            ->first();
+
+        return $blacklistEntry !== null;
     }
 
     /**

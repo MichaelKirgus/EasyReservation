@@ -1378,5 +1378,17 @@
   "admin_mail_transports_confirm_delete_account": "Möchten Sie dieses Mail-Konto wirklich löschen?",
   "admin_mail_transports_confirm_delete_group": "Möchten Sie diese Transportgruppe wirklich löschen?",
   "admin_mail_transports_edit_account": "Mail-Konto bearbeiten",
-  "admin_mail_transports_edit_group": "Transportgruppe bearbeiten"
+  "admin_mail_transports_edit_group": "Transportgruppe bearbeiten",
+  "admin_mail_transports_tab_blacklist": "Blacklist",
+  "admin_mail_transports_columns_domain": "Domain",
+  "admin_mail_transports_add_domain": "Domain hinzufügen",
+  "admin_mail_transports_edit_domain": "Domain bearbeiten",
+  "admin_mail_transports_delete_domain": "Domain löschen",
+  "admin_mail_transports_domain_saved": "Domain erfolgreich gespeichert",
+  "admin_mail_transports_domain_deleted": "Domain aus der Blacklist gelöscht",
+  "admin_mail_transports_confirm_delete_domain": "Möchten Sie diese Domain wirklich aus der Blacklist entfernen?",
+  "admin_mail_transports_no_blacklist_domains": "Keine blockierten Domains gefunden",
+  "admin_mail_transports_error_loading_blacklist": "Fehler beim Laden der Blacklist-Domains",
+  "admin_mail_transports_error_saving_domain": "Fehler beim Speichern der Domain",
+  "admin_mail_transports_error_deleting_domain": "Fehler beim Löschen der Domain"
   }

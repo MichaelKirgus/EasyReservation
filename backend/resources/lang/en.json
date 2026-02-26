@@ -1381,5 +1381,17 @@
   "admin_mail_transports_confirm_delete_account": "Are you sure you want to delete this mail account?",
   "admin_mail_transports_confirm_delete_group": "Are you sure you want to delete this transport group?",
   "admin_mail_transports_edit_account": "Edit Mail Account",
-  "admin_mail_transports_edit_group": "Edit Transport Group"
+  "admin_mail_transports_edit_group": "Edit Transport Group",
+  "admin_mail_transports_tab_blacklist": "Blacklist",
+  "admin_mail_transports_columns_domain": "Domain",
+  "admin_mail_transports_add_domain": "Add Domain",
+  "admin_mail_transports_edit_domain": "Edit Domain",
+  "admin_mail_transports_delete_domain": "Delete Domain",
+  "admin_mail_transports_domain_saved": "Domain saved successfully",
+  "admin_mail_transports_domain_deleted": "Domain deleted from blacklist",
+  "admin_mail_transports_confirm_delete_domain": "Are you sure you want to delete this domain from the blacklist?",
+  "admin_mail_transports_no_blacklist_domains": "No blacklisted domains found",
+  "admin_mail_transports_error_loading_blacklist": "Error loading blacklist domains",
+  "admin_mail_transports_error_saving_domain": "Error saving domain",
+  "admin_mail_transports_error_deleting_domain": "Error deleting domain"
   }

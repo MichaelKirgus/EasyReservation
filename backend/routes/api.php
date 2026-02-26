@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\SurveyController;
 use App\Http\Controllers\Api\PublicSurveyController;
 use App\Http\Controllers\Api\MailAccountController;
 use App\Http\Controllers\Api\MailGroupController;
+use App\Http\Controllers\Api\EmailBlacklistDomainController;
 use Illuminate\Support\Facades\Route;
 
 Route::options('/{any}', fn () => response()->noContent())->where('any', '.*');
@@ -178,7 +179,6 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/webhook-templates/{id}/clone', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'clone']);
     Route::post('/admin/webhook-templates/{id}/test', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'test']);
 
-    // Archive routes (admin/superadmin only)
     Route::get('/admin/archives', [ArchiveController::class, 'index']);
     Route::post('/admin/archives', [ArchiveController::class, 'store']);
     Route::delete('/admin/archives/{archive}', [ArchiveController::class, 'destroy']);
@@ -190,10 +190,21 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/archives/{archive}/restore-waitlist-entries', [ArchiveController::class, 'restoreWaitlistEntries']);
     Route::get('/admin/archives/{archive}/download-csv/{type}', [ArchiveController::class, 'downloadCsv']);
     Route::post('/admin/archives/{archive}/archive-data', [ArchiveController::class, 'archiveData']);
+
+   Route::apiResource('/admin/mail-accounts', MailAccountController::class)->parameters(['mail-accounts' => 'account']);
+   Route::post('/admin/mail-accounts/{account}/test', [MailAccountController::class, 'testConnection']);
+
+   Route::apiResource('/admin/mail-groups', MailGroupController::class)->parameters(['mail-groups' => 'group']);
+   Route::post('/admin/mail-groups/{group}/add-account', [MailGroupController::class, 'addAccount']);
+   Route::put('/admin/mail-groups/{group}/update-priority/{account}', [MailGroupController::class, 'updateAccountPriority']);
+   Route::delete('/admin/mail-groups/{group}/remove-account/{account}', [MailGroupController::class, 'removeAccount']);
+   Route::post('/admin/mail-groups/{group}/test', [MailGroupController::class, 'testConnection']);
+
+   Route::apiResource('/admin/email-blacklist-domains', EmailBlacklistDomainController::class);
 });
 
 Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
-    Route::get('/moderator/reservations', [AdminReservationController::class, 'index']);
+   Route::get('/moderator/reservations', [AdminReservationController::class, 'index']);
     Route::post('/moderator/reservations', [AdminReservationController::class, 'store']);
     Route::patch('/moderator/resersvations/{reservation}', [AdminReservationController::class, 'update']);
     Route::delete('/moderator/reservations/{reservation}', [AdminReservationController::class, 'destroy']);
@@ -232,16 +243,6 @@ Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
     Route::apiResource('/moderator/faqs', FaqController::class)->except(['create', 'edit', 'show']);
     Route::apiResource('/moderator/events', EventController::class)->except(['create', 'edit', 'show']);
     Route::apiResource('/moderator/locations', LocationController::class);
-
-    // Mail transport routes
-    Route::apiResource('/admin/mail-accounts', MailAccountController::class)->parameters(['mail-accounts' => 'account']);
-    Route::post('/admin/mail-accounts/{account}/test', [MailAccountController::class, 'testConnection']);
-
-    Route::apiResource('/admin/mail-groups', MailGroupController::class)->parameters(['mail-groups' => 'group']);
-    Route::post('/admin/mail-groups/{group}/add-account', [MailGroupController::class, 'addAccount']);
-    Route::put('/admin/mail-groups/{group}/update-priority/{account}', [MailGroupController::class, 'updateAccountPriority']);
-    Route::delete('/admin/mail-groups/{group}/remove-account/{account}', [MailGroupController::class, 'removeAccount']);
-    Route::post('/admin/mail-groups/{group}/test', [MailGroupController::class, 'testConnection']);
 
     // Moderator endpoint for fetching transport groups with accounts (read-only)
     Route::get('/moderator/mail-transport-options', [\App\Http\Controllers\Api\MailTransportOptionsController::class, 'index']);

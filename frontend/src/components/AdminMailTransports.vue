@@ -8,11 +8,63 @@ import MailGroupForm from './MailGroupForm.vue'
 import { getMailAccounts, createMailAccount, updateMailAccount, deleteMailAccount, testMailAccount, getMailGroups, createMailGroup, updateMailGroup, deleteMailGroup, testMailGroup, getMailGroup, addAccountToGroup, removeAccountFromGroup, updateAccountPriority } from '../utils/adminApi'
 import { useTranslation } from '../composables/useTranslation'
 
+// Blacklist domain API functions
+const getBlacklistDomains = async (config) => {
+  const prefix = config.routePrefixRef?.value || 'admin'
+  const res = await fetch(`/api/${prefix}/email-blacklist-domains`, {
+    headers: config.apiKeyRef.value ? { 'X-Admin-Key': config.apiKeyRef.value } : {},
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return await res.json()
+}
+
+const createBlacklistDomain = async (config, data) => {
+  const prefix = config.routePrefixRef?.value || 'admin'
+  const res = await fetch(`/api/${prefix}/email-blacklist-domains`, {
+    method: 'POST',
+    headers: { ...config.apiKeyRef.value ? { 'X-Admin-Key': config.apiKeyRef.value } : {}, 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return await res.json()
+}
+
+const updateBlacklistDomain = async (config, id, data) => {
+  const prefix = config.routePrefixRef?.value || 'admin'
+  const res = await fetch(`/api/${prefix}/email-blacklist-domains/${id}`, {
+    method: 'PUT',
+    headers: { ...config.apiKeyRef.value ? { 'X-Admin-Key': config.apiKeyRef.value } : {}, 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return await res.json()
+}
+
+const deleteBlacklistDomain = async (config, id) => {
+  const prefix = config.routePrefixRef?.value || 'admin'
+  const res = await fetch(`/api/${prefix}/email-blacklist-domains/${id}`, {
+    method: 'DELETE',
+    headers: config.apiKeyRef.value ? { 'X-Admin-Key': config.apiKeyRef.value } : {},
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return await res.json()
+}
+
 const props = defineProps({ langCode: { type: String, default: 'de' } })
 const { tr } = useTranslation()
 
 const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
-const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
+// Ensure routePrefix is always 'admin' for this component (moderators don't have access to mail transport routes)
+let initialRoutePrefix = localStorage.getItem('admin_route_prefix')
+if (initialRoutePrefix === 'moderator') {
+  initialRoutePrefix = 'admin'
+  localStorage.setItem('admin_route_prefix', 'admin')
+}
+const routePrefix = ref(initialRoutePrefix || 'admin')
 const currentUser = ref(JSON.parse(localStorage.getItem('admin_user') || sessionStorage.getItem('admin_user') || 'null'))
 
 // Reusable auth config for admin API calls
@@ -40,9 +92,19 @@ const addAccountPriority = ref(0) // Priority for the new account
 const tabs = [
   { id: 'accounts', labelKey: 'admin_mail_transports_tab_accounts', fallback: 'Mail Accounts' },
   { id: 'groups', labelKey: 'admin_mail_transports_tab_groups', fallback: 'Transport Groups' },
+  { id: 'blacklist', labelKey: 'admin_mail_transports_tab_blacklist', fallback: 'Blacklist' },
 ]
 
 const selectedTab = ref('accounts')
+
+// Blacklist domain form state
+const blacklistDomainForm = reactive({
+  domain: '',
+  active: true,
+})
+
+// Blacklist domains state
+const blacklistDomains = ref([])
 
 // Account form state
 const accountForm = reactive({
@@ -110,6 +172,13 @@ const groupColumns = computed(() => [
   { key: 'is_active', label: tr('admin_mail_transports_columns_active'), sortable: true, type: 'boolean' },
 ])
 
+// Blacklist domain table columns
+const blacklistDomainColumns = computed(() => [
+  { key: 'id', label: tr('admin_mail_transports_columns_id'), sortable: true, hiddenByDefault: true },
+  { key: 'domain', label: tr('admin_mail_transports_columns_domain'), sortable: true },
+  { key: 'active', label: tr('admin_mail_transports_columns_active'), sortable: true, type: 'boolean' },
+])
+
 // Accounts available to assign (not yet in the managed group)
 const availableAccountsForGroup = computed(() => {
   if (!managingGroupAccounts.value) return []
@@ -125,6 +194,11 @@ const visibleAccounts = computed(() => {
 
 const visibleGroups = computed(() => {
   if (selectedTab.value === 'groups') return groups.value
+  return []
+})
+
+const visibleBlacklistDomains = computed(() => {
+  if (selectedTab.value === 'blacklist') return blacklistDomains.value
   return []
 })
 
@@ -202,6 +276,20 @@ function t(key) {
     admin_mail_transports_test_failed: tr('admin_mail_transports_test_failed', 'Connection test failed: '),
     admin_mail_transports_no_accounts: tr('admin_mail_transports_no_accounts', 'No mail accounts found'),
     admin_mail_transports_no_groups: tr('admin_mail_transports_no_groups', 'No transport groups found'),
+    admin_mail_transports_no_blacklist_domains: tr('admin_mail_transports_no_blacklist_domains', 'No blacklisted domains found'),
+    
+    // Blacklist domain labels
+    admin_mail_transports_tab_blacklist: tr('admin_mail_transports_tab_blacklist', 'Blacklist'),
+    admin_mail_transports_columns_domain: tr('admin_mail_transports_columns_domain', 'Domain'),
+    admin_mail_transports_add_domain: tr('admin_mail_transports_add_domain', 'Add Domain'),
+    admin_mail_transports_edit_domain: tr('admin_mail_transports_edit_domain', 'Edit Domain'),
+    admin_mail_transports_delete_domain: tr('admin_mail_transports_delete_domain', 'Delete Domain'),
+    admin_mail_transports_domain_saved: tr('admin_mail_transports_domain_saved', 'Domain saved successfully'),
+    admin_mail_transports_domain_deleted: tr('admin_mail_transports_domain_deleted', 'Domain deleted from blacklist'),
+    admin_mail_transports_confirm_delete_domain: tr('admin_mail_transports_confirm_delete_domain', 'Are you sure you want to delete this domain from the blacklist?'),
+    admin_mail_transports_error_loading_blacklist: tr('admin_mail_transports_error_loading_blacklist', 'Error loading blacklist domains'),
+    admin_mail_transports_error_saving_domain: tr('admin_mail_transports_error_saving_domain', 'Error saving domain'),
+    admin_mail_transports_error_deleting_domain: tr('admin_mail_transports_error_deleting_domain', 'Error deleting domain'),
     
     // Encryption options
     encryption_tls: tr('encryption_tls', 'TLS'),
@@ -258,9 +346,22 @@ async function loadGroups() {
   }
 }
 
+async function loadBlacklistDomains() {
+  if (!apiKey.value) return
+  loading.value = true
+  try {
+    const res = await getBlacklistDomains(adminConfig())
+    blacklistDomains.value = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : [])
+  } catch (e) {
+    setError(t('admin_mail_transports_error_loading_blacklist') + ': ' + e)
+  } finally {
+    loading.value = false
+  }
+}
+
 async function loadAll() {
   if (!apiKey.value) { setError(tr('please_login_api_key_missing')); return }
-  await Promise.all([loadAccounts(), loadGroups()])
+  await Promise.all([loadAccounts(), loadGroups(), loadBlacklistDomains()])
   setMessage(t('admin_mail_transports_data_loaded'))
 }
 
@@ -417,6 +518,75 @@ async function testAccountConnection(id) {
     setMessage(t('admin_mail_transports_test_success') + ' ' + (result.message || ''))
   } catch (e) {
     setError(t('admin_mail_transports_test_failed') + e.message)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Blacklist domain operations
+function openBlacklistDomainForm(domain = null) {
+  editingBlacklistDomain.value = domain
+  showAddBlacklistDomainForm.value = !domain
+  if (domain) {
+    // Edit existing
+    blacklistDomainForm.domain = domain.domain || ''
+    blacklistDomainForm.active = !!domain.active
+  } else {
+    // New domain
+    blacklistDomainForm.domain = ''
+    blacklistDomainForm.active = true
+  }
+}
+
+let editingBlacklistDomain = ref(null)
+let showAddBlacklistDomainForm = ref(false)
+
+async function saveBlacklistDomain(formData = null) {
+  if (!apiKey.value) { setError(tr('api_key_missing')); return }
+  
+  loading.value = true
+  try {
+    if (formData) Object.assign(blacklistDomainForm, formData)
+
+    const domainData = {
+      domain: blacklistDomainForm.domain,
+      active: blacklistDomainForm.active ? 1 : 0,
+    }
+
+    if (editingBlacklistDomain.value) {
+      const res = await updateBlacklistDomain(adminConfig(), editingBlacklistDomain.value.id, domainData)
+      const saved = res?.data || res
+      blacklistDomains.value = blacklistDomains.value.map(d => sameId(d.id, saved?.id) ? saved : d)
+      setMessage(t('admin_mail_transports_domain_saved'))
+    } else {
+      const res = await createBlacklistDomain(adminConfig(), domainData)
+      const saved = res?.data || res
+      if (saved) blacklistDomains.value = [saved, ...blacklistDomains.value]
+      setMessage(t('admin_mail_transports_domain_saved'))
+    }
+    
+    editingBlacklistDomain.value = null
+    showAddBlacklistDomainForm.value = false
+    await loadBlacklistDomains()
+  } catch (e) {
+    setError(e.message || t('admin_mail_transports_error_saving_domain'))
+  } finally {
+    loading.value = false
+  }
+}
+
+async function deleteBlacklistDomainItem(id) {
+  if (!apiKey.value) { setError(tr('api_key_missing')); return }
+  
+  if (!confirm(t('admin_mail_transports_confirm_delete_domain'))) return
+  
+  loading.value = true
+  try {
+    await deleteBlacklistDomain(adminConfig(), id)
+    blacklistDomains.value = blacklistDomains.value.filter(d => !sameId(d.id, id))
+    setMessage(t('admin_mail_transports_domain_deleted'))
+  } catch (e) {
+    setError(e.message || t('admin_mail_transports_error_deleting_domain'))
   } finally {
     loading.value = false
   }
@@ -838,6 +1008,71 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+    
+    <!-- Blacklist Tab -->
+    <div v-if="selectedTab === 'blacklist'" class="content-section">
+      <div class="controls" style="margin-bottom: 1rem;">
+        <IconButton icon="plus" :label="t('admin_mail_transports_add_domain')" @click="openBlacklistDomainForm()" />
+      </div>
+      
+      <!-- Blacklist Domain Form (Inline) -->
+      <div v-if="editingBlacklistDomain || showAddBlacklistDomainForm" class="form-card">
+        <h3>{{ editingBlacklistDomain ? t('admin_mail_transports_edit_domain') : t('admin_mail_transports_add_domain') }}</h3>
+        
+        <div class="form-row">
+          <label class="field">
+            <span>{{ t('admin_mail_transports_columns_domain') }}</span>
+            <input
+              v-model="blacklistDomainForm.domain"
+              type="text"
+              placeholder="example.com"
+              @keydown.enter.prevent="saveBlacklistDomain"
+            />
+          </label>
+        </div>
+        
+        <div class="form-row checkbox-row">
+          <label class="field checkbox-field">
+            <input
+              type="checkbox"
+              v-model="blacklistDomainForm.active"
+            />
+            {{ t('admin_mail_transports_columns_active') }}
+          </label>
+        </div>
+        
+        <div class="form-actions">
+          <button @click="saveBlacklistDomain" class="btn-primary">{{ editingBlacklistDomain ? t('admin_mail_transports_edit_domain') : t('admin_mail_transports_add_domain') }}</button>
+          <button @click="editingBlacklistDomain = null; showAddBlacklistDomainForm = false" class="btn-secondary">{{ t('cancel') }}</button>
+        </div>
+      </div>
+      
+      <AdminDataTable
+        :columns="blacklistDomainColumns"
+        :rows="visibleBlacklistDomains"
+        :loading="loading"
+        :empty-message="t('admin_mail_transports_no_blacklist_domains')"
+        :initial-hidden-columns="['id']"
+      >
+        <!-- Actions column -->
+        <template #row-actions="{ row }">
+          <div class="action-buttons">
+            <IconButton
+              icon="pencil"
+              :label="t('admin_mail_transports_edit_domain')"
+              variant="ghost"
+              @click="openBlacklistDomainForm(row)"
+            />
+            <IconButton
+              icon="trash"
+              :label="t('admin_mail_transports_delete_domain')"
+              variant="danger"
+              @click="deleteBlacklistDomainItem(row.id)"
+            />
+          </div>
+        </template>
+      </AdminDataTable>
+    </div>
   </div>
 </template>
 
@@ -896,4 +1131,20 @@ onUnmounted(() => {
 .status-badge.active { color: #059669; }
 .status-badge.inactive { color: #dc2626; }
 .empty-accounts { padding: 1rem; text-align: center; color: var(--text-muted); font-style: italic; }
+
+/* Blacklist Domain Form */
+.form-row { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1rem; }
+.form-row .field { display: flex; flex-direction: column; gap: 0.35rem; font-weight: 600; color: var(--text); }
+.form-row .field input,
+.form-row .field select { padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
+.form-row .field input { min-width: 250px; }
+
+.checkbox-row { flex-direction: row; align-items: center; }
+.checkbox-field { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: normal; }
+.checkbox-field input { width: auto; margin: 0; }
+
+.form-actions { display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.btn-primary, .btn-secondary { padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; }
+.btn-primary { background: var(--primary); color: #fff; border: none; }
+.btn-secondary { background: var(--surface-muted); color: var(--text); border: 1px solid var(--border); }
 </style>

@@ -22,8 +22,9 @@ export function resolveAdminApiKey(apiKeyRef) {
 
 export function resolveRoutePrefix(routePrefixRef) {
   const current = getRefValue(routePrefixRef)
+  // Always use 'admin' for AdminMailTransports.vue - moderators don't have access to mail transport routes
   const stored = localStorage.getItem('admin_route_prefix')
-  const resolved = current || stored || defaultRoutePrefix
+  const resolved = current || (stored === 'moderator' ? defaultRoutePrefix : stored) || defaultRoutePrefix
   if (routePrefixRef && typeof routePrefixRef === 'object' && 'value' in routePrefixRef) {
     routePrefixRef.value = resolved
   }
@@ -37,21 +38,13 @@ export function buildAdminHeaders({ apiKeyRef, includeJson = false, extraHeaders
   return headers
 }
 
-export async function adminFetch(relativeOrAbsolute, opts = {}, { apiKeyRef, routePrefixRef, absolute = false, triedFallback = false } = {}) {
+export async function adminFetch(relativeOrAbsolute, opts = {}, { apiKeyRef, routePrefixRef, absolute = false } = {}) {
   const prefix = resolveRoutePrefix(routePrefixRef)
   const url = absolute ? relativeOrAbsolute : `${apiBase}/${prefix}/${relativeOrAbsolute}`
   const usesJson = includeJsonFromOptions(opts)
   const headers = buildAdminHeaders({ apiKeyRef, includeJson: usesJson, extraHeaders: opts.headers || {} })
   // Use include so httpOnly session cookies are sent even across ports/subdomains during development
   const response = await fetch(url, { ...opts, headers, credentials: 'include' })
-
-  if (!absolute && response.status === 403 && !triedFallback && prefix === 'admin') {
-    if (routePrefixRef && typeof routePrefixRef === 'object' && 'value' in routePrefixRef) {
-      routePrefixRef.value = 'moderator'
-    }
-    localStorage.setItem('admin_route_prefix', 'moderator')
-    return adminFetch(relativeOrAbsolute, opts, { apiKeyRef, routePrefixRef, absolute, triedFallback: true })
-  }
 
   return response
 }
