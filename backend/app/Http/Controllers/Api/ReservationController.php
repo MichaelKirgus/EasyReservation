@@ -122,9 +122,37 @@ class ReservationController extends Controller
         if ($validationFeatureEnabled) {
             try {
                 $validation = $this->emailValidation->createRequest($target, $name, $email, $payload, $siteToken);
+                // Add debug log for validation creation
+                Log::debug('Reservation validation triggered', [
+                    'target' => $target,
+                    'name' => $name,
+                    'email' => $email,
+                    'site_token' => $siteToken,
+                    'validation_id' => $validation->id ?? null,
+                    'validation_status' => $validation->status ?? null,
+                    'validation' => $validation->toArray(),
+                ]);
             } catch (\Throwable $e) {
+                Log::error('Reservation validation error', [
+                    'error' => $e->getMessage(),
+                    'target' => $target,
+                    'name' => $name,
+                    'email' => $email,
+                    'site_token' => $siteToken,
+                ]);
                 return response()->json(['message' => $e->getMessage()], 500);
             }
+
+            // Return only necessary fields for validation
+            $validationData = [
+                'id' => $validation->id,
+                'status' => $validation->status,
+                'type' => $validation->type,
+                'display_name' => $validation->display_name,
+                'email' => $validation->email,
+                'expires_at' => $validation->expires_at,
+                'requires_admin_approval' => $validation->requires_admin_approval,
+            ];
 
             return response()->json([
                 'message' => $target === 'waitlist'
@@ -133,7 +161,7 @@ class ReservationController extends Controller
                 'validation_pending' => true,
                 'target' => $target,
                 'pending_admin' => $this->emailValidation->adminApprovalEnabled() && ! $this->emailValidation->emailValidationEnabled(),
-                'validation' => $validation,
+                'validation' => $validationData,
             ], 202);
         }
 

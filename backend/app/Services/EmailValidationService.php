@@ -207,9 +207,11 @@ class EmailValidationService
         }
 
         if (! $requiresEmail && ! $requiresAdmin) {
+            // Only call finalize for side effects, do not return its result here
             $this->finalize($validation);
         }
 
+        // Always return the EmailValidation Eloquent object, never an array
         return $validation;
     }
 
