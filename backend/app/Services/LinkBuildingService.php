@@ -99,7 +99,7 @@ class LinkBuildingService
     /**
      * Append query parameters to URL
      */
-    private function appendQuery(string $base, array $params): string
+    public function appendQuery(string $base, array $params): string
     {
         $separator = str_contains($base, '?') ? '&' : '?';
         return $base.$separator.http_build_query($params);

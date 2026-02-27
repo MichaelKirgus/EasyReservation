@@ -56,6 +56,7 @@ const auditLogCount = ref(null)
 const auditLogLoading = ref(false)
 const auditLogError = ref('')
 
+
 // Job columns - defined as computed to ensure translations are loaded
 const jobColumns = computed(() => [
   { key: 'finished_at', label: tr('admin_diagnostics_job_columns_finished_at'), sortable: true },
@@ -65,6 +66,22 @@ const jobColumns = computed(() => [
   { key: 'runtime_ms', label: tr('admin_diagnostics_job_columns_runtime_ms'), sortable: true },
   { key: 'message', label: tr('admin_diagnostics_job_columns_message'), sortable: false },
 ])
+
+// Job log filter state
+const hideHeartbeatJobs = ref(true)
+const maxJobResults = ref(25)
+const maxJobOptions = [10, 25, 50, 100, 200, 500, 1000]
+
+const filteredJobRows = computed(() => {
+  let rows = diagnostics.value?.queue?.recent || []
+  if (hideHeartbeatJobs.value) {
+    rows = rows.filter(row =>
+      row.job !== 'App\\Jobs\\CheckScheduledTasksJob' &&
+      row.job !== 'App\\Jobs\\WorkerHeartbeatJob'
+    )
+  }
+  return rows.slice(0, maxJobResults.value)
+})
 
 function setMessage(msg) { message.value = msg; error.value = '' }
 function setError(msg, opts = {}) {
@@ -376,13 +393,25 @@ onUnmounted(() => {
         <h4>{{ tr('diagnostics_last_worker_actions') }}</h4>
         <span class="muted">{{ tr('diagnostics_source_job_logs') }}</span>
       </div>
+      <div class="actions" style="margin-bottom:0.5rem;gap:1.5rem;align-items:center;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:0.5rem;">
+          <input type="checkbox" v-model="hideHeartbeatJobs" />
+          {{ tr('diagnostics_hide_heartbeat_jobs', 'Hide heartbeat/scheduler jobs') }}
+        </label>
+        <label style="display:flex;align-items:center;gap:0.5rem;">
+          {{ tr('diagnostics_max_results', 'Max results') }}
+          <select v-model.number="maxJobResults">
+            <option v-for="opt in maxJobOptions" :key="opt" :value="opt">{{ opt }}</option>
+          </select>
+        </label>
+      </div>
       <p v-if="diagnostics?.queue?.error" class="error">{{ diagnostics.queue.error }}</p>
       <AdminDataTable
         v-else
         :columns="jobColumns"
-        :rows="diagnostics?.queue?.recent || []"
+        :rows="filteredJobRows"
         :loading="loading"
-        :page-size="20"
+        :page-size="maxJobResults"
         persist-key="admin-diagnostics"
         :empty-text="tr('diagnostics_no_entries_yet')"
         @refresh="loadDiagnostics"

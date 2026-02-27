@@ -22,7 +22,8 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(EventService::class),
                 $app->make(SettingsService::class),
                 $app->make(CustomPlaceholderService::class),
-                $app->make(SiteTokenService::class)
+                $app->make(SiteTokenService::class),
+                $app->make(\App\Services\TranslationService::class)
             );
         });
     }
