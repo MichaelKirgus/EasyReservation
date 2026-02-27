@@ -7,8 +7,10 @@ use App\Models\Reservation;
 use App\Models\Survey;
 use App\Models\User;
 use App\Models\WaitlistEntry;
+
 use App\Services\CustomPlaceholderService;
 use App\Services\SiteTokenService;
+use App\Services\TranslationService;
 
 class PlaceholderService
 {
@@ -24,6 +26,8 @@ class PlaceholderService
         '{{privacy_link_html}}',
         '{{faq_link}}',
         '{{faq_link_html}}',
+        '{{faq_link_translated}}',
+        '{{faq_link_html_translated}}',
     ];
 
     private const CONTEXT_TOKENS = [
@@ -45,6 +49,7 @@ class PlaceholderService
         private readonly SettingsService $settings,
         private readonly CustomPlaceholderService $customPlaceholders,
         private readonly SiteTokenService $siteTokens,
+        private readonly TranslationService $translationService,
     ) {
     }
 
@@ -142,10 +147,21 @@ class PlaceholderService
         
         $custom = $this->customPlaceholders->getAll();
         
-        // Build privacy and FAQ links (similar to how validation_link is built in EmailService)
-        $appUrl = rtrim($siteBaseUrl, '/');
-        $privacyLink = $appUrl . '/privacy';
-        $faqLink = $appUrl . '/faq';
+        // Build privacy and FAQ links using LinkBuildingService to append guest token
+        $linkBuilder = app(\App\Services\LinkBuildingService::class);
+        $privacyParams = [];
+        $faqParams = [];
+        if ($guestToken) {
+            $privacyParams['t'] = $guestToken;
+            $faqParams['t'] = $guestToken;
+        }
+        $privacyLink = $linkBuilder->appendQuery($siteBaseUrl . '/privacy', $privacyParams);
+        $faqLink = $linkBuilder->appendQuery($siteBaseUrl . '/faq', $faqParams);
+        // Get current locale
+        $locale = app()->getLocale();
+        // Fallback to 'faq_button_text_label' or 'faq_title' translation key
+        $faqLabel = $this->translationService->getTranslations($locale)['faq_button_text_label']
+            ?? ($this->translationService->getTranslations($locale)['faq_title'] ?? 'FAQ');
         
         $recipientTokens = [
             '{{name}}' => $recipient['name'] ?? '',
@@ -162,6 +178,8 @@ class PlaceholderService
             '{{privacy_link_html}}' => '<a href="' . $privacyLink . '">' . $privacyLink . '</a>',
             '{{faq_link}}' => $faqLink,
             '{{faq_link_html}}' => '<a href="' . $faqLink . '">' . $faqLink . '</a>',
+            '{{faq_link_translated}}' => $faqLabel,
+            '{{faq_link_html_translated}}' => '<a href="' . $faqLink . '">' . $faqLabel . '</a>',
         ];
         // Context placeholders (e.g. error_message from event triggers)
         $contextTokens = [
