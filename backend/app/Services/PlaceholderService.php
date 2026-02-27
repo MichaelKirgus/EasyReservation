@@ -126,6 +126,7 @@ class PlaceholderService
             '{{event_date_utc}}' => $eventDateUtc,
             '{{event_time_utc}}' => $eventTimeUtc,
             '{{event_location_url}}' => $locationUrl,
+            '{{event_location_url_html}}' => $locationUrl ? '<a href="' . $locationUrl . '" rel="noreferrer">' . $locationUrl . '</a>' : '',
             '{{attach_event_ical}}' => '',
             '{{reservation_list_max_count}}' => (string) ($this->settings->get('reservation_max', 0) ?? 0),
             '{{reservation_list_current_count}}' => (string) Reservation::query()->count(),
@@ -192,7 +193,7 @@ class PlaceholderService
     public function tokens(): array
     {
         $tokens = array_keys($this->replacements());
-        $tokens = array_merge($tokens, self::RECIPIENT_TOKENS, self::SITE_TOKENS, self::CONTEXT_TOKENS);
+        $tokens = array_merge($tokens, self::RECIPIENT_TOKENS, self::SITE_TOKENS, self::CONTEXT_TOKENS, ['{{event_location_url_html}}']);
         $tokens = array_values(array_unique($tokens));
         sort($tokens);
 
