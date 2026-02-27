@@ -301,7 +301,7 @@ class MailTransportService
 
             if (!$account) {
                 Log::error('MailTransportService: No available accounts for group ' . $group->id);
-                throw new \RuntimeException(__('mail_no_available_accounts'));
+                throw new \RuntimeException(__("mail_no_available_accounts"));
             }
 
             // Check rate limit before attempting to send
@@ -329,7 +329,11 @@ class MailTransportService
                     $effectiveFromName,
                     $attachments,
                     $cc,
-                    $bcc
+                    $bcc,
+                    $group->id,
+                    $group->name,
+                    $account->id,
+                    $account->name
                 );
 
                 return true;

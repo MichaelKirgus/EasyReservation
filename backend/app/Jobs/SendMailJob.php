@@ -19,6 +19,22 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    /**
+     * @param array $mailerConfig
+     * @param string $toEmail
+     * @param string|null $toName
+     * @param string $subject
+     * @param string $body
+     * @param string|null $fromAddress
+     * @param string|null $fromName
+     * @param array $attachments
+     * @param string|null $globalCc
+     * @param string|null $globalBcc
+     * @param int|null $transportGroupId
+     * @param string|null $transportGroupName
+     * @param int|null $transportAccountId
+     * @param string|null $transportAccountName
+     */
     public function __construct(
         private readonly array $mailerConfig,
         private readonly string $toEmail,
@@ -30,6 +46,10 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
         private readonly array $attachments = [],
         private readonly ?string $globalCc = null,
         private readonly ?string $globalBcc = null,
+        private readonly ?int $transportGroupId = null,
+        private readonly ?string $transportGroupName = null,
+        private readonly ?int $transportAccountId = null,
+        private readonly ?string $transportAccountName = null,
     ) {
     }
 
@@ -65,7 +85,11 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
             'from_address' => $this->fromAddress,
             'from_name' => $this->fromName,
             'global_cc' => $this->globalCc ? 'configured' : null,
-            'global_bcc' => $this->globalBcc ? 'configured' : null
+            'global_bcc' => $this->globalBcc ? 'configured' : null,
+            'transport_group_id' => $this->transportGroupId,
+            'transport_group_name' => $this->transportGroupName,
+            'transport_account_id' => $this->transportAccountId,
+            'transport_account_name' => $this->transportAccountName,
         ];
         
         Log::info('SendMailJob: Starting email send process', $jobStartData);
@@ -125,6 +149,10 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
             'subject' => $this->subject,
             'global_cc' => $this->globalCc ? 'configured' : null,
             'global_bcc' => $this->globalBcc ? 'configured' : null,
+            'transport_group_id' => $this->transportGroupId,
+            'transport_group_name' => $this->transportGroupName,
+            'transport_account_id' => $this->transportAccountId,
+            'transport_account_name' => $this->transportAccountName,
             'status' => 'success',
             'timestamp' => now()->toISOString()
         ];

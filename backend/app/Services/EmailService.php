@@ -68,7 +68,12 @@ class EmailService
 
         // Get mailer config
         $mailerConfig = $this->mailTransportService->getMailerConfig($account);
-        
+        $this->lastTransportGroupInfo = [
+            'transport_group_id' => $group->id,
+            'transport_group_name' => $group->name,
+            'transport_account_id' => $account->id,
+            'transport_account_name' => $account->name,
+        ];
         Log::info('EmailService: Using transport group for email', [
             'transport_group_id' => $transportGroupId,
             'group_name' => $group->name,
@@ -76,7 +81,6 @@ class EmailService
             'account_name' => $account->name,
             'host' => $account->host,
         ]);
-
         return $mailerConfig;
     }
 
@@ -168,7 +172,23 @@ class EmailService
             'transport_group_id' => $transportGroupId,
         ]);
 
-        SendMailJob::dispatch($mailerConfig, $validation->email, $validation->display_name, $subject, $body, $fromAddress, $fromName, $attachments, $cc, $bcc);
+        $tg = $this->lastTransportGroupInfo ?? [];
+        SendMailJob::dispatch(
+            $mailerConfig,
+            $validation->email,
+            $validation->display_name,
+            $subject,
+            $body,
+            $fromAddress,
+            $fromName,
+            $attachments,
+            $cc,
+            $bcc,
+            $tg['transport_group_id'] ?? null,
+            $tg['transport_group_name'] ?? null,
+            $tg['transport_account_id'] ?? null,
+            $tg['transport_account_name'] ?? null
+        );
     }
 
     /**
@@ -254,7 +274,23 @@ class EmailService
             return;
         }
 
-        SendMailJob::dispatch($mailerConfig, $adminEmail, 'Admin', $subject, $body, $fromAddress, $fromName, $attachments, $cc, $bcc);
+        $tg = $this->lastTransportGroupInfo ?? [];
+        SendMailJob::dispatch(
+            $mailerConfig,
+            $adminEmail,
+            'Admin',
+            $subject,
+            $body,
+            $fromAddress,
+            $fromName,
+            $attachments,
+            $cc,
+            $bcc,
+            $tg['transport_group_id'] ?? null,
+            $tg['transport_group_name'] ?? null,
+            $tg['transport_account_id'] ?? null,
+            $tg['transport_account_name'] ?? null
+        );
     }
 
     /**
@@ -335,7 +371,23 @@ class EmailService
             return;
         }
 
-        SendMailJob::dispatch($mailerConfig, $reservation->email, $reservation->display_name, $subject, $body, $fromAddress, $fromName, $attachments, $cc, $bcc);
+        $tg = $this->lastTransportGroupInfo ?? [];
+        SendMailJob::dispatch(
+            $mailerConfig,
+            $reservation->email,
+            $reservation->display_name,
+            $subject,
+            $body,
+            $fromAddress,
+            $fromName,
+            $attachments,
+            $cc,
+            $bcc,
+            $tg['transport_group_id'] ?? null,
+            $tg['transport_group_name'] ?? null,
+            $tg['transport_account_id'] ?? null,
+            $tg['transport_account_name'] ?? null
+        );
     }
 
     /**
@@ -371,13 +423,14 @@ class EmailService
         }
 
         $mailerConfig = $this->getMailerConfigFromTransportGroup($transportGroupId);
+        $tg = $this->lastTransportGroupInfo ?? [];
         if (!$mailerConfig) {
             \Illuminate\Support\Facades\Log::error('EmailService: Could not build mailer config from transport group ' . $transportGroupId);
             return;
         }
 
         try {
-            $this->sendEmailFromTemplate($mailerConfig, $templateId, $entry);
+            $this->sendEmailFromTemplateWithTransportInfo($mailerConfig, $templateId, $entry, $tg);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('Waitlist validation success email failed', [
                 'error' => $e->getMessage(),
@@ -490,7 +543,7 @@ class EmailService
     /**
      * Send email from template for a specific recipient
      */
-    private function sendEmailFromTemplate(array $mailerConfig, int $templateId, $recipient): void
+    private function sendEmailFromTemplateWithTransportInfo(array $mailerConfig, int $templateId, $recipient, array $tg = []): void
     {
         $template = EmailTemplate::query()->find($templateId);
         if (! $template) {
@@ -527,7 +580,22 @@ class EmailService
 
         $attachments = $this->attachmentsForTemplate($template);
 
-        SendMailJob::dispatch($mailerConfig, $recipient->email, $recipient->display_name ?? $recipient->email, $subject, $body, $fromAddress, $fromName, $attachments, $cc, $bcc);
+        SendMailJob::dispatch(
+            $mailerConfig,
+            $recipient->email,
+            $recipient->display_name ?? $recipient->email,
+            $subject,
+            $body,
+            $fromAddress,
+            $fromName,
+            $attachments,
+            $cc,
+            $bcc,
+            $tg['transport_group_id'] ?? null,
+            $tg['transport_group_name'] ?? null,
+            $tg['transport_account_id'] ?? null,
+            $tg['transport_account_name'] ?? null
+        );
     }
 
     /**
