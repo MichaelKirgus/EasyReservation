@@ -38,6 +38,7 @@ COPY composer.lock /var/www/composer.lock
 COPY --from=vendor /app/vendor /var/www/vendor
 
 COPY nginx.conf /etc/nginx/nginx.conf
+COPY docker/php.ini /usr/local/etc/php/conf.d/zz-custom.ini
 COPY entrypoint.sh /entrypoint.sh
 COPY health-check.php /var/www/health-check.php
 COPY prod.env /var/www/.env
