@@ -9,6 +9,9 @@ use App\Listeners\UpdateWorkerStats;
 class EventServiceProvider extends ServiceProvider
 {
     protected $listen = [
+        \Illuminate\Queue\Events\JobProcessing::class => [
+            [UpdateWorkerStats::class, 'onJobProcessing'],
+        ],
         JobProcessed::class => [
             UpdateWorkerStats::class,
         ],
