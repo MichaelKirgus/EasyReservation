@@ -15,7 +15,9 @@ class WorkerHeartbeat extends Command
     {
         $hostname = gethostname();
         $pid      = getmypid();
-        $workerId = $hostname . ':' . $pid;
+        // Allow WORKER_NAME env var to override workerId for uniqueness
+        $workerName = getenv('WORKER_NAME');
+        $workerId = $workerName ? ($workerName . ':' . $pid) : ($hostname . ':' . $pid);
 
         // ── Redis latency ──
         $redisLatency = null;

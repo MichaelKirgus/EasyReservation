@@ -21,6 +21,7 @@ services:
     environment:
       - APP_ENV=production
       - CONTAINER_ROLE=backend
+      - WORKER_NAME=backend
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -51,6 +52,7 @@ services:
     environment:
       - APP_ENV=production
       - CONTAINER_ROLE=scheduler
+      - WORKER_NAME=scheduler
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -81,6 +83,7 @@ services:
     environment:
       - APP_ENV=production
       - CONTAINER_ROLE=worker
+      - WORKER_NAME=worker
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
