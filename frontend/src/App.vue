@@ -63,7 +63,8 @@ const loadingImageUrl = computed(() => {
   return url ? mediaUrl(url) : ''
 })
 
-// Theme handling
+
+// Theme handling with forced mode support
 const storedTheme = (() => {
   try { return localStorage.getItem('theme') || '' } catch (_) { return '' }
 })()
@@ -71,6 +72,11 @@ const theme = ref(storedTheme || '')
 const hasExplicitTheme = ref(!!storedTheme)
 let prefersDarkQuery = null
 let handlePrefersChange = null
+
+const forcedThemeMode = computed(() => {
+  // theme_mode can be in appSettings.settings or appSettings
+  return (appSettings.settings && appSettings.settings.theme_mode) || appSettings.theme_mode || 'auto'
+})
 
 function deriveSystemTheme() {
   return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
@@ -89,6 +95,20 @@ function toggleTheme() {
   hasExplicitTheme.value = true
   theme.value = theme.value === 'dark' ? 'light' : 'dark'
 }
+
+// Watch forcedThemeMode and apply forced theme if set
+watch(forcedThemeMode, (mode) => {
+  if (mode === 'dark' || mode === 'light') {
+    theme.value = mode
+    applyTheme(mode, true)
+    hasExplicitTheme.value = false
+  } else if (mode === 'auto') {
+    // Use system or stored theme
+    const sysTheme = deriveSystemTheme()
+    theme.value = storedTheme || sysTheme
+    applyTheme(theme.value, !!storedTheme)
+  }
+})
 
 // Navigation-Konfiguration für Router-Links (defensiv, damit keine undefined-Gruppen entstehen)
 const navGroups = computed(() => {
@@ -524,6 +544,7 @@ async function fetchPrivacyEnabled() {
         </div>
         <div class="right-actions">
           <button
+            v-if="forcedThemeMode === 'auto'"
             class="theme-toggle"
             @click="toggleTheme"
             :aria-label="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"

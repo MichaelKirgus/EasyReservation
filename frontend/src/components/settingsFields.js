@@ -67,6 +67,13 @@ export const settingsFields = [
     { key: 'reservation_page_favicon', type: 'text' },
     { key: 'reservation_page_title', type: 'text', placeholders: true },
     { key: 'reservation_loading_image', type: 'text' },
+    { key: 'theme_mode', type: 'select', default: 'auto', group: 'design', labelKey: 'admin_setting_theme_mode', hintKey: 'admin_setting_theme_mode_hint',
+        options: [
+            { value: 'auto', labelKey: 'admin_setting_theme_mode_auto' },
+            { value: 'light', labelKey: 'admin_setting_theme_mode_light' },
+            { value: 'dark', labelKey: 'admin_setting_theme_mode_dark' }
+        ]
+    },
     { key: 'loading_svg_color_light', type: 'color', default: '#222222', group: 'design', labelKey: 'admin_setting_loading_svg_color_light', hintKey: 'admin_setting_loading_svg_color_hint' },
     { key: 'loading_svg_color_dark', type: 'color', default: '#ffffff', group: 'design', labelKey: 'admin_setting_loading_svg_color_dark', hintKey: 'admin_setting_loading_svg_color_hint' },
     { key: 'reservation_button_color_light', type: 'color', default: 'white' },
@@ -135,8 +142,6 @@ export const settingsFields = [
     { key: 'login_rate_limit_decay_minutes', type: 'number', default: 1 },
     { key: 'session_lifetime_minutes', type: 'number', default: 43200 },
     { key: 'site_guest_user_id', type: 'number' },
-    
-    // Archive settings
     { key: 'archive_store_emails_by_default', type: 'boolean', default: 1 },
     { key: 'archive_moderator_access_enabled', type: 'boolean', default: 0 },
 ];

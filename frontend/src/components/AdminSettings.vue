@@ -121,6 +121,7 @@ const tabFieldMap = {
     'privacy_policy_text',
   ]),
   design: new Set([
+    'theme_mode',
     'reservation_top_image',
     'reservation_top_image_alt_description',
     'reservation_top_image_max_width',
@@ -509,7 +510,7 @@ watch(() => props.langCode, () => fetchTranslations())
 
     <div class="groups">
       <div class="grid">
-        <label v-for="field in visibleFields" :key="field.key" class="field">
+        <label v-for="field in visibleFields" :key="field.key" class="field" v-if="field.key !== 'theme_mode'">
           <div class="field-header">
             <span>{{ t(field.key) }}</span>
             <span v-if="isMarkdown(field)" class="markdown-indicator" :title="markdownHintText" aria-hidden="true">MD</span>
@@ -558,9 +559,28 @@ watch(() => props.langCode, () => fetchTranslations())
           <template v-else-if="field.key === 'mail_password'">
             <SecretField v-model="settings[field.key]" />
           </template>
+          <template v-else-if="field.type === 'select'">
+            <select v-model="settings[field.key]">
+              <option v-for="opt in field.options" :key="opt.value" :value="opt.value">
+                {{ tr(opt.labelKey) }}
+              </option>
+            </select>
+          </template>
           <template v-else>
             <input v-model="settings[field.key]" />
           </template>
+                <!-- Theme mode select rendered separately for better control -->
+                <label v-if="selectedTab === 'design'" class="field">
+                  <div class="field-header">
+                    <span>{{ t('theme_mode') }}</span>
+                  </div>
+                  <select v-model="settings.theme_mode">
+                    <option value="auto">{{ tr('admin_setting_theme_mode_auto') }}</option>
+                    <option value="light">{{ tr('admin_setting_theme_mode_light') }}</option>
+                    <option value="dark">{{ tr('admin_setting_theme_mode_dark') }}</option>
+                  </select>
+                  <small class="hint">{{ hint('admin_setting_theme_mode_hint') }}</small>
+                </label>
           <small v-if="field.hintKey && !isMarkdown(field)" class="hint">{{ hint(field.hintKey) }}</small>
         </label>
       </div>
