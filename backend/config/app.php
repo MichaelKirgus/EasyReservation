@@ -3,6 +3,9 @@
 
 return [
 
+    // Number of days to retain job log entries
+    'job_log_retention_days' => env('JOB_LOG_RETENTION_DAYS', 30),
+
     /*
     |--------------------------------------------------------------------------
     | Application Name

@@ -1,4 +1,5 @@
 export const settingsFields = [
+    { key: 'job_log_retention_days', type: 'number', default: 30 },
     { key: 'reservation_name', type: 'text' },
     { key: 'reservation_additional_info', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
     { key: 'reservation_show_additional_info_link', type: 'boolean' },

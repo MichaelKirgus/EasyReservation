@@ -22,6 +22,10 @@ class Kernel extends ConsoleKernel
         // Register heartbeat worker job
         $schedule->job(new \App\Jobs\WorkerHeartbeatJob)->everyMinute()->onQueue('heartbeat');
         \Log::info('Registered WorkerHeartbeatJob on heartbeat queue');
+
+        // Schedule CleanUpJobLogsJob to run hourly
+        $schedule->job(new \App\Jobs\CleanUpJobLogsJob)->hourly();
+        \Log::info('Registered CleanUpJobLogsJob for hourly cleanup');
     }
 
     protected function commands()

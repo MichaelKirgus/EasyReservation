@@ -182,6 +182,7 @@ const tabFieldMap = {
     'site_guest_user_id',
     'archive_store_emails_by_default',
     'archive_moderator_access_enabled',
+    'job_log_retention_days',
   ]),
   email: new Set([
     'email_validation_enabled',
