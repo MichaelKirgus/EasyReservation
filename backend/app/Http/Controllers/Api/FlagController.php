@@ -29,9 +29,9 @@ class FlagController extends Controller
         // Define mapping of language codes to SVG files in backend resources
         $flagFiles = [
             'de' => 'flag-de.svg',
-            'en' => 'flag-en.svg',  // Using US flag for English as default
+            'en' => 'flag-us.svg',  // Using US flag for English as default
         ];
-        
+
         // Check if we have a specific flag file for this language
         if (isset($flagFiles[$lang])) {
             $svgPath = resource_path("assets/icons/{$flagFiles[$lang]}");
@@ -39,8 +39,8 @@ class FlagController extends Controller
                 return File::get($svgPath);
             }
         }
-        
-        $fallbackPath = resource_path('assets/icons/flag-en.svg');
+
+        $fallbackPath = resource_path('assets/icons/flag-us.svg');
         if (File::exists($fallbackPath)) {
             return File::get($fallbackPath);
         }
