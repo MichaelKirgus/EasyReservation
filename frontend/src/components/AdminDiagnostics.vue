@@ -2,6 +2,8 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { adminFetch } from '../utils/adminApi'
 import { useTranslation } from '../composables/useTranslation'
+import { JOB_TYPES } from '../utils/jobTypes'
+import { jobTypeLabel } from '../utils/jobTypeLabel'
 
 const { tr } = useTranslation()
 
@@ -69,18 +71,33 @@ const jobColumns = computed(() => [
 ])
 
 // Job log filter state
-const hideHeartbeatJobs = ref(true)
 const maxJobResults = ref(25)
 const maxJobOptions = [10, 25, 50, 100, 200, 500, 1000]
 
+// Use static job type list for filter UI
+const allJobTypes = computed(() => JOB_TYPES)
+
+// Default: all jobs except heartbeat/scheduler jobs selected
+const heartbeatJobs = [
+  'App\\Jobs\\CheckScheduledTasksJob',
+  'App\\Jobs\\WorkerHeartbeatJob',
+]
+const selectedJobTypes = ref([])
+watch(
+  allJobTypes,
+  (types) => {
+    // On first load or when job types change, select all except heartbeat/scheduler
+    if (!selectedJobTypes.value.length) {
+      selectedJobTypes.value = types.filter(j => !heartbeatJobs.includes(j))
+    }
+  },
+  { immediate: true }
+)
+
 const filteredJobRows = computed(() => {
   let rows = diagnostics.value?.queue?.recent || []
-  if (hideHeartbeatJobs.value) {
-    rows = rows.filter(row =>
-      row.job !== 'App\\Jobs\\CheckScheduledTasksJob' &&
-      row.job !== 'App\\Jobs\\WorkerHeartbeatJob'
-    )
-  }
+  // Only show jobs matching selected types
+  rows = rows.filter(row => selectedJobTypes.value.includes(row.job))
   return rows.slice(0, maxJobResults.value)
 })
 
@@ -397,10 +414,14 @@ onUnmounted(() => {
         <span class="muted">{{ tr('diagnostics_source_job_logs') }}</span>
       </div>
       <div class="actions" style="margin-bottom:0.5rem;gap:1.5rem;align-items:center;flex-wrap:wrap;">
-        <label style="display:flex;align-items:center;gap:0.5rem;">
-          <input type="checkbox" v-model="hideHeartbeatJobs" />
-          {{ tr('diagnostics_hide_heartbeat_jobs', 'Hide heartbeat/scheduler jobs') }}
-        </label>
+        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+          <span>{{ tr('diagnostics_job_type_filter', 'Show jobs:') }}</span>
+          <div v-for="type in allJobTypes" :key="type" style="display:inline-flex;align-items:center;margin-right:0.75em;">
+            <input type="checkbox" :id="'jobtype-'+type" :value="type" v-model="selectedJobTypes" />
+            <label :for="'jobtype-'+type" style="margin-left:0.25em;">{{ jobTypeLabel(type) }}</label>
+          </div>
+
+        </div>
         <label style="display:flex;align-items:center;gap:0.5rem;">
           {{ tr('diagnostics_max_results', 'Max results') }}
           <select v-model.number="maxJobResults">
