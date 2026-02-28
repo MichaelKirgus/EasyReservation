@@ -164,7 +164,7 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
         JobLog::create([
             'job' => 'SendMailJob',
             'worker_name' => config('app.worker_name'),
-            'message' => "Email sent to {$this->toEmail}: {$this->subject}",
+            'message' => "Email sent to {$this->toEmail}: {$this->subject} via group '{$this->transportGroupName}' (ID: {$this->transportGroupId}), account '{$this->transportAccountName}' (ID: {$this->transportAccountId})",
             'status' => 'success',
             'details' => json_encode($jobCompleteData)
         ]);
