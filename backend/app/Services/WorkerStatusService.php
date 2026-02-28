@@ -236,22 +236,38 @@ class WorkerStatusService
         $keys = [];
         $cursor = '0';
         do {
-            // Laravel's Redis connection normalises SCAN for both drivers
             [$cursor, $results] = $conn->scan($cursor, ['match' => $pattern, 'count' => 100]);
             if ($results) {
                 $keys = array_merge($keys, $results);
             }
         } while ($cursor && $cursor !== '0' && $cursor !== 0);
 
-        $workers = [];
+        \Log::debug('[WorkerStatus] Redis keys found for pattern', ['pattern' => $pattern, 'keys' => $keys]);
+
+        $workerMap = [];
         foreach ($keys as $key) {
             $raw = $conn->get($key);
             if (!$raw) {
+                \Log::warning('[WorkerStatus] Redis key has no value (null)', ['key' => $key]);
                 continue;
             }
             $data = json_decode($raw, true);
-            if (!is_array($data)) {
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
+                \Log::warning('[WorkerStatus] Redis key has invalid JSON or is not an array', ['key' => $key, 'raw' => $raw, 'json_error' => json_last_error_msg()]);
                 continue;
+            }
+
+            // Extract worker base ID (everything before last colon)
+            $workerBaseId = null;
+            if (isset($data['worker_id'])) {
+                $parts = explode(':', $data['worker_id']);
+                array_pop($parts); // remove last part (pid or unique)
+                $workerBaseId = implode(':', $parts);
+            } else {
+                // fallback: use key
+                $parts = explode(':', $key);
+                array_pop($parts);
+                $workerBaseId = implode(':', $parts);
             }
 
             // Derive online status
@@ -265,8 +281,9 @@ class WorkerStatusService
             }
 
             // Build normalised output (same shape as database driver)
-            $workers[] = [
-                'worker_id'          => $data['worker_id'] ?? $key,
+            $workerEntry = [
+                // Show only the base worker name (before last colon)
+                'worker_id'          => $workerBaseId,
                 'hostname'           => $data['hostname'] ?? null,
                 'pid'                => $data['pid'] ?? null,
                 'ip'                 => $data['ip'] ?? null,
@@ -284,10 +301,21 @@ class WorkerStatusService
                 'status'             => $isOnline ? 'online' : 'offline',
                 'updated_at'         => $data['last_heartbeat_at'] ?? null,
             ];
+
+            // Keep only the newest entry per workerBaseId
+            if (!isset($workerMap[$workerBaseId]) ||
+                (isset($workerEntry['last_heartbeat_at']) && isset($workerMap[$workerBaseId]['last_heartbeat_at']) &&
+                 $workerEntry['last_heartbeat_at'] > $workerMap[$workerBaseId]['last_heartbeat_at'])
+            ) {
+                $workerMap[$workerBaseId] = $workerEntry;
+            }
         }
 
         // Sort by last heartbeat descending (most recent first)
+        $workers = array_values($workerMap);
         usort($workers, fn ($a, $b) => strcmp($b['last_heartbeat_at'] ?? '', $a['last_heartbeat_at'] ?? ''));
+
+        \Log::debug('[WorkerStatus] Final deduplicated workers array', ['workers' => $workers]);
 
         return $workers;
     }

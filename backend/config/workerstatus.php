@@ -37,7 +37,7 @@ return [
     */
     'redis' => [
         'connection' => env('WORKERSTATUS_REDIS_CONNECTION', 'default'),
-        'prefix'     => env('WORKERSTATUS_REDIS_PREFIX', 'worker:'),
+        'prefix' => env('WORKERSTATUS_REDIS_PREFIX', 'easyreservation-database-worker:'),
     ],
 
     /*
