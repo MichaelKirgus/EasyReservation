@@ -1404,5 +1404,8 @@
   "admin_email_broadcast_transport_group": "Transport group",
   "admin_email_broadcast_select_transport_placeholder": "Please select a transport group",
   "admin_diagnostics_hide_heartbeat_jobs": "Hide heartbeat/scheduler jobs",
-  "admin_diagnostics_max_results": "Max results"
+  "admin_diagnostics_max_results": "Max results",
+  "admin_setting_loading_svg_color_light": "Loading SVG Color (Light Mode)",
+  "admin_setting_loading_svg_color_dark": "Loading SVG Color (Dark Mode)",
+  "admin_setting_loading_svg_color_hint": "Set the color of the loading spinner for light and dark mode."
 }

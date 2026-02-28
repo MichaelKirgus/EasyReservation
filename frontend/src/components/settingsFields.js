@@ -67,6 +67,8 @@ export const settingsFields = [
     { key: 'reservation_page_favicon', type: 'text' },
     { key: 'reservation_page_title', type: 'text', placeholders: true },
     { key: 'reservation_loading_image', type: 'text' },
+    { key: 'loading_svg_color_light', type: 'color', default: '#222222', group: 'design', labelKey: 'admin_setting_loading_svg_color_light', hintKey: 'admin_setting_loading_svg_color_hint' },
+    { key: 'loading_svg_color_dark', type: 'color', default: '#ffffff', group: 'design', labelKey: 'admin_setting_loading_svg_color_dark', hintKey: 'admin_setting_loading_svg_color_hint' },
     { key: 'reservation_button_color_light', type: 'color', default: 'white' },
     { key: 'reservation_button_color_dark', type: 'color', default: 'white' },
     { key: 'reservation_button_backgroundcolor_light', type: 'color', default: '#2563eb' },

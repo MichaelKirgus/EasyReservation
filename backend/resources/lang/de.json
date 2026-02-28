@@ -1405,5 +1405,8 @@
   "admin_email_broadcast_transport_group": "Transportgruppe",
   "admin_email_broadcast_select_transport_placeholder": "Bitte wählen Sie eine Transportgruppe",
   "admin_diagnostics_hide_heartbeat_jobs": "Heartbeat/Scheduler-Jobs ausblenden",
-  "admin_diagnostics_max_results": "Maximale Ergebnisse"
+  "admin_diagnostics_max_results": "Maximale Ergebnisse",
+  "admin_setting_loading_svg_color_light": "Lade-SVG-Farbe (Hellmodus)",
+  "admin_setting_loading_svg_color_dark": "Lade-SVG-Farbe (Dunkelmodus)",
+  "admin_setting_loading_svg_color_hint": "Farbe des Ladespinners für Hell- und Dunkelmodus festlegen."
 }

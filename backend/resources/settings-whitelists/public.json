@@ -100,5 +100,7 @@
     "show_project_footer",
     "privacy_policy_enabled",
     "faq_enabled",
-    "clear_localstorage_on_logout"
+    "clear_localstorage_on_logout",
+    "loading_svg_color_light",
+    "loading_svg_color_dark"
 ]

@@ -146,6 +146,14 @@ onUnmounted(() => {
 const cachedLoadingImage = ref('')
 try { cachedLoadingImage.value = localStorage.getItem('reservation_loading_image') || '' } catch (_) { cachedLoadingImage.value = '' }
 
+
+const loadingSvgColor = computed(() => {
+  // Use the new settings keys for light/dark SVG color
+  const isDark = (theme.value || 'light') === 'dark'
+  if (isDark) return config.settings.loading_svg_color_dark || '#fff'
+  return config.settings.loading_svg_color_light || '#222'
+})
+
 const loadingImageUrl = computed(() => {
   const url = config.settings?.reservation_loading_image || cachedLoadingImage.value
   return url ? mediaUrl(url) : ''
@@ -499,7 +507,12 @@ function goToGDPR() {
     <div class="backdrop">
       <div v-if="loading" class="loading-overlay" aria-live="polite" aria-busy="true">
         <img v-if="loadingImageUrl" :src="loadingImageUrl" alt="Loading" class="loader-image" />
-        <div v-else class="loader-spinner" aria-hidden="true"></div>
+        <svg v-else class="loader-image" viewBox="0 0 50 50" :style="{ color: loadingSvgColor }" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="25" cy="25" r="20" stroke="currentColor" stroke-width="5" opacity="0.2" />
+          <path d="M45 25c0-11.046-8.954-20-20-20" stroke="currentColor" stroke-width="5" stroke-linecap="round">
+            <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s" repeatCount="indefinite" />
+          </path>
+        </svg>
       </div>
       <div v-if="message && !modalMessageEnabled" ref="messageRef" class="message" v-html="message"></div>
       <div v-if="error && !modalErrorEnabled" ref="errorRef" class="error">{{ error }}</div>
