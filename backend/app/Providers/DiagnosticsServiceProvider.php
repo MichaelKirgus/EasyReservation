@@ -55,6 +55,7 @@ class DiagnosticsServiceProvider extends ServiceProvider
             JobLog::create([
                 'job' => method_exists($job, 'resolveName') ? $job->resolveName() : get_class($job),
                 'queue' => method_exists($job, 'getQueue') ? $job->getQueue() : null,
+                'worker_name' => env('WORKER_NAME'),
                 'status' => $status,
                 'runtime_ms' => $runtimeMs,
                 'message' => $message,

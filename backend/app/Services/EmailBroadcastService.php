@@ -81,6 +81,7 @@ class EmailBroadcastService
                 JobLog::create([
                     'job' => 'EmailBroadcastService',
                     'queue' => 'mail',
+                    'worker_name' => env('WORKER_NAME'),
                     'status' => 'warning',
                     'runtime_ms' => 0,
                     'message' => 'Mail skipped: ' . $email . ' (Domain on debug blacklist).',

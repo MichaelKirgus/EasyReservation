@@ -89,6 +89,7 @@ class DiagnosticsService
                         'id' => $log->id,
                         'job' => $log->job,
                         'queue' => $log->queue,
+                        'worker_name' => $log->worker_name,
                         'status' => $log->status,
                         'runtime_ms' => $log->runtime_ms,
                         'message' => $log->message,

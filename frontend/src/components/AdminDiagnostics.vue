@@ -62,6 +62,7 @@ const jobColumns = computed(() => [
   { key: 'finished_at', label: tr('admin_diagnostics_job_columns_finished_at'), sortable: true },
   { key: 'job', label: tr('admin_diagnostics_job_columns_job'), sortable: true },
   { key: 'queue', label: tr('admin_diagnostics_job_columns_queue'), sortable: true },
+  { key: 'worker_name', label: tr('admin_diagnostics_job_columns_worker_name', 'Worker'), sortable: true },
   { key: 'status', label: tr('admin_diagnostics_job_columns_status'), sortable: true },
   { key: 'runtime_ms', label: tr('admin_diagnostics_job_columns_runtime_ms'), sortable: true },
   { key: 'message', label: tr('admin_diagnostics_job_columns_message'), sortable: false },
