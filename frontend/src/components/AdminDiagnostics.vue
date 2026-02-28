@@ -368,6 +368,8 @@ onUnmounted(() => {
         :page-size="20"
         persist-key="admin-worker-status"
         :empty-text="tr('diagnostics_no_active_workers_found')"
+        @refresh="loadWorkerStats"
+        @auto-refresh="loadWorkerStats({ auto: true })"
       >
         <template #cell-status="{ value }">
           <span :class="['pill', value === 'online' ? 'pill-ok' : 'pill-failed']">{{ value }}</span>
