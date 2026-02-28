@@ -1,3 +1,4 @@
+    'worker_name' => env('WORKER_NAME'),
 <?php
 
 return [
