@@ -200,15 +200,6 @@ const tabFieldMap = {
     'admin_reservation_notify_default',
     'moderator_reservation_notify_default',
     'ical_template',
-    'mail_host',
-    'mail_port',
-    'mail_username',
-    'mail_password',
-    'mail_encryption',
-    'mail_from_address',
-    'mail_global_cc',
-    'mail_global_bcc',
-    'mail_from_name',
   ]),
 }
 
