@@ -29,7 +29,7 @@ class FlagController extends Controller
         // Define mapping of language codes to SVG files in backend resources
         $flagFiles = [
             'de' => 'flag-de.svg',
-            'en' => 'flag-us.svg',  // Using US flag for English as default
+            'en' => 'flag-en.svg',  // Using US flag for English as default
         ];
         
         // Check if we have a specific flag file for this language
