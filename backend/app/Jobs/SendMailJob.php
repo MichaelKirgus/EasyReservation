@@ -61,6 +61,7 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
             $emailDomain = strtolower(substr(strrchr($this->toEmail, '@'), 1));
             JobLog::create([
                 'job' => 'SendMailJob',
+                'queue' => $this->queue ?? ($this->onQueue ?? null),
                 'worker_name' => config('app.worker_name'),
                 'message' => "Adress for domain ($emailDomain) not sent: {$this->toEmail}",
                 'status' => 'skipped',
@@ -97,6 +98,7 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
 
         JobLog::create([
             'job' => 'SendMailJob',
+            'queue' => $this->queue ?? ($this->onQueue ?? null),
             'worker_name' => config('app.worker_name'),
             'message' => "Email send started for {$this->toEmail}",
             'status' => 'started',
@@ -163,6 +165,7 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
 
         JobLog::create([
             'job' => 'SendMailJob',
+            'queue' => $this->queue ?? ($this->onQueue ?? null),
             'worker_name' => config('app.worker_name'),
             'message' => "Email sent to {$this->toEmail}: {$this->subject} via group '{$this->transportGroupName}' (ID: {$this->transportGroupId}), account '{$this->transportAccountName}' (ID: {$this->transportAccountId})",
             'status' => 'success',

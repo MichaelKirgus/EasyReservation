@@ -12,6 +12,7 @@ class JobLog extends Model
     protected $fillable = [
         'job',
         'queue',
+        'worker_name',
         'status',
         'runtime_ms',
         'message',
