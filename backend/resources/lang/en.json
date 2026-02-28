@@ -1066,6 +1066,8 @@
   "diagnostics_memory_mb": "Memory (MB)",
   "diagnostics_redis_latency_ms": "Redis Latency (ms)",
   "diagnostics_db_latency_ms": "DB Latency (ms)",
+  "diagnostics_latency_mysql": "MySQL",
+  "diagnostics_latency_redis": "Redis",
   "diagnostics_total_jobs": "Total Jobs",
   "diagnostics_last_job_at": "Last Job",
   "diagnostics_last_job_duration_ms": "Duration (ms)",
@@ -1398,8 +1400,9 @@
   "admin_mail_transports_error_loading_blacklist": "Error loading blacklist domains",
   "admin_mail_transports_error_saving_domain": "Error saving domain",
   "admin_mail_transports_error_deleting_domain": "Error deleting domain",
-  "admin_events_columns_capacity": "Capacity"
-,
+  "admin_events_columns_capacity": "Capacity",
   "admin_email_broadcast_transport_group": "Transport group",
-  "admin_email_broadcast_select_transport_placeholder": "Please select a transport group"
+  "admin_email_broadcast_select_transport_placeholder": "Please select a transport group",
+  "admin_diagnostics_hide_heartbeat_jobs": "Hide heartbeat/scheduler jobs",
+  "admin_diagnostics_max_results": "Max results"
 }
