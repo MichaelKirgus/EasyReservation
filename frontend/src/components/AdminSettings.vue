@@ -153,6 +153,8 @@ const tabFieldMap = {
     'reservation_undo_button_backgroundcolor_dark',
     'reservation_undo_button_border_color_light',
     'reservation_undo_button_border_color_dark',
+    'loading_svg_color_light',
+    'loading_svg_color_dark',
     'show_faq_button_landing_enabled',
     'show_gdpr_button_landing_enabled',
     'show_project_footer',
