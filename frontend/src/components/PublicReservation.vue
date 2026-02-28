@@ -16,12 +16,23 @@ const mediaBase = import.meta.env.VITE_MEDIA_BASE || (() => {
 })()
 
 const siteToken = ref(localStorage.getItem('site_token') || '')
+const siteTokenChecked = ref(false)
+const siteTokenInvalid = ref(false)
+const showSiteTokenError = computed(() => {
+  // Only show error after nextTick to ensure all reactivity is settled
+  let shouldShow = false;
+  nextTick(() => {
+    shouldShow = siteTokenChecked.value && (!siteToken.value || siteTokenInvalid.value) && !loading.value;
+  });
+  return siteTokenChecked.value && (!siteToken.value || siteTokenInvalid.value) && !loading.value;
+});
 // Aktualisiere siteToken, falls es sich ändert (z.B. nach App-Start)
 window.addEventListener('storage', (e) => {
   if (e.key === 'site_token') {
     siteToken.value = e.newValue || ''
   }
 })
+
 const publicApiKey = ref(localStorage.getItem('public_api_key') || '')
 const lang = ref(props.langCode || (navigator.language || 'en').split('-')[0])
 const loading = ref(false)
@@ -162,6 +173,8 @@ const loadingImageUrl = computed(() => {
 
 async function loadConfig() {
   loading.value = true
+  siteTokenChecked.value = false
+  siteTokenInvalid.value = false
   try {
     const data = await fetchJson(`${apiBase}/public/config`)
     Object.assign(config.settings, data.settings || {})
@@ -179,13 +192,21 @@ async function loadConfig() {
       }
     } catch (_) {}
     localStorage.setItem('site_token', siteToken.value || '')
+    // Ensure siteToken.value is in sync with localStorage after config loads
+    siteToken.value = localStorage.getItem('site_token') || ''
     applySiteBranding(config.settings, { mediaBase, fallbackTitle: 'Reservierung' })
     // applyBackgroundImage entfernt, da jetzt Composable genutzt wird
     console.debug('Configuration loaded.')
   } catch (e) {
+    // If the backend returns 401/403, mark the token as invalid
+    if (e.message && (e.message.includes('401') || e.message.includes('403'))) {
+      siteTokenInvalid.value = true
+    }
+    console.error('[DEBUG] Error loading config:', e)
     setError(`Loading failed: ${e.message}`)
   } finally {
     loading.value = false
+    siteTokenChecked.value = true
   }
 }
 
@@ -504,7 +525,9 @@ function goToGDPR() {
 
 <template>
   <div class="page" :style="backgroundStyle">
-    <div v-if="siteToken.value === null || siteToken.value === undefined" class="site-token-message" v-html="renderMarkdown(config.settings.site_token_invalid_message || tr('site_token_invalid_message', 'A valid site token is required to access this page.'))"></div>
+        <div v-if="showSiteTokenError" class="site-token-message"
+          v-html="renderMarkdown(config.settings.site_token_invalid_message || tr('site_token_invalid_message', 'A valid site token is required to access this page.'))">
+        </div>
     <div class="backdrop">
       <div v-if="loading" class="loading-overlay" aria-live="polite" aria-busy="true">
         <img v-if="loadingImageUrl" :src="loadingImageUrl" alt="Loading" class="loader-image" />
@@ -688,7 +711,6 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
 .loader-spinner { width: 48px; height: 48px; border: 4px solid var(--border-strong); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-<style scoped>
 .site-token-message {
   background: var(--maintenance-bg, #fffbe6);
   color: var(--maintenance-text, #b45309);
@@ -699,6 +721,7 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
   font-size: 1.1rem;
   font-weight: 500;
   box-shadow: 0 2px 8px var(--maintenance-shadow, rgba(251, 191, 36, 0.08));
+  text-align: center;
 }
 </style>
 
