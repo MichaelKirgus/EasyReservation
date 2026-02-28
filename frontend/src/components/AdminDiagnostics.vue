@@ -439,8 +439,14 @@ onUnmounted(() => {
 .muted { color: var(--text-muted); font-size: 0.9rem; }
 .latency-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.5rem; }
 .latency-item { padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); color: var(--text); }
-.status-ok { border-color: #bbf7d0; background: #f0fdf4; }
-.status-failed { border-color: #fecaca; background: #fef2f2; }
+.status-ok {
+  border-color: var(--success-border);
+  background: var(--success-bg);
+}
+.status-failed {
+  border-color: var(--error-border);
+  background: var(--error-bg);
+}
 .message { color: var(--success-text); background: var(--success-bg); border: 1px solid var(--success-border); padding: 0.5rem; border-radius: 6px; }
 .error { color: var(--error-text); background: var(--error-bg); border: 1px solid var(--error-border); padding: 0.5rem; border-radius: 6px; }
 .table { width: 100%; border-collapse: collapse; }
