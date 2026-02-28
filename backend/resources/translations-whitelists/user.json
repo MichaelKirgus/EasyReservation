@@ -75,5 +75,6 @@
     "nav_tab_users",
     "nav_tab_archives",
     "nav_tab_audit_log",
-    "project_footer_text"
+    "project_footer_text",
+    "site_token_invalid_message"
 ]

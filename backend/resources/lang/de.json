@@ -1473,5 +1473,6 @@
   "diagnostics_rate_limit_decay": "Zeitfenster (Minuten)",
   "diagnostics_rate_limit_no_entries": "Keine aktiven Rate-Limit-Einträge",
   "diagnostics_collapsed_hint": "Klicken zum Anzeigen",
-  "diagnostics_expanded_hint": "Klicken zum Ausblenden"
+  "diagnostics_expanded_hint": "Klicken zum Ausblenden",
+  "site_token_invalid_message": "Ein gültiger Site-Token ist erforderlich, um auf diese Seite zuzugreifen. Bitte wenden Sie sich an den Administrator."
 }

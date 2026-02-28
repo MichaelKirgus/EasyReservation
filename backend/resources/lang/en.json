@@ -1472,5 +1472,6 @@
   "diagnostics_rate_limit_decay": "Decay (minutes)",
   "diagnostics_rate_limit_no_entries": "No active rate-limit entries",
   "diagnostics_collapsed_hint": "Click to expand",
-  "diagnostics_expanded_hint": "Click to collapse"
+  "diagnostics_expanded_hint": "Click to collapse",
+  "site_token_invalid_message": "A valid site token is required to access this page. Please contact the administrator."
 }

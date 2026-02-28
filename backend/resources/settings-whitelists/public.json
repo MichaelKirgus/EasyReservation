@@ -103,6 +103,7 @@
     "clear_localstorage_on_logout",
     "maintenance_enabled",
     "maintenance_message",
+    "site_token_invalid_message",
     "loading_svg_color_light",
     "loading_svg_color_dark"
 ]

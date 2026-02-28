@@ -58,5 +58,6 @@
     "otp_placeholder",
     "remember_me",
     "cancel",
-    "project_footer_text"
+    "project_footer_text",
+    "site_token_invalid_message"
 ]

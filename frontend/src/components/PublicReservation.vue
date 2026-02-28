@@ -504,6 +504,7 @@ function goToGDPR() {
 
 <template>
   <div class="page" :style="backgroundStyle">
+    <div v-if="!siteToken.value" class="site-token-message" v-html="renderMarkdown(config.settings.site_token_invalid_message || tr('site_token_invalid_message', 'A valid site token is required to access this page.'))"></div>
     <div class="backdrop">
       <div v-if="loading" class="loading-overlay" aria-live="polite" aria-busy="true">
         <img v-if="loadingImageUrl" :src="loadingImageUrl" alt="Loading" class="loader-image" />
@@ -686,6 +687,19 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
 .loader-image { width: 64px; height: 64px; animation: spin 1s linear infinite; object-fit: contain; }
 .loader-spinner { width: 48px; height: 48px; border: 4px solid var(--border-strong); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+<style scoped>
+.site-token-message {
+  background: var(--maintenance-bg, #fffbe6);
+  color: var(--maintenance-text, #b45309);
+  border: 1px solid var(--maintenance-border, #fde68a);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  box-shadow: 0 2px 8px var(--maintenance-shadow, rgba(251, 191, 36, 0.08));
+}
 </style>
 
 <style>

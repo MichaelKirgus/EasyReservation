@@ -104,5 +104,6 @@
     "loading_svg_color_light",
     "loading_svg_color_dark",
     "maintenance_enabled",
-    "maintenance_message"
+    "maintenance_message",
+    "site_token_invalid_message"
 ]
