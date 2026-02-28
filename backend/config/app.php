@@ -1,4 +1,4 @@
-    'worker_name' => env('WORKER_NAME'),
+
 <?php
 
 return [
@@ -19,7 +19,9 @@ return [
     |
     */
 
+
     'name' => env('APP_NAME', 'Laravel'),
+    'worker_name' => env('WORKER_NAME'),
 
     /*
     |--------------------------------------------------------------------------
