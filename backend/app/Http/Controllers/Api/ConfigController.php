@@ -142,6 +142,6 @@ class ConfigController extends Controller
             'privacy_policy_enabled' => (int)($settings['privacy_policy_enabled'] ?? 0) === 1,
             'faq_enabled' => (int)($settings['faq_enabled'] ?? 0) === 1,
             'clear_localstorage_on_logout' => (int)($settings['clear_localstorage_on_logout'] ?? 0) === 1,
-        ]);
+        ])->header('Content-Type', 'application/json');
     }
 }
