@@ -14,9 +14,11 @@ class DiagnosticsController extends Controller
     {
     }
 
-    public function show(): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        return response()->json($this->diagnostics->snapshot());
+        $limit = (int) $request->query('limit', 25);
+        $limit = max(1, min($limit, 1000)); // Clamp between 1 and 1000
+        return response()->json($this->diagnostics->snapshot($limit));
     }
     
     public function redisKeys()

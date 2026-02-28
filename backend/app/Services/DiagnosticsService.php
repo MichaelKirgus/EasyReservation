@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Redis;
 
 class DiagnosticsService
 {
-    public function snapshot(): array
+    public function snapshot(int $jobLimit = 25): array
     {
         // Scheduler-Status
         $lastExecuted = \App\Models\ScheduledTask::whereNotNull('executed_at')->orderByDesc('executed_at')->first();
@@ -39,7 +39,7 @@ class DiagnosticsService
                 'mysql' => $this->measure(fn () => DB::select('select 1')),
                 'redis' => $this->measure(fn () => Redis::ping()),
             ],
-            'queue' => $this->queueInfo(),
+            'queue' => $this->queueInfo($jobLimit),
             'scheduler' => [
                 'last_executed_at' => $lastExecutedAt?->toIso8601String(),
                 'next_run_at' => $nextRun?->run_at?->toIso8601String(),
@@ -70,7 +70,7 @@ class DiagnosticsService
         ];
     }
 
-    private function queueInfo(): array
+    private function queueInfo(int $jobLimit = 25): array
     {
         $recent = [];
         $error = null;
@@ -82,7 +82,7 @@ class DiagnosticsService
             $recent = JobLog::query()
                 ->latest('finished_at')
                 ->latest('id')
-                ->limit(25)
+                ->limit($jobLimit)
                 ->get(['id', 'job', 'queue', 'status', 'runtime_ms', 'message', 'started_at', 'finished_at'])
                 ->map(function (JobLog $log) {
                     return [

@@ -99,7 +99,7 @@ async function loadDiagnostics(opts = {}) {
   if (!apiKey.value) { setError(tr('please_login_api_key_missing'), opts); return }
   loading.value = true
   try {
-    const res = await fetchWithAuth('diagnostics')
+    const res = await fetchWithAuth(`diagnostics?limit=${maxJobResults.value}`)
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     diagnostics.value = JSON.parse(text)
