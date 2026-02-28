@@ -261,8 +261,30 @@ class ScheduledTaskService
                     }
                     
                     try {
-                        $webhookService->sendTemplate($webhookId, $payload);
-                        \Log::info('Webhook executed successfully for task ' . $task->id);
+                        $template = \App\Models\WebhookTemplate::find($webhookId);
+                        if ($template) {
+                            $headers = [];
+                            if ($template->headers_template) {
+                                try {
+                                    $headers = json_decode($template->headers_template, true) ?: [];
+                                } catch (\Throwable $e) {
+                                    $headers = [];
+                                }
+                            }
+                            $finalPayload = !empty($payload) ? $payload : (json_decode($template->payload_template, true) ?: []);
+                            \App\Jobs\SendWebhookJob::dispatch(
+                                $template->url,
+                                $finalPayload,
+                                $headers,
+                                null,
+                                null,
+                                $task->id
+                            );
+                            \Log::info('Webhook job dispatched for task ' . $task->id);
+                        } else {
+                            \Log::warning('Webhook-Template not found for ID: ' . $webhookId);
+                            throw new \RuntimeException('Webhook template with ID ' . $webhookId . ' not found');
+                        }
                     } catch (\Throwable $e) {
                         \Log::error('Webhook execution failed for task ' . $task->id . ': ' . $e->getMessage());
                         throw $e;

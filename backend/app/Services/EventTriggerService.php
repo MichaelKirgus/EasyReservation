@@ -180,7 +180,25 @@ class EventTriggerService
         if ($trigger->webhook_template_id) {
             // Use the template's own payload_template (with placeholders resolved).
             // Do NOT override the payload — the template defines the format the endpoint expects.
-            $this->webhookService->sendTemplate($trigger->webhook_template_id);
+            $template = \App\Models\WebhookTemplate::find($trigger->webhook_template_id);
+            if ($template) {
+                $headers = [];
+                if ($template->headers_template) {
+                    try {
+                        $headers = json_decode($template->headers_template, true) ?: [];
+                    } catch (\Throwable $e) {
+                        $headers = [];
+                    }
+                }
+                $payload = json_decode($template->payload_template, true) ?: [];
+                \App\Jobs\SendWebhookJob::dispatch(
+                    $template->url,
+                    $payload,
+                    $headers,
+                    $trigger->id,
+                    $trigger->event_type
+                );
+            }
             return;
         }
 
@@ -198,6 +216,12 @@ class EventTriggerService
             'trigger_id' => $trigger->id,
             'fired_at' => now()->toIso8601String(),
         ];
-        $this->webhookService->send($trigger->webhook_url, $payload);
+        \App\Jobs\SendWebhookJob::dispatch(
+            $trigger->webhook_url,
+            $payload,
+            [],
+            $trigger->id,
+            $trigger->event_type
+        );
     }
 }
