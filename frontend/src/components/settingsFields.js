@@ -144,4 +144,6 @@ export const settingsFields = [
     { key: 'site_guest_user_id', type: 'number' },
     { key: 'archive_store_emails_by_default', type: 'boolean', default: 1 },
     { key: 'archive_moderator_access_enabled', type: 'boolean', default: 0 },
+    { key: 'maintenance_enabled', type: 'boolean', default: 0, group: 'general', labelKey: 'maintenance_enabled', hintKey: 'admin_setting_maintenance_enabled_hint' },
+    { key: 'maintenance_message', type: 'text', component: 'textarea', group: 'general', labelKey: 'maintenance_message', hintKey: 'admin_setting_markdown_hint', placeholders: true },
 ];

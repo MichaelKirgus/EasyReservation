@@ -96,6 +96,8 @@ const tabFieldMap = {
     'event_timezone',
     'ical_timezone',
     'clear_localstorage_on_logout',
+    'maintenance_enabled',
+    'maintenance_message',
   ]),
   text: new Set([
     'reservation_name',

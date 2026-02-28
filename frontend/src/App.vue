@@ -7,6 +7,7 @@ import languageIconSrc from './assets/icons/languageicon.svg'
 import IconButton from './components/IconButton.vue'
 import api from './api'
 import { useTranslation } from './composables/useTranslation'
+import { renderMarkdown } from './utils/markdown'
 import { applySiteBranding, getMediaBaseFallback } from './utils/siteBranding'
 
 // Use the global translation system
@@ -477,6 +478,7 @@ async function fetchPrivacyEnabled() {
 
 <template>
   <main class="page">
+    <div v-if="appSettings.settings && Number(appSettings.settings.maintenance_enabled) === 1 && appSettings.settings.maintenance_message" class="maintenance-message" v-html="renderMarkdown(appSettings.settings.maintenance_message)"></div>
     <header class="topbar" v-if="privacyLoaded">
       <div class="brand-row">
         <div class="left-actions">
@@ -1085,5 +1087,33 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
   .tab { padding: 0.28rem 0.4rem; }
   input, button { padding: 0.42rem 0.5rem; }
   .modal { padding: 0.75rem; }
+}
+</style>
+
+<style scoped>
+.maintenance-message {
+  background: var(--maintenance-bg, #fffbe6);
+  color: var(--maintenance-text, #b45309);
+  border: 1px solid var(--maintenance-border, #fde68a);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  box-shadow: 0 2px 8px var(--maintenance-shadow, rgba(251, 191, 36, 0.08));
+}
+
+:root {
+  --maintenance-bg: #fffbe6;
+  --maintenance-text: #b45309;
+  --maintenance-border: #fde68a;
+  --maintenance-shadow: rgba(251, 191, 36, 0.08);
+}
+
+[data-theme="dark"] .maintenance-message {
+  --maintenance-bg: #2d2612;
+  --maintenance-text: #facc15;
+  --maintenance-border: #a16207;
+  --maintenance-shadow: rgba(250, 204, 21, 0.13);
 }
 </style>
