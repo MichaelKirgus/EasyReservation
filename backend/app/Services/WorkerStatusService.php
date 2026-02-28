@@ -38,6 +38,11 @@ class WorkerStatusService
     {
         $data['last_heartbeat_at'] = now();
 
+        // Only include total_jobs if explicitly set (for overwrite)
+        if (array_key_exists('total_jobs', $data) && $data['total_jobs'] === null) {
+            unset($data['total_jobs']);
+        }
+
         try {
             if ($this->driver === 'redis') {
                 $this->redisHeartbeat($workerId, $data);
