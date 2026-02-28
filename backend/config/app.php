@@ -2,6 +2,8 @@
 <?php
 
 return [
+    // Number of days to retain audit log entries (superadmin setting)
+    'audit_log_retention_days' => env('AUDIT_LOG_RETENTION_DAYS', 30),
 
     // Number of days to retain job log entries
     'job_log_retention_days' => env('JOB_LOG_RETENTION_DAYS', 30),
