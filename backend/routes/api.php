@@ -159,8 +159,10 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/scheduled-tasks/{id}/run-now', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'runNow']);
     Route::post('/admin/cron/next-run', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'getNextCronRun']);
     Route::get('/admin/diagnostics', [DiagnosticsController::class, 'show']);
+
     Route::get('/admin/diagnostics/redis-keys', [DiagnosticsController::class, 'redisKeys']);
     Route::delete('/admin/diagnostics/redis-keys', [DiagnosticsController::class, 'deleteRedisKey']);
+    Route::get('/admin/rate-limit-diagnostics', [\App\Http\Controllers\Api\RateLimitDiagnosticsController::class, 'index']);
 
     Route::get('/admin/email-validation-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'index']);
     Route::delete('/admin/email-validation-rate-limits', [\App\Http\Controllers\Api\EmailValidationRateLimitController::class, 'destroyAll']);

@@ -1464,5 +1464,13 @@
   "admin_setting_login_rate_limit_decay_minutes": "Login rate limit decay (minutes)",
   "admin_setting_session_lifetime_minutes": "Session lifetime (minutes)",
   "admin_setting_archive_store_emails_by_default": "Archive: store emails by default",
-  "admin_setting_archive_moderator_access_enabled": "Archive: moderator access enabled"
+  "admin_setting_archive_moderator_access_enabled": "Archive: moderator access enabled",
+  "diagnostics_rate_limit_section": "Login Rate-Limit",
+  "diagnostics_rate_limit_key": "Key",
+  "diagnostics_rate_limit_count": "Count",
+  "diagnostics_rate_limit_attempts": "Max Attempts",
+  "diagnostics_rate_limit_decay": "Decay (minutes)",
+  "diagnostics_rate_limit_no_entries": "No active rate-limit entries",
+  "diagnostics_collapsed_hint": "Click to expand",
+  "diagnostics_expanded_hint": "Click to collapse"
 }

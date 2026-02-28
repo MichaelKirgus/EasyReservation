@@ -18,6 +18,37 @@ function updateClientTime() {
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 
+// --- Rate-limit diagnostics ---
+const rateLimitCollapsed = ref(true)
+const rateLimitLoading = ref(false)
+const rateLimitError = ref('')
+const rateLimitInfo = ref(null)
+
+const rateLimitColumns = computed(() => [
+  { key: 'key', label: tr('diagnostics_rate_limit_key'), sortable: false },
+  { key: 'count', label: tr('diagnostics_rate_limit_count'), sortable: true },
+])
+
+async function loadRateLimitInfo() {
+  rateLimitLoading.value = true
+  rateLimitError.value = ''
+  try {
+    const res = await adminFetch('rate-limit-diagnostics')
+    if (!res.ok) throw new Error(await res.text())
+    rateLimitInfo.value = await res.json()
+  } catch (e) {
+    rateLimitError.value = e.message || String(e)
+  } finally {
+    rateLimitLoading.value = false
+  }
+}
+
+watch(rateLimitCollapsed, (collapsed) => {
+  if (!collapsed && !rateLimitInfo.value && !rateLimitLoading.value) {
+    loadRateLimitInfo()
+  }
+})
+
 // Worker-Status: dedicated endpoint for reliability
 const workerStatus = ref([])
 const workerLoading = ref(false)
@@ -167,6 +198,7 @@ function startAutoRefresh() {
     loadDiagnostics({ auto: true })
     loadAuditLogCount()
     loadWorkerStats({ auto: true })
+    loadRateLimitInfo()
   }, refreshMs)
 }
 
@@ -241,12 +273,46 @@ onUnmounted(() => {
           :label="tr('diagnostics_auto_refresh')"
           @click="autoRefreshEnabled = !autoRefreshEnabled"
         />
-        <IconButton icon="refresh" size="sm" :label="tr('diagnostics_refresh')" @click="loadDiagnostics" :disabled="loading" />
+        <IconButton icon="refresh" size="sm" :label="tr('diagnostics_refresh')" @click="() => { loadDiagnostics(); loadRateLimitInfo(); }" :disabled="loading" />
       </div>
     </div>
 
     <div v-if="message" class="message">{{ message }}</div>
     <div v-if="error" class="error">{{ error }}</div>
+
+    <div class="card">
+      <div class="card-header" style="cursor:pointer;user-select:none;" @click="rateLimitCollapsed = !rateLimitCollapsed">
+        <h4>{{ tr('diagnostics_rate_limit_section') }}</h4>
+        <span class="muted" v-if="rateLimitCollapsed">{{ tr('diagnostics_collapsed_hint') }}</span>
+        <span class="muted" v-else>{{ tr('diagnostics_expanded_hint') }}</span>
+      </div>
+      <div v-show="!rateLimitCollapsed">
+        <div v-if="rateLimitLoading">{{ tr('diagnostics_loading') }}</div>
+        <div v-else-if="rateLimitError" class="error">{{ rateLimitError }}</div>
+        <div v-else-if="rateLimitInfo">
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="label">{{ tr('diagnostics_rate_limit_attempts') }}</div>
+              <div class="value">{{ rateLimitInfo.config?.attempts }}</div>
+            </div>
+            <div class="info-item">
+              <div class="label">{{ tr('diagnostics_rate_limit_decay') }}</div>
+              <div class="value">{{ rateLimitInfo.config?.decay_minutes }} min</div>
+            </div>
+          </div>
+          <AdminDataTable
+            :columns="rateLimitColumns"
+            :rows="rateLimitInfo.login_limits"
+            :loading="rateLimitLoading"
+            :page-size="20"
+            persist-key="admin-rate-limit-diagnostics"
+            :empty-text="tr('diagnostics_rate_limit_no_entries')"
+            @refresh="loadRateLimitInfo"
+            @auto-refresh="loadRateLimitInfo"
+          />
+        </div>
+      </div>
+    </div>
 
     <div class="card">
       <div class="card-header">
