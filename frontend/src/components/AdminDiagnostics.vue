@@ -420,7 +420,11 @@ onUnmounted(() => {
         @auto-refresh="loadDiagnostics({ auto: true })"
       >
         <template #cell-finished_at="{ value }">{{ formatDateTime(value) }}</template>
-        <template #cell-status="{ value }"><span :class="['pill', value === 'processed' ? 'pill-ok' : 'pill-failed']">{{ value }}</span></template>
+        <template #cell-status="{ value }">
+          <span
+            :class="['pill', value === 'processed' ? 'pill-processed' : 'pill-failed']"
+          >{{ value }}</span>
+        </template>
         <template #cell-runtime_ms="{ value }">{{ value != null ? value + ' ms' : '–' }}</template>
         <template #cell-message="{ value }"><span class="wrap">{{ value || '–' }}</span></template>
       </AdminDataTable>
@@ -456,6 +460,7 @@ th, td { border-bottom: 1px solid var(--border-strong); padding: 0.5rem; text-al
 .table-wrapper { overflow-x: auto; }
 .pill { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border-radius: 999px; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.02em; }
 .pill-ok { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+.pill-processed { background: var(--diagnostics-processed-bg); color: var(--diagnostics-processed-text); border: 1px solid var(--diagnostics-processed-border); }
 .pill-failed { background: var(--error-bg); color: var(--error-text); border: 1px solid var(--error-border); }
 .wrap { max-width: 320px; white-space: pre-wrap; word-break: break-word; }
 .inline { display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600; color: var(--text); }

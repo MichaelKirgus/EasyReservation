@@ -1,4 +1,7 @@
 :root {
+    --diagnostics-processed-bg: #3a8fff;
+    --diagnostics-processed-border: #2563eb;
+    --diagnostics-processed-text: #000e3a;
   color-scheme: light;
   --bg: #f5f7fb;
   --surface: #ffffff;
@@ -30,6 +33,9 @@
 }
 
 :root[data-theme="dark"] {
+    --diagnostics-processed-bg: #0044b3;
+    --diagnostics-processed-border: #00183f;
+    --diagnostics-processed-text: #d6e8ff;
   color-scheme: dark;
   --bg: #0f172a;
   --surface: #111827;
