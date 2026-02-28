@@ -504,7 +504,7 @@ function goToGDPR() {
 
 <template>
   <div class="page" :style="backgroundStyle">
-    <div v-if="!siteToken.value" class="site-token-message" v-html="renderMarkdown(config.settings.site_token_invalid_message || tr('site_token_invalid_message', 'A valid site token is required to access this page.'))"></div>
+    <div v-if="siteToken.value === null || siteToken.value === undefined" class="site-token-message" v-html="renderMarkdown(config.settings.site_token_invalid_message || tr('site_token_invalid_message', 'A valid site token is required to access this page.'))"></div>
     <div class="backdrop">
       <div v-if="loading" class="loading-overlay" aria-live="polite" aria-busy="true">
         <img v-if="loadingImageUrl" :src="loadingImageUrl" alt="Loading" class="loader-image" />
