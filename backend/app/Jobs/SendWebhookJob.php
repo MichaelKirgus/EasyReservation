@@ -74,6 +74,8 @@ class SendWebhookJob implements ShouldQueue
         try {
             $response = \Illuminate\Support\Facades\Http::timeout(15)->withHeaders($resolvedHeaders)->post($resolvedUrl, $resolvedPayload);
             $finishTime = now();
+            $runtimeMs = $finishTime->diffInMilliseconds($startTime);
+            Log::debug('SendWebhookJob: runtime_ms value (success)', ['runtime_ms' => $runtimeMs]);
             $jobCompleteData = [
                 'url' => $resolvedUrl,
                 'payload' => $resolvedPayload,
@@ -93,12 +95,14 @@ class SendWebhookJob implements ShouldQueue
                 'worker_name' => $workerName,
                 'message' => "Webhook sent to {$resolvedUrl} (Status: {$response->status()})",
                 'status' => 'success',
-                'runtime_ms' => $finishTime->diffInMilliseconds($startTime),
+                'runtime_ms' => $runtimeMs,
                 'finished_at' => $finishTime,
                 'details' => json_encode($jobCompleteData),
             ]);
         } catch (\Throwable $e) {
             $finishTime = now();
+            $runtimeMs = $finishTime->diffInMilliseconds($startTime);
+            Log::debug('SendWebhookJob: runtime_ms value (error)', ['runtime_ms' => $runtimeMs]);
             $jobErrorData = [
                 'url' => $resolvedUrl,
                 'payload' => $resolvedPayload,
@@ -118,7 +122,7 @@ class SendWebhookJob implements ShouldQueue
                 'worker_name' => $workerName,
                 'message' => "Webhook send failed for {$resolvedUrl}: {$e->getMessage()}",
                 'status' => 'failed',
-                'runtime_ms' => $finishTime->diffInMilliseconds($startTime),
+                'runtime_ms' => $runtimeMs,
                 'finished_at' => $finishTime,
                 'details' => json_encode($jobErrorData),
             ]);
