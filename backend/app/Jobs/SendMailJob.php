@@ -9,6 +9,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Str;
@@ -55,24 +56,33 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
 
     public function handle(): void
     {
+        $toEmail = $this->decryptIfEncrypted($this->toEmail);
+        $toName = $this->toName ?: $toEmail;
+        $fromAddress = $this->decryptIfEncrypted($this->fromAddress);
+        $fromName = $this->fromName ?: $fromAddress;
+        $globalCc = $this->decryptIfEncrypted($this->globalCc);
+        $globalBcc = $this->decryptIfEncrypted($this->globalBcc);
+        $ccAddresses = $this->parseAddresses($globalCc);
+        $bccAddresses = $this->parseAddresses($globalBcc);
+
         // Zentrale Debug-Blacklist-Prüfung
         $validator = app(\App\Services\ReservationValidationService::class);
-        if ($validator->isDebugBlacklistedEmail($this->toEmail)) {
-            $emailDomain = strtolower(substr(strrchr($this->toEmail, '@'), 1));
+        if ($validator->isDebugBlacklistedEmail($toEmail)) {
+            $emailDomain = strtolower(substr(strrchr($toEmail, '@'), 1));
             JobLog::create([
                 'job' => 'SendMailJob',
                 'queue' => $this->queue ?? ($this->onQueue ?? null),
                 'worker_name' => config('app.worker_name'),
-                'message' => "Adress for domain ($emailDomain) not sent: {$this->toEmail}",
+                'message' => "Adress for domain ($emailDomain) not sent: {$toEmail}",
                 'status' => 'skipped',
                 'details' => json_encode([
-                    'to_email' => $this->toEmail,
+                    'to_email' => $toEmail,
                     'domain' => $emailDomain,
                     'reason' => 'debug_blacklist'
                 ])
             ]);
             Log::info('SendMailJob: Email skipped due to debug blacklist', [
-                'to_email' => $this->toEmail,
+                'to_email' => $toEmail,
                 'domain' => $emailDomain
             ]);
             return;
@@ -80,14 +90,14 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
 
         // Log job start with comprehensive details
         $jobStartData = [
-            'to_email' => $this->toEmail,
+            'to_email' => $toEmail,
             'subject' => $this->subject,
             'has_attachments' => count($this->attachments) > 0,
             'attachment_count' => count($this->attachments),
-            'from_address' => $this->fromAddress,
-            'from_name' => $this->fromName,
-            'global_cc' => $this->globalCc ? 'configured' : null,
-            'global_bcc' => $this->globalBcc ? 'configured' : null,
+            'from_address' => $fromAddress,
+            'from_name' => $fromName,
+            'global_cc' => $globalCc ? 'configured' : null,
+            'global_bcc' => $globalBcc ? 'configured' : null,
             'transport_group_id' => $this->transportGroupId,
             'transport_group_name' => $this->transportGroupName,
             'transport_account_id' => $this->transportAccountId,
@@ -100,7 +110,7 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
             'job' => 'SendMailJob',
             'queue' => $this->queue ?? ($this->onQueue ?? null),
             'worker_name' => config('app.worker_name'),
-            'message' => "Email send started for {$this->toEmail}",
+            'message' => "Email send started for {$toEmail}",
             'status' => 'started',
             'details' => json_encode($jobStartData)
         ]);
@@ -108,30 +118,18 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
         $mailerName = 'dynamic_'.md5(json_encode($this->mailerConfig)).'_'.Str::random(6);
         Config::set('mail.mailers.'.$mailerName, $this->mailerConfig);
 
-        Mail::mailer($mailerName)->send([], [], function (Message $message) {
-            $message->to($this->toEmail, $this->toName ?: $this->toEmail);
-            if ($this->fromAddress) {
-                $message->from($this->fromAddress, $this->fromName ?: $this->fromAddress);
+        Mail::mailer($mailerName)->send([], [], function (Message $message) use ($toEmail, $toName, $fromAddress, $fromName, $ccAddresses, $bccAddresses) {
+            $message->to($toEmail, $toName);
+            if ($fromAddress) {
+                $message->from($fromAddress, $fromName ?: $fromAddress);
             }
-            
-            // Add global CC if configured
-            if ($this->globalCc) {
-                $ccAddresses = array_filter(array_map('trim', explode(',', $this->globalCc)));
-                foreach ($ccAddresses as $ccAddress) {
-                    if (filter_var($ccAddress, FILTER_VALIDATE_EMAIL)) {
-                        $message->cc($ccAddress);
-                    }
-                }
+
+            foreach ($ccAddresses as $ccAddress) {
+                $message->cc($ccAddress);
             }
-            
-            // Add global BCC if configured
-            if ($this->globalBcc) {
-                $bccAddresses = array_filter(array_map('trim', explode(',', $this->globalBcc)));
-                foreach ($bccAddresses as $bccAddress) {
-                    if (filter_var($bccAddress, FILTER_VALIDATE_EMAIL)) {
-                        $message->bcc($bccAddress);
-                    }
-                }
+
+            foreach ($bccAddresses as $bccAddress) {
+                $message->bcc($bccAddress);
             }
             
             $message->subject($this->subject);
@@ -149,10 +147,10 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
 
         // Log job completion with comprehensive details
         $jobCompleteData = [
-            'to_email' => $this->toEmail,
+            'to_email' => $toEmail,
             'subject' => $this->subject,
-            'global_cc' => $this->globalCc ? 'configured' : null,
-            'global_bcc' => $this->globalBcc ? 'configured' : null,
+            'global_cc' => $globalCc ? 'configured' : null,
+            'global_bcc' => $globalBcc ? 'configured' : null,
             'transport_group_id' => $this->transportGroupId,
             'transport_group_name' => $this->transportGroupName,
             'transport_account_id' => $this->transportAccountId,
@@ -167,9 +165,38 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
             'job' => 'SendMailJob',
             'queue' => $this->queue ?? ($this->onQueue ?? null),
             'worker_name' => config('app.worker_name'),
-            'message' => "Email sent to {$this->toEmail}: {$this->subject} via group '{$this->transportGroupName}' (ID: {$this->transportGroupId}), account '{$this->transportAccountName}' (ID: {$this->transportAccountId})",
+            'message' => "Email sent to {$toEmail}: {$this->subject} via group '{$this->transportGroupName}' (ID: {$this->transportGroupId}), account '{$this->transportAccountName}' (ID: {$this->transportAccountId})",
             'status' => 'success',
             'details' => json_encode($jobCompleteData)
         ]);
+    }
+
+    private function decryptIfEncrypted(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return $value;
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (\Throwable $e) {
+            return $value;
+        }
+    }
+
+    private function parseAddresses(?string $addresses): array
+    {
+        if (! $addresses) {
+            return [];
+        }
+
+        $list = [];
+        foreach (array_filter(array_map('trim', explode(',', $addresses))) as $address) {
+            if (filter_var($address, FILTER_VALIDATE_EMAIL)) {
+                $list[] = $address;
+            }
+        }
+
+        return $list;
     }
 }
