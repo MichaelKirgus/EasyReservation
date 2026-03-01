@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Illuminate\Support\Facades\File;
@@ -18,13 +17,24 @@ class FlagController extends Controller
             throw new NotFoundHttpException('Language not supported');
         }
 
-        // Return actual SVG flag from backend resources
-        $svg = $this->getFlagSvg($lang);
-        
+        $flagPath = $this->getFlagPath($lang);
+
+        if ($flagPath && File::exists($flagPath)) {
+            $svg = $this->sanitizeSvg(File::get($flagPath));
+
+            return response($svg, 200)
+                ->header('Content-Type', 'image/svg+xml')
+                ->header('Cache-Control', 'public, max-age=604800, immutable')
+                ->header('Content-Disposition', "inline; filename=\"{$lang}.svg\"");
+        }
+
+        // Fallback inline SVG if no file is available
+        $svg = $this->sanitizeSvg($this->placeholderSvg());
+
         return response($svg, 200)->header('Content-Type', 'image/svg+xml');
     }
 
-    private function getFlagSvg(string $lang): string
+    private function getFlagPath(string $lang): ?string
     {
         // Define mapping of language codes to SVG files in backend resources
         $flagFiles = [
@@ -36,16 +46,38 @@ class FlagController extends Controller
         if (isset($flagFiles[$lang])) {
             $svgPath = resource_path("assets/icons/{$flagFiles[$lang]}");
             if (File::exists($svgPath)) {
-                return File::get($svgPath);
+                return $svgPath;
             }
         }
 
         $fallbackPath = resource_path('assets/icons/flag-us.svg');
         if (File::exists($fallbackPath)) {
-            return File::get($fallbackPath);
+            return $fallbackPath;
         }
-        
+
+        return null;
+    }
+
+    private function placeholderSvg(): string
+    {
         // If no SVG files are found, return a basic placeholder
         return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480"><rect width="640" height="480" fill="#ff00f2"/><rect width="640" height="320" y="160" fill="#1eff00"/><rect width="640" height="160" y="320" fill="rgb(0, 68, 255)"/></svg>';
+    }
+
+    private function sanitizeSvg(string $svg): string
+    {
+        // Remove BOM and trim anything before the actual <svg ...> tag
+        $svg = preg_replace('/^\xEF\xBB\xBF/', '', $svg) ?? $svg;
+
+        // Drop any XML declaration; we'll serve the raw <svg> to avoid declaration issues
+        $svg = preg_replace('/<\?xml[^>]*>/', '', $svg) ?? $svg;
+
+        // Start from the first <svg ...> tag to eliminate leading whitespace/newlines
+        $pos = stripos($svg, '<svg');
+        if ($pos !== false) {
+            $svg = substr($svg, $pos);
+        }
+
+        return ltrim($svg, "\r\n\t ");
     }
 }
