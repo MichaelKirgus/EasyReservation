@@ -165,8 +165,8 @@ class EmailService
         $bcc = $this->mergeEmailAddresses($templateBcc, $globalBcc);
 
         $attachments = $this->attachmentsForTemplate([
-            'subject' => $template->subject,
-            'body' => $template->body,
+            'subject' => $template['subject'] ?? null,
+            'body' => $template['body'] ?? null,
         ]);
 
         Log::info('EmailService: Dispatching validation email', [
@@ -264,8 +264,8 @@ class EmailService
         $bcc = $this->mergeEmailAddresses($templateBcc, $globalBcc);
 
         $attachments = $this->attachmentsForTemplate([
-            'subject' => $template->subject,
-            'body' => $template->body,
+            'subject' => $template['subject'] ?? null,
+            'body' => $template['body'] ?? null,
         ]);
 
         if (!$transportGroupId) {
