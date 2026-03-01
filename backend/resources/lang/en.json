@@ -654,6 +654,7 @@
   "admin_custom_placeholders_value_label": "Value",
   "admin_custom_placeholders_description_label": "Description",
   "admin_custom_placeholders_columns_key": "Placeholder",
+  "admin_custom_placeholders_clone_prompt": "Enter a key for the clone",
   "admin_custom_placesholders_columns_value": "Value",
   "admin_custom_placeholders_columns_description": "Description",
   "admin_placeholder_values_title": "Placeholders",

@@ -16,6 +16,7 @@
   >
     <template #row-actions="{ row }">
       <IconButton icon="pencil" :label="tr('icon_buttons_edit')" size="sm" variant="ghost" @click="openEditDialog(row)" />
+      <IconButton icon="copy" :label="tr('icon_buttons_clone')" size="sm" variant="ghost" @click="clonePlaceholder(row)" />
       <IconButton icon="trash" :label="tr('icon_buttons_delete')" size="sm" variant="ghost" @click="onDelete(row)" />
     </template>
   </AdminDataTable>
@@ -88,6 +89,21 @@ function openEditDialog(row) {
   dialogData.value = { key: row.key, value: row.value, description: row.description };
   editId = row.id;
   showDialog.value = true;
+}
+
+async function clonePlaceholder(row) {
+  const baseKey = (row.key || '').replace(/^\{\{|\}\}$/g, '');
+  const newKey = prompt(tr('admin_custom_placeholders_clone_prompt', 'Enter a key for the clone'), baseKey ? `${baseKey}_copy` : '');
+  if (!newKey) return;
+
+  const payload = {
+    key: formatKey(newKey),
+    value: row.value,
+    description: row.description,
+  };
+
+  const { data } = await axios.post('/api/admin/custom-placeholders', payload, apiKeyHeader());
+  rows.value.push(data);
 }
 
 function closeDialog() {
