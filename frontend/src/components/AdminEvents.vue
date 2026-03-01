@@ -52,6 +52,37 @@ const locationColumns = computed(() => [
   { key: 'active', label: tr('admin_locations_columns_active'), sortable: true },
 ])
 
+const eventExportFields = computed(() => [
+  { key: 'id', label: tr('admin_events_columns_id') },
+  { key: 'title', label: tr('admin_events_columns_title') },
+  { key: 'start_at', label: tr('admin_events_columns_start') },
+  { key: 'end_at', label: tr('admin_events_end_label', 'End') },
+  { key: 'location_id', label: tr('admin_events_location_label') },
+  { label: tr('admin_locations_columns_name'), value: row => row.location?.name || '' },
+  { label: tr('admin_locations_columns_city'), value: row => row.location?.city || '' },
+  { label: tr('admin_locations_columns_address'), value: row => row.location?.address || '' },
+  { key: 'url', label: tr('admin_events_columns_url') },
+  { label: tr('admin_locations_columns_url'), value: row => row.location?.url || '' },
+  { key: 'capacity_override', label: tr('admin_events_columns_capacity_override', 'Capacity Override') },
+  { key: 'active', label: tr('admin_events_columns_active') },
+  { key: 'notes', label: tr('admin_events_notes_label', 'Notes') },
+])
+
+const locationExportFields = computed(() => [
+  { key: 'id', label: tr('admin_locations_columns_id') },
+  { key: 'name', label: tr('admin_locations_columns_name') },
+  { key: 'city', label: tr('admin_locations_columns_city') },
+  { key: 'address', label: tr('admin_locations_columns_address') },
+  { key: 'url', label: tr('admin_locations_columns_url') },
+  { key: 'contact_email', label: tr('admin_locations_columns_contact_email') },
+  { key: 'public_transport', label: tr('admin_locations_columns_public_transport') },
+  { key: 'capacity_override', label: tr('admin_locations_columns_capacity') },
+  { key: 'active', label: tr('admin_locations_columns_active') },
+  { key: 'notes', label: tr('admin_locations_columns_comment') },
+  { key: 'latitude', label: tr('admin_locations_latitude_readonly') },
+  { key: 'longitude', label: tr('admin_locations_longitude_readonly') },
+])
+
 function formatCoord(val) {
   const n = Number(val)
   return Number.isFinite(n) ? n.toFixed(6) : ''
@@ -81,6 +112,58 @@ function formatDateTime(val) {
     hour: '2-digit', minute: '2-digit', second: '2-digit',
     timeZoneName: 'short'
   })
+}
+
+function extractField(row, field) {
+  if (!field) return ''
+  if (typeof field.value === 'function') return field.value(row)
+  if (!field.key) return ''
+  return field.key.split('.').reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), row)
+}
+
+function escapeCsv(val) {
+  if (val === null || val === undefined) return ''
+  const str = String(val)
+  const clean = str.replace(/\r?\n|\r/g, ' ')
+  if (/[",\n]/.test(clean)) return `"${clean.replace(/"/g, '""')}"`
+  return clean
+}
+
+function toCsv(rows, fields) {
+  const header = fields.map(f => escapeCsv(f.label || f.key || '')).join(',')
+  const body = rows.map(row => fields.map(f => {
+    const raw = extractField(row, f)
+    if (raw === null || raw === undefined) return ''
+    if (typeof raw === 'boolean') return raw ? 'true' : 'false'
+    return raw
+  }).map(escapeCsv).join(',')).join('\r\n')
+  return `${header}${rows.length ? '\r\n' : ''}${body}`
+}
+
+function downloadBlob(content, filename, mime) {
+  const blob = new Blob([content], { type: mime })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.style.display = 'none'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+function makeFilename(prefix, ext) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+  return `${prefix}-${stamp}.${ext}`
+}
+
+function exportJson(data, prefix) {
+  downloadBlob(JSON.stringify(data, null, 2), makeFilename(prefix, 'json'), 'application/json')
+}
+
+function exportCsv(rows, fields, prefix) {
+  downloadBlob(toCsv(rows, fields), makeFilename(prefix, 'csv'), 'text/csv')
 }
 
 // Event form state
@@ -142,6 +225,14 @@ async function loadEvents(opts = {}) {
     events.value = data ? JSON.parse(data) : []
     if (!opts.auto) setMessage(tr('common_messages_updated'))
   } catch (e) { setError(e.message || String(e), opts) } finally { loading.value = false }
+}
+
+function exportEvents(format) {
+  if (format === 'csv') {
+    exportCsv(events.value, eventExportFields.value, 'events')
+  } else {
+    exportJson(events.value, 'events')
+  }
 }
 
 
@@ -251,6 +342,14 @@ async function loadLocations(opts = {}) {
       : []
     if (!opts.auto && activeTab.value === 'locations') setMessage(tr('common_messages_updated'))
   } catch (e) { setError(e.message || String(e), opts) } finally { loading.value = false }
+}
+
+function exportLocations(format) {
+  if (format === 'csv') {
+    exportCsv(locations.value, locationExportFields.value, 'locations')
+  } else {
+    exportJson(locations.value, 'locations')
+  }
 }
 
 
@@ -378,8 +477,11 @@ onMounted(() => {
     <!-- Events Tab -->
     <div v-if="activeTab === 'events'" class="tab-content">
       <div class="tab-header-row">
-        <div></div>
-        <IconButton icon="plus" :label="tr('admin_events_new_button')" class="add-btn" @click="showAddEventForm = !showAddEventForm" style="margin-left:auto;" />
+        <div class="tab-actions">
+          <IconButton icon="download" :label="tr('admin_export_json_button')" size="sm" variant="ghost" @click="exportEvents('json')" />
+          <IconButton icon="download" :label="tr('admin_export_csv_button')" size="sm" variant="ghost" @click="exportEvents('csv')" />
+          <IconButton icon="plus" :label="tr('admin_events_new_button')" class="add-btn" @click="showAddEventForm = !showAddEventForm" />
+        </div>
       </div>
 
       <div v-if="error" class="error">{{ error }}</div>
@@ -447,8 +549,11 @@ onMounted(() => {
     <!-- Locations Tab -->
     <div v-if="activeTab === 'locations'" class="tab-content">
       <div class="tab-header-row">
-        <div></div>
-        <IconButton icon="plus" :label="tr('admin_locations_new_button')" class="add-btn" @click="showAddLocationForm = !showAddLocationForm" style="margin-left:auto;" />
+        <div class="tab-actions">
+          <IconButton icon="download" :label="tr('admin_export_json_button')" size="sm" variant="ghost" @click="exportLocations('json')" />
+          <IconButton icon="download" :label="tr('admin_export_csv_button')" size="sm" variant="ghost" @click="exportLocations('csv')" />
+          <IconButton icon="plus" :label="tr('admin_locations_new_button')" class="add-btn" @click="showAddLocationForm = !showAddLocationForm" />
+        </div>
       </div>
 
       <div v-if="error" class="error">{{ error }}</div>
@@ -527,7 +632,9 @@ onMounted(() => {
 .tab-content { display: flex; flex-direction: column; gap: 0.75rem; }
 .controls { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .tab-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+.tab-actions { display: flex; align-items: center; gap: 0.35rem; margin-left: auto; }
 .add-btn { margin-left: auto; }
+.tab-actions .add-btn { margin-left: 0; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.5rem; }
 .form-with-actions { position: relative; }
 .form-actions {

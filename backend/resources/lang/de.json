@@ -443,6 +443,8 @@
   "admin_events_delete_selection_button": "Auswahl löschen",
   "admin_events_edit_button": "Bearbeiten",
   "admin_events_delete_button": "Löschen",
+  "admin_export_json_button": "JSON exportieren",
+  "admin_export_csv_button": "CSV exportieren",
   "admin_events_link_text": "Link",
   "admin_events_dash_text": "–",
   "admin_events_yes_text": "Ja",

@@ -445,6 +445,8 @@
   "admin_events_delete_selection_button": "Delete selection",
   "admin_events_edit_button": "Edit",
   "admin_events_delete_button": "Delete",
+  "admin_export_json_button": "Export JSON",
+  "admin_export_csv_button": "Export CSV",
   "admin_events_link_text": "Link",
   "admin_events_dash_text": "–",
   "admin_events_yes_text": "Yes",
