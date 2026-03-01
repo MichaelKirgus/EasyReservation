@@ -541,6 +541,14 @@ class EmailService
     }
 
     /**
+     * Backward-compatible wrapper: send email using transport info without TG metadata
+     */
+    private function sendEmailFromTemplate(array $mailerConfig, int $templateId, $recipient): void
+    {
+        $this->sendEmailFromTemplateWithTransportInfo($mailerConfig, $templateId, $recipient, []);
+    }
+
+    /**
      * Send email from template for a specific recipient
      */
     private function sendEmailFromTemplateWithTransportInfo(array $mailerConfig, int $templateId, $recipient, array $tg = []): void
