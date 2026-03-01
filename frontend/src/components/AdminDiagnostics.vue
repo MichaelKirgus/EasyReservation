@@ -6,6 +6,13 @@ import { JOB_TYPES } from '../utils/jobTypes'
 import { jobTypeLabel } from '../utils/jobTypeLabel'
 
 const { tr } = useTranslation()
+const selectedTab = ref('system')
+const tabs = computed(() => [
+  { id: 'system', label: tr('admin_diagnostics_tab_system') },
+  { id: 'workers', label: tr('admin_diagnostics_tab_workers') },
+  { id: 'logs', label: tr('admin_diagnostics_tab_logs') },
+  { id: 'rate-limit', label: tr('admin_diagnostics_tab_rate_limit') },
+])
 
 // Client-Zeit und Zeitzone
 const clientTime = ref(new Date().toISOString())
@@ -19,7 +26,6 @@ import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 
 // --- Rate-limit diagnostics ---
-const rateLimitCollapsed = ref(true)
 const rateLimitLoading = ref(false)
 const rateLimitError = ref('')
 const rateLimitInfo = ref(null)
@@ -43,11 +49,25 @@ async function loadRateLimitInfo() {
   }
 }
 
-watch(rateLimitCollapsed, (collapsed) => {
-  if (!collapsed && !rateLimitInfo.value && !rateLimitLoading.value) {
+function refreshActiveTab() {
+  const tab = selectedTab.value
+  if (tab === 'system') {
+    loadDiagnostics()
+    loadAuditLogCount()
+    loadWorkerStats()
+  } else if (tab === 'workers') {
+    loadWorkerStats()
+  } else if (tab === 'logs') {
+    loadDiagnostics()
+  } else if (tab === 'rate-limit') {
     loadRateLimitInfo()
   }
-})
+}
+
+function changeTab(tabId) {
+  selectedTab.value = tabId
+  refreshActiveTab()
+}
 
 // Worker-Status: dedicated endpoint for reliability
 const workerStatus = ref([])
@@ -195,10 +215,7 @@ function startAutoRefresh() {
   stopAutoRefresh()
   if (!autoRefreshEnabled.value) return
   timerId = setInterval(() => {
-    loadDiagnostics({ auto: true })
-    loadAuditLogCount()
-    loadWorkerStats({ auto: true })
-    loadRateLimitInfo()
+    refreshActiveTab()
   }, refreshMs)
 }
 
@@ -235,9 +252,7 @@ function handleKeyUpdate(e) {
 watch(autoRefreshEnabled, (val) => {
   localStorage.setItem('admin_diag_autorefresh', val ? '1' : '0')
   if (val) {
-    loadDiagnostics({ auto: true })
-    loadAuditLogCount()
-    loadWorkerStats({ auto: true })
+    refreshActiveTab()
     startAutoRefresh()
   } else {
     stopAutoRefresh()
@@ -247,9 +262,7 @@ watch(autoRefreshEnabled, (val) => {
 onMounted(() => {
   window.addEventListener('api-key-updated', handleKeyUpdate)
   if (apiKey.value) {
-    loadDiagnostics()
-    loadAuditLogCount()
-    loadWorkerStats()
+    refreshActiveTab()
     if (autoRefreshEnabled.value) startAutoRefresh()
   }
 })
@@ -273,249 +286,266 @@ onUnmounted(() => {
           :label="tr('diagnostics_auto_refresh')"
           @click="autoRefreshEnabled = !autoRefreshEnabled"
         />
-        <IconButton icon="refresh" size="sm" :label="tr('diagnostics_refresh')" @click="() => { loadDiagnostics(); loadRateLimitInfo(); }" :disabled="loading" />
+        <IconButton icon="refresh" size="sm" :label="tr('diagnostics_refresh')" @click="refreshActiveTab" />
       </div>
     </div>
 
     <div v-if="message" class="message">{{ message }}</div>
     <div v-if="error" class="error">{{ error }}</div>
 
-    <div class="card">
-      <div class="card-header" style="cursor:pointer;user-select:none;" @click="rateLimitCollapsed = !rateLimitCollapsed">
-        <h4>{{ tr('diagnostics_rate_limit_section') }}</h4>
-        <span class="muted" v-if="rateLimitCollapsed">{{ tr('diagnostics_collapsed_hint') }}</span>
-        <span class="muted" v-else>{{ tr('diagnostics_expanded_hint') }}</span>
-      </div>
-      <div v-show="!rateLimitCollapsed">
-        <div v-if="rateLimitLoading">{{ tr('diagnostics_loading') }}</div>
-        <div v-else-if="rateLimitError" class="error">{{ rateLimitError }}</div>
-        <div v-else-if="rateLimitInfo">
-          <div class="info-grid">
-            <div class="info-item">
-              <div class="label">{{ tr('diagnostics_rate_limit_attempts') }}</div>
-              <div class="value">{{ rateLimitInfo.config?.attempts }}</div>
-            </div>
-            <div class="info-item">
-              <div class="label">{{ tr('diagnostics_rate_limit_decay') }}</div>
-              <div class="value">{{ rateLimitInfo.config?.decay_minutes }} min</div>
-            </div>
-          </div>
-          <AdminDataTable
-            :columns="rateLimitColumns"
-            :rows="rateLimitInfo.login_limits"
-            :loading="rateLimitLoading"
-            :page-size="20"
-            persist-key="admin-rate-limit-diagnostics"
-            :empty-text="tr('diagnostics_rate_limit_no_entries')"
-            @refresh="loadRateLimitInfo"
-            @auto-refresh="loadRateLimitInfo"
-          />
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h4>{{ tr('diagnostics_system') }}</h4>
-        <span class="muted" v-if="diagnostics?.timestamp">{{ tr('diagnostics_timestamp') }}: {{ formatDateTime(diagnostics.timestamp) }}</span>
-      </div>
-      <div class="info-grid" v-if="diagnostics?.app">
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_app_name') }}</div>
-          <div class="value">{{ diagnostics.app.name }} ({{ diagnostics.app.environment }})</div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_frontend_version') }}</div>
-          <div class="value">{{ frontendVersion }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_backend_version') }}</div>
-          <div class="value">{{ diagnostics.app.app_version }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_php_version') }}</div>
-          <div class="value">{{ diagnostics.app.php_version }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_laravel_version') }}</div>
-          <div class="value">{{ diagnostics.app.laravel_version }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_queue_connection') }}</div>
-          <div class="value">{{ diagnostics.app.queue_connection }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_cache_store') }}</div>
-          <div class="value">{{ diagnostics.app.cache_store }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_active_jobs') }}</div>
-          <div class="value">{{ workerStatus.reduce((sum, w) => sum + (Array.isArray(w.active_jobs) ? w.active_jobs.length : 0), 0) }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_active_workers') }}</div>
-          <div class="value">{{ workerStatus.filter(w => w.status === 'online').length }} / {{ workerStatus.length }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_queue_type') }}</div>
-          <div class="value">{{ diagnostics.queue.connection }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_server_time') }}</div>
-          <div class="value">{{ formatDateTime(diagnostics?.server_time) }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_server_timezone') }}</div>
-          <div class="value">{{ diagnostics?.server_timezone }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_client_time') }}</div>
-          <div class="value">{{ formatDateTime(clientTime) }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_client_timezone') }}</div>
-          <div class="value">{{ clientTimezone }}</div>
-        </div>
-       </div>
-      <p v-else class="muted">{{ tr('diagnostics_no_data_loaded') }}</p>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h4>{{ tr('diagnostics_scheduler') }}</h4>
-      </div>
-      <div class="info-grid" v-if="diagnostics?.scheduler">
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_last_execution') }}</div>
-          <div class="value">{{ formatDateTime(diagnostics.scheduler.last_executed_at) }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_next_scheduled_execution') }}</div>
-          <div class="value">{{ formatDateTime(diagnostics.scheduler.next_run_at) }}</div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_status') }}</div>
-          <div class="value">
-            <span :class="['pill', diagnostics.scheduler.active ? 'pill-ok' : 'pill-failed']">
-              {{ diagnostics.scheduler.active ? tr('diagnostics_active') : tr('diagnostics_inactive') }}
-            </span>
-          </div>
-        </div>
-      </div>
-      <p v-else class="muted">{{ tr('diagnostics_no_scheduler_data') }}</p>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h4>{{ tr('diagnostics_latency') }}</h4>
-      </div>
-      <div class="latency-grid">
-        <div class="latency-item" v-for="(entry, key) in diagnostics?.latency || {}" :key="key" :class="statusClass(entry.status)">
-          <div class="label">{{ tr('diagnostics_latency_' + key.toLowerCase()) || key.toUpperCase() }}</div>
-          <div class="value">{{ latencyLabel(entry) }}</div>
-          <div class="muted" v-if="entry?.error">{{ entry.error }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h4>{{ tr('diagnostics_audit_log') }}</h4>
-      </div>
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_enabled') }}</div>
-          <div class="value" :style="{ color: auditLogEnabled ? '#15803d' : '#b91c1c' }">
-            {{ auditLogEnabled ? tr('diagnostics_yes') : tr('diagnostics_no') }}
-          </div>
-        </div>
-        <div class="info-item">
-          <div class="label">{{ tr('diagnostics_entries') }}</div>
-          <div class="value">
-            <template v-if="auditLogLoading">{{ tr('diagnostics_loading') }}</template>
-            <template v-else-if="auditLogError">{{ auditLogError }}</template>
-            <template v-else>{{ auditLogCount }}</template>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-<div class="card-header">
-  <h4>{{ tr('diagnostics_worker_status') }}</h4>
-  <span class="muted" v-if="workerDriver">{{ tr('diagnostics_driver') }}: {{ workerDriver }} · {{ tr('diagnostics_ttl') }}: {{ workerTtl }}s</span>
-</div>
-      <AdminDataTable
-        :columns="workerColumns"
-        :rows="workerStatus"
-        :loading="workerLoading"
-        :page-size="20"
-        persist-key="admin-worker-status"
-        :empty-text="tr('diagnostics_no_active_workers_found')"
-        @refresh="loadWorkerStats"
-        @auto-refresh="loadWorkerStats({ auto: true })"
+    <div class="admin-tabs">
+      <button
+        v-for="tab in tabs"
+        :key="tab.id"
+        :class="['admin-tab-button', { active: selectedTab === tab.id }]"
+        @click="changeTab(tab.id)"
       >
-        <template #cell-status="{ value }">
-          <span :class="['pill', value === 'online' ? 'pill-ok' : 'pill-failed']">{{ value }}</span>
-        </template>
-        <template #cell-last_heartbeat_at="{ value }">{{ formatDateTime(value) }}</template>
-        <template #cell-last_job_at="{ value }">{{ formatDateTime(value) }}</template>
-        <template #cell-redis_latency_ms="{ value }">{{ value != null ? value + ' ms' : '–' }}</template>
-        <template #cell-db_latency_ms="{ value }">{{ value != null ? value + ' ms' : '–' }}</template>
-        <template #cell-last_job_duration_ms="{ value }">{{ value != null ? value + ' ms' : '–' }}</template>
-        <template #cell-active_jobs="{ row }">
-          <ul v-if="row.active_jobs && row.active_jobs.length">
-            <li v-for="(job, idx) in row.active_jobs" :key="idx">
-              {{ job.name || job.id || JSON.stringify(job) }}
-            </li>
-          </ul>
-          <span v-else>–</span>
-        </template>
-      </AdminDataTable>
+        {{ tab.label }}
+      </button>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <h4>{{ tr('diagnostics_last_worker_actions') }}</h4>
-        <span class="muted">{{ tr('diagnostics_source_job_logs') }}</span>
-      </div>
-      <div class="actions" style="margin-bottom:0.5rem;gap:1.5rem;align-items:center;flex-wrap:wrap;">
-        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-          <span>{{ tr('diagnostics_job_type_filter', 'Show jobs:') }}</span>
-          <div v-for="type in allJobTypes" :key="type" style="display:inline-flex;align-items:center;margin-right:0.75em;">
-            <input type="checkbox" :id="'jobtype-'+type" :value="type" v-model="selectedJobTypes" />
-            <label :for="'jobtype-'+type" style="margin-left:0.25em;">{{ jobTypeLabel(type) }}</label>
-          </div>
-
+    <div v-if="selectedTab === 'system'" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h4>{{ tr('diagnostics_system') }}</h4>
+          <span class="muted" v-if="diagnostics?.timestamp">{{ tr('diagnostics_timestamp') }}: {{ formatDateTime(diagnostics.timestamp) }}</span>
         </div>
-        <label style="display:flex;align-items:center;gap:0.5rem;">
-          {{ tr('diagnostics_max_results', 'Max results') }}
-          <select v-model.number="maxJobResults">
-            <option v-for="opt in maxJobOptions" :key="opt" :value="opt">{{ opt }}</option>
-          </select>
-        </label>
+        <div class="info-grid" v-if="diagnostics?.app">
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_app_name') }}</div>
+            <div class="value">{{ diagnostics.app.name }} ({{ diagnostics.app.environment }})</div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_frontend_version') }}</div>
+            <div class="value">{{ frontendVersion }}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_backend_version') }}</div>
+            <div class="value">{{ diagnostics.app.app_version }}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_php_version') }}</div>
+            <div class="value">{{ diagnostics.app.php_version }}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_laravel_version') }}</div>
+            <div class="value">{{ diagnostics.app.laravel_version }}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_queue_connection') }}</div>
+            <div class="value">{{ diagnostics.app.queue_connection }}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_cache_store') }}</div>
+            <div class="value">{{ diagnostics.app.cache_store }}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_active_jobs') }}</div>
+            <div class="value">{{ workerStatus.reduce((sum, w) => sum + (Array.isArray(w.active_jobs) ? w.active_jobs.length : 0), 0) }}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_active_workers') }}</div>
+            <div class="value">{{ workerStatus.filter(w => w.status === 'online').length }} / {{ workerStatus.length }}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_queue_type') }}</div>
+            <div class="value">{{ diagnostics.queue.connection }}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_server_time') }}</div>
+            <div class="value">{{ formatDateTime(diagnostics?.server_time) }}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_server_timezone') }}</div>
+            <div class="value">{{ diagnostics?.server_timezone }}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_client_time') }}</div>
+            <div class="value">{{ formatDateTime(clientTime) }}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_client_timezone') }}</div>
+            <div class="value">{{ clientTimezone }}</div>
+          </div>
+        </div>
+        <p v-else class="muted">{{ tr('diagnostics_no_data_loaded') }}</p>
       </div>
-      <p v-if="diagnostics?.queue?.error" class="error">{{ diagnostics.queue.error }}</p>
-      <AdminDataTable
-        v-else
-        :columns="jobColumns"
-        :rows="filteredJobRows"
-        :loading="loading"
-        :page-size="maxJobResults"
-        persist-key="admin-diagnostics"
-        :empty-text="tr('diagnostics_no_entries_yet')"
-        @refresh="loadDiagnostics"
-        @auto-refresh="loadDiagnostics({ auto: true })"
-      >
-        <template #cell-finished_at="{ value }">{{ formatDateTime(value) }}</template>
-        <template #cell-status="{ value }">
-          <span
-            :class="['pill', (value === 'processed' || value === 'success') ? 'pill-processed' : 'pill-failed']"
-          >{{ value }}</span>
-        </template>
-        <template #cell-runtime_ms="{ value }">{{ value != null ? value + ' ms' : '–' }}</template>
-        <template #cell-message="{ value }"><span class="wrap">{{ value || '–' }}</span></template>
-      </AdminDataTable>
+
+      <div class="card">
+        <div class="card-header">
+          <h4>{{ tr('diagnostics_scheduler') }}</h4>
+        </div>
+        <div class="info-grid" v-if="diagnostics?.scheduler">
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_last_execution') }}</div>
+            <div class="value">{{ formatDateTime(diagnostics.scheduler.last_executed_at) }}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_next_scheduled_execution') }}</div>
+            <div class="value">{{ formatDateTime(diagnostics.scheduler.next_run_at) }}</div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_status') }}</div>
+            <div class="value">
+              <span :class="['pill', diagnostics.scheduler.active ? 'pill-ok' : 'pill-failed']">
+                {{ diagnostics.scheduler.active ? tr('diagnostics_active') : tr('diagnostics_inactive') }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <p v-else class="muted">{{ tr('diagnostics_no_scheduler_data') }}</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h4>{{ tr('diagnostics_latency') }}</h4>
+        </div>
+        <div class="latency-grid">
+          <div class="latency-item" v-for="(entry, key) in diagnostics?.latency || {}" :key="key" :class="statusClass(entry.status)">
+            <div class="label">{{ tr('diagnostics_latency_' + key.toLowerCase()) || key.toUpperCase() }}</div>
+            <div class="value">{{ latencyLabel(entry) }}</div>
+            <div class="muted" v-if="entry?.error">{{ entry.error }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h4>{{ tr('diagnostics_audit_log') }}</h4>
+        </div>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_enabled') }}</div>
+            <div class="value" :style="{ color: auditLogEnabled ? '#15803d' : '#b91c1c' }">
+              {{ auditLogEnabled ? tr('diagnostics_yes') : tr('diagnostics_no') }}
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="label">{{ tr('diagnostics_entries') }}</div>
+            <div class="value">
+              <template v-if="auditLogLoading">{{ tr('diagnostics_loading') }}</template>
+              <template v-else-if="auditLogError">{{ auditLogError }}</template>
+              <template v-else>{{ auditLogCount }}</template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-else-if="selectedTab === 'workers'" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h4>{{ tr('diagnostics_worker_status') }}</h4>
+          <span class="muted" v-if="workerDriver">{{ tr('diagnostics_driver') }}: {{ workerDriver }} · {{ tr('diagnostics_ttl') }}: {{ workerTtl }}s</span>
+        </div>
+        <AdminDataTable
+          :columns="workerColumns"
+          :rows="workerStatus"
+          :loading="workerLoading"
+          :page-size="20"
+          persist-key="admin-worker-status"
+          :empty-text="tr('diagnostics_no_active_workers_found')"
+          @refresh="loadWorkerStats"
+          @auto-refresh="loadWorkerStats({ auto: true })"
+        >
+          <template #cell-status="{ value }">
+            <span :class="['pill', value === 'online' ? 'pill-ok' : 'pill-failed']">{{ value }}</span>
+          </template>
+          <template #cell-last_heartbeat_at="{ value }">{{ formatDateTime(value) }}</template>
+          <template #cell-last_job_at="{ value }">{{ formatDateTime(value) }}</template>
+          <template #cell-redis_latency_ms="{ value }">{{ value != null ? value + ' ms' : '–' }}</template>
+          <template #cell-db_latency_ms="{ value }">{{ value != null ? value + ' ms' : '–' }}</template>
+          <template #cell-last_job_duration_ms="{ value }">{{ value != null ? value + ' ms' : '–' }}</template>
+          <template #cell-active_jobs="{ row }">
+            <ul v-if="row.active_jobs && row.active_jobs.length">
+              <li v-for="(job, idx) in row.active_jobs" :key="idx">
+                {{ job.name || job.id || JSON.stringify(job) }}
+              </li>
+            </ul>
+            <span v-else>–</span>
+          </template>
+        </AdminDataTable>
+      </div>
+    </div>
+
+    <div v-else-if="selectedTab === 'logs'" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h4>{{ tr('diagnostics_last_worker_actions') }}</h4>
+          <span class="muted">{{ tr('diagnostics_source_job_logs') }}</span>
+        </div>
+        <div class="actions" style="margin-bottom:0.5rem;gap:1.5rem;align-items:center;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <span>{{ tr('diagnostics_job_type_filter', 'Show jobs:') }}</span>
+            <div v-for="type in allJobTypes" :key="type" style="display:inline-flex;align-items:center;margin-right:0.75em;">
+              <input type="checkbox" :id="'jobtype-'+type" :value="type" v-model="selectedJobTypes" />
+              <label :for="'jobtype-'+type" style="margin-left:0.25em;">{{ jobTypeLabel(type) }}</label>
+            </div>
+
+          </div>
+          <label style="display:flex;align-items:center;gap:0.5rem;">
+            {{ tr('diagnostics_max_results', 'Max results') }}
+            <select v-model.number="maxJobResults">
+              <option v-for="opt in maxJobOptions" :key="opt" :value="opt">{{ opt }}</option>
+            </select>
+          </label>
+        </div>
+        <p v-if="diagnostics?.queue?.error" class="error">{{ diagnostics.queue.error }}</p>
+        <AdminDataTable
+          v-else
+          :columns="jobColumns"
+          :rows="filteredJobRows"
+          :loading="loading"
+          :page-size="maxJobResults"
+          persist-key="admin-diagnostics"
+          :empty-text="tr('diagnostics_no_entries_yet')"
+          @refresh="loadDiagnostics"
+          @auto-refresh="loadDiagnostics({ auto: true })"
+        >
+          <template #cell-finished_at="{ value }">{{ formatDateTime(value) }}</template>
+          <template #cell-status="{ value }">
+            <span
+              :class="['pill', (value === 'processed' || value === 'success') ? 'pill-processed' : 'pill-failed']"
+            >{{ value }}</span>
+          </template>
+          <template #cell-runtime_ms="{ value }">{{ value != null ? value + ' ms' : '–' }}</template>
+          <template #cell-message="{ value }"><span class="wrap">{{ value || '–' }}</span></template>
+        </AdminDataTable>
+      </div>
+    </div>
+
+    <div v-else-if="selectedTab === 'rate-limit'" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h4>{{ tr('diagnostics_rate_limit_section') }}</h4>
+        </div>
+        <div>
+          <div v-if="rateLimitLoading">{{ tr('diagnostics_loading') }}</div>
+          <div v-else-if="rateLimitError" class="error">{{ rateLimitError }}</div>
+          <div v-else-if="rateLimitInfo">
+            <div class="info-grid">
+              <div class="info-item">
+                <div class="label">{{ tr('diagnostics_rate_limit_attempts') }}</div>
+                <div class="value">{{ rateLimitInfo.config?.attempts }}</div>
+              </div>
+              <div class="info-item">
+                <div class="label">{{ tr('diagnostics_rate_limit_decay') }}</div>
+                <div class="value">{{ rateLimitInfo.config?.decay_minutes }} min</div>
+              </div>
+            </div>
+            <AdminDataTable
+              :columns="rateLimitColumns"
+              :rows="rateLimitInfo.login_limits"
+              :loading="rateLimitLoading"
+              :page-size="20"
+              persist-key="admin-rate-limit-diagnostics"
+              :empty-text="tr('diagnostics_rate_limit_no_entries')"
+              @refresh="loadRateLimitInfo"
+              @auto-refresh="loadRateLimitInfo"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -552,4 +582,5 @@ th, td { border-bottom: 1px solid var(--border-strong); padding: 0.5rem; text-al
 .pill-failed { background: var(--error-bg); color: var(--error-text); border: 1px solid var(--error-border); }
 .wrap { max-width: 320px; white-space: pre-wrap; word-break: break-word; }
 .inline { display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600; color: var(--text); }
+.tab-content { display: flex; flex-direction: column; gap: 0.75rem; }
 </style>
