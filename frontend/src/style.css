@@ -73,6 +73,7 @@ body {
   background-position: var(--app-bg-position, center);
   background-repeat: var(--app-bg-repeat, no-repeat);
   background-attachment: var(--app-bg-attachment, fixed);
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   color: var(--text);
 }
 
