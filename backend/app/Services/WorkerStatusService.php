@@ -307,12 +307,44 @@ class WorkerStatusService
                 'updated_at'         => $data['last_heartbeat_at'] ?? null,
             ];
 
-            // Keep only the newest entry per workerBaseId
-            if (!isset($workerMap[$workerBaseId]) ||
-                (isset($workerEntry['last_heartbeat_at']) && isset($workerMap[$workerBaseId]['last_heartbeat_at']) &&
-                 $workerEntry['last_heartbeat_at'] > $workerMap[$workerBaseId]['last_heartbeat_at'])
-            ) {
+            // Aggregate multiple PIDs for the same base worker name instead of overwriting newer heartbeats that may have 0 jobs.
+            if (!isset($workerMap[$workerBaseId])) {
+                // Initialize aggregate structure
                 $workerMap[$workerBaseId] = $workerEntry;
+            } else {
+                $agg = &$workerMap[$workerBaseId];
+
+                // Sum total jobs across PIDs
+                $agg['total_jobs'] = (int) ($agg['total_jobs'] ?? 0) + (int) ($workerEntry['total_jobs'] ?? 0);
+
+                // Track latest job info
+                $currentJobAt  = $agg['last_job_at'] ?? null;
+                $incomingJobAt = $workerEntry['last_job_at'] ?? null;
+                if ($incomingJobAt && (!$currentJobAt || $incomingJobAt > $currentJobAt)) {
+                    $agg['last_job_at']         = $incomingJobAt;
+                    $agg['last_job_duration_ms'] = $workerEntry['last_job_duration_ms'] ?? null;
+                }
+
+                // Track latest heartbeat for status/memory/latency/ip
+                $currentHb  = $agg['last_heartbeat_at'] ?? null;
+                $incomingHb = $workerEntry['last_heartbeat_at'] ?? null;
+                if ($incomingHb && (!$currentHb || $incomingHb > $currentHb)) {
+                    $agg['last_heartbeat_at'] = $incomingHb;
+                    $agg['memory_mb']         = $workerEntry['memory_mb'] ?? $agg['memory_mb'];
+                    $agg['memory_bytes']      = $workerEntry['memory_bytes'] ?? $agg['memory_bytes'];
+                    $agg['redis_latency_ms']  = $workerEntry['redis_latency_ms'] ?? $agg['redis_latency_ms'];
+                    $agg['db_latency_ms']     = $workerEntry['db_latency_ms'] ?? $agg['db_latency_ms'];
+                    $agg['ip']                = $workerEntry['ip'] ?? $agg['ip'];
+                    $agg['pid']               = $workerEntry['pid'] ?? $agg['pid'];
+                }
+
+                // Merge active jobs arrays
+                $agg['active_jobs'] = array_merge($agg['active_jobs'] ?? [], $workerEntry['active_jobs'] ?? []);
+
+                // Online if any PID is online
+                $agg['status'] = ($agg['status'] === 'online' || $workerEntry['status'] === 'online') ? 'online' : 'offline';
+
+                unset($agg);
             }
         }
 
