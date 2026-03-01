@@ -52,6 +52,16 @@ const locationColumns = computed(() => [
   { key: 'active', label: tr('admin_locations_columns_active'), sortable: true },
 ])
 
+function formatCoord(val) {
+  const n = Number(val)
+  return Number.isFinite(n) ? n.toFixed(6) : ''
+}
+
+function toNumberOrNull(val) {
+  const n = Number(val)
+  return Number.isFinite(n) ? n : null
+}
+
 function formatDateTime(val) {
   if (!val) return ''
   let d
@@ -225,7 +235,13 @@ async function loadLocations(opts = {}) {
     const res = await adminFetch('locations', {}, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
     const data = await res.text()
     if (!res.ok) throw new Error(data)
-    locations.value = data ? JSON.parse(data) : []
+    locations.value = data
+      ? JSON.parse(data).map(loc => ({
+          ...loc,
+          latitude: toNumberOrNull(loc.latitude),
+          longitude: toNumberOrNull(loc.longitude),
+        }))
+      : []
     if (!opts.auto && activeTab.value === 'locations') setMessage(tr('common_messages_updated'))
   } catch (e) { setError(e.message || String(e), opts) } finally { loading.value = false }
 }
@@ -253,8 +269,9 @@ function editLocation(loc) {
   locationForm.city = loc.city || ''
   locationForm.address = loc.address || ''
   locationForm.url = loc.url || ''
-  locationForm.latitude = loc.latitude
-  locationForm.longitude = loc.longitude
+  // Normalize to numbers for toFixed usage; fall back to null when not provided
+  locationForm.latitude = toNumberOrNull(loc.latitude)
+  locationForm.longitude = toNumberOrNull(loc.longitude)
   locationForm.contact_email = loc.contact_email || ''
   locationForm.active = !!loc.active
   locationForm.public_transport = loc.public_transport || ''
@@ -356,8 +373,8 @@ onMounted(() => {
         <IconButton icon="plus" :label="tr('admin_events_new_button')" class="add-btn" @click="showAddEventForm = !showAddEventForm" style="margin-left:auto;" />
       </div>
 
-      <div v-if="(showAddEventForm || eventForm.id) && error" class="error">{{ error }}</div>
-      <div v-if="(showAddEventForm || eventForm.id) && message" class="message">{{ message }}</div>
+      <div v-if="error" class="error">{{ error }}</div>
+      <div v-if="message" class="message">{{ message }}</div>
 
       <div v-if="showAddEventForm || eventForm.id" class="form-grid form-with-actions">
         <label> {{ tr('admin_events_columns_title') }} <input v-model="eventForm.title" /></label>
@@ -425,8 +442,8 @@ onMounted(() => {
         <IconButton icon="plus" :label="tr('admin_locations_new_button')" class="add-btn" @click="showAddLocationForm = !showAddLocationForm" style="margin-left:auto;" />
       </div>
 
-      <div v-if="(showAddLocationForm || locationForm.id) && error" class="error">{{ error }}</div>
-      <div v-if="(showAddLocationForm || locationForm.id) && message" class="message">{{ message }}</div>
+      <div v-if="error" class="error">{{ error }}</div>
+      <div v-if="message" class="message">{{ message }}</div>
 
       <div v-if="showAddLocationForm || locationForm.id" class="form-grid form-with-actions">
         <label> {{ tr('admin_locations_columns_name') }} * <input v-model="locationForm.name" /></label>
@@ -446,8 +463,8 @@ onMounted(() => {
 
       <!-- Latitude/Longitude read-only fields -->
       <div v-if="showAddLocationForm || locationForm.id" class="form-grid">
-        <label> {{ tr('admin_locations_latitude_readonly') }} <input type="text" :value="locationForm.latitude !== null ? locationForm.latitude.toFixed(6) : ''" readonly /></label>
-        <label> {{ tr('admin_locations_longitude_readonly') }} <input type="text" :value="locationForm.longitude !== null ? locationForm.longitude.toFixed(6) : ''" readonly /></label>
+        <label> {{ tr('admin_locations_latitude_readonly') }} <input type="text" :value="formatCoord(locationForm.latitude)" readonly /></label>
+        <label> {{ tr('admin_locations_longitude_readonly') }} <input type="text" :value="formatCoord(locationForm.longitude)" readonly /></label>
       </div>
 
       <!-- Table with all locations -->
@@ -487,8 +504,8 @@ onMounted(() => {
           :initial-lat="null"
           :initial-lng="null"
           :locations="locations"
-          @update:lat="(val) => locationForm.latitude = val"
-          @update:lng="(val) => locationForm.longitude = val"
+          @update:lat="(val) => locationForm.latitude = toNumberOrNull(val)"
+          @update:lng="(val) => locationForm.longitude = toNumberOrNull(val)"
         />
       </div>
     </div>
