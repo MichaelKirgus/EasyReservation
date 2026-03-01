@@ -1,24 +1,26 @@
 <template>
   <div class="osm-map">
-    <div ref="mapContainer" class="map-container"></div>
-    <div v-if="searchAddress" class="address-search">
+    <div class="address-search">
       <input
         type="text"
         v-model="searchAddress"
-        placeholder="Adresse suchen..."
+        :placeholder="tr('admin_locations_map_search_placeholder', 'Adresse suchen...')"
         @keyup.enter="searchLocation"
       />
-      <button @click="searchLocation">Suchen</button>
+      <button @click="searchLocation">{{ tr('admin_locations_map_search_button', 'Suchen') }}</button>
+      <button @click="useCurrentLocation" type="button">{{ tr('admin_locations_map_my_location_button', 'Mein Standort') }}</button>
     </div>
-    <div v-if="selectedMarker" class="marker-info">
-      <p>Position: {{ selectedMarker.lat.toFixed(6) }}, {{ selectedMarker.lng.toFixed(6) }}</p>
-      <button @click="clearMarker">Marker entfernen</button>
+    <div ref="mapContainer" class="map-container"></div>
+    <div v-if="selectedCoords" class="marker-info">
+      <p>{{ tr('admin_locations_map_position_label', 'Position') }}: {{ selectedCoords.lat.toFixed(6) }}, {{ selectedCoords.lng.toFixed(6) }}</p>
+      <button @click="clearMarker">{{ tr('admin_locations_map_clear_marker', 'Marker entfernen') }}</button>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch, nextTick } from 'vue'
+import { useTranslation } from '../composables/useTranslation'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
@@ -45,24 +47,53 @@ const props = defineProps({
   locations: {
     type: Array,
     default: () => []
+  },
+  showAllLocations: {
+    type: Boolean,
+    default: true
   }
 })
 
 const emit = defineEmits(['update:lat', 'update:lng'])
+const { tr } = useTranslation()
 
 const mapContainer = ref(null)
 const map = ref(null)
 const selectedMarker = ref(null)
+const selectedCoords = ref(null)
 const searchAddress = ref('')
+const locating = ref(false)
+let locationsLayer = null
+function refreshMarkers() {
+  if (selectedMarker.value && selectedCoords.value) {
+    selectedMarker.value.setLatLng(selectedCoords.value)
+  }
+  if (locationsLayer) {
+    locationsLayer.eachLayer(layer => {
+      if (layer.getLatLng) {
+        layer.setLatLng(layer.getLatLng())
+      }
+    })
+  }
+}
+
+function clearLocationMarkers() {
+  if (locationsLayer) {
+    locationsLayer.clearLayers()
+  }
+}
 
 const centerGermany = {
   lat: 51.1657,
   lng: 10.4515
 }
 
+const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+let wheelHandler = null
+
 // Initial map setup with location markers
 function fitMapToLocations() {
-  if (!map.value || !props.locations.length) return
+  if (!map.value || !props.locations.length || !props.showAllLocations) return
   
   const latLngs = props.locations
     .filter(loc => loc.latitude !== null && loc.longitude !== null)
@@ -100,6 +131,25 @@ function initMap() {
     5
   )
 
+  // Require Ctrl+wheel to zoom on non-touch devices to prevent accidental scroll zoom
+  if (!isTouchDevice) {
+    map.value.scrollWheelZoom.disable()
+    wheelHandler = (e) => {
+      if (!map.value) return
+      if (!e.ctrlKey) return
+      e.preventDefault()
+      e.stopPropagation()
+      const handler = map.value.scrollWheelZoom
+      if (handler && typeof handler._onWheelScroll === 'function') {
+        handler.enable()
+        handler._onWheelScroll(e)
+        // Re-disable immediately to avoid non-ctrl scrolls changing zoom
+        setTimeout(() => handler.disable(), 0)
+      }
+    }
+    mapContainer.value.addEventListener('wheel', wheelHandler, { passive: false })
+  }
+
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 19
@@ -109,10 +159,16 @@ function initMap() {
   map.value.on('click', (e) => {
     setMarker(e.latlng.lat, e.latlng.lng)
   })
+  map.value.on('zoomend', refreshMarkers)
 
   // Initial marker if coordinates provided
   if (props.initialLat !== null && props.initialLng !== null) {
     updateMarker(props.initialLat, props.initialLng)
+  } else if (props.showAllLocations) {
+    addLocationMarkers()
+    fitMapToLocations()
+  } else {
+    clearLocationMarkers()
   }
 }
 
@@ -121,13 +177,23 @@ function setMarker(lat, lng) {
     map.value.removeLayer(selectedMarker.value)
   }
 
-  selectedMarker.value = L.marker([lat, lng]).addTo(map.value).bindPopup('Position')
+  selectedMarker.value = L.marker([lat, lng], { draggable: true })
+    .addTo(map.value)
+    .bindPopup('Position')
+
+  selectedMarker.value.on('dragend', (e) => {
+    const { lat: newLat, lng: newLng } = e.target.getLatLng()
+    selectedCoords.value = { lat: newLat, lng: newLng }
+    emit('update:lat', newLat)
+    emit('update:lng', newLng)
+  })
   
   // Update parent component
   emit('update:lat', lat)
   emit('update:lng', lng)
-
-  map.value.flyTo([lat, lng], 15)
+  selectedCoords.value = { lat, lng }
+  const currentZoom = map.value?.getZoom?.() ?? 15
+  map.value?.setView([lat, lng], currentZoom)
 }
 
 function updateMarker(lat, lng) {
@@ -141,8 +207,25 @@ function clearMarker() {
     map.value.removeLayer(selectedMarker.value)
     selectedMarker.value = null
   }
+  selectedCoords.value = null
   emit('update:lat', null)
   emit('update:lng', null)
+}
+
+function useCurrentLocation() {
+  if (!navigator.geolocation || locating.value) return
+  locating.value = true
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude, longitude } = pos.coords
+      setMarker(latitude, longitude)
+      const currentZoom = map.value?.getZoom?.() ?? 15
+      map.value?.setView([latitude, longitude], currentZoom)
+      locating.value = false
+    },
+    () => { locating.value = false },
+    { enableHighAccuracy: true, timeout: 10000 }
+  )
 }
 
 async function searchLocation() {
@@ -168,12 +251,18 @@ async function searchLocation() {
 }
 
 function addLocationMarkers() {
-  if (!map.value || !props.locations.length) return
-  
+  if (!map.value || !props.locations.length || !props.showAllLocations) { clearLocationMarkers(); return }
+
+  if (locationsLayer) {
+    locationsLayer.clearLayers()
+  } else {
+    locationsLayer = L.layerGroup().addTo(map.value)
+  }
+
   props.locations.forEach(loc => {
     if (loc.latitude !== null && loc.longitude !== null) {
       L.marker([loc.latitude, loc.longitude])
-        .addTo(map.value)
+        .addTo(locationsLayer)
         .bindPopup(`<strong>${loc.name}</strong><br>${loc.city ? loc.city + '<br>' : ''}${loc.address || ''}`)
     }
   })
@@ -190,9 +279,21 @@ onMounted(() => {
   })
 })
 
+watch(() => props.showAllLocations, (val) => {
+  nextTick(() => {
+    if (val) {
+      addLocationMarkers()
+      fitMapToLocations()
+    } else {
+      clearLocationMarkers()
+    }
+  })
+})
+
 watch(() => props.locations, (newVal) => {
   if (map.value && newVal.length > 0) {
     nextTick(() => {
+      addLocationMarkers()
       fitMapToLocations()
     })
   }
@@ -203,6 +304,11 @@ onUnmounted(() => {
     map.value.remove()
     map.value = null
   }
+  if (wheelHandler && mapContainer.value) {
+    mapContainer.value.removeEventListener('wheel', wheelHandler)
+    wheelHandler = null
+  }
+  locationsLayer = null
 })
 </script>
 
@@ -232,7 +338,8 @@ onUnmounted(() => {
   border-radius: 6px;
 }
 
-.address-search button {
+.address-search button,
+.marker-info button {
   padding: 0.5rem 1rem;
   background: var(--primary);
   color: var(--primary-contrast);

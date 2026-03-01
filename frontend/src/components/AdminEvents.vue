@@ -501,9 +501,10 @@ onMounted(() => {
       <div v-if="activeTab === 'locations'" class="map-section">
         <h3>{{ tr('admin_locations_map_title') }}</h3>
         <OpenStreetMap
-          :initial-lat="null"
-          :initial-lng="null"
+          :initial-lat="locationForm.latitude"
+          :initial-lng="locationForm.longitude"
           :locations="locations"
+          :show-all-locations="!(showAddLocationForm || locationForm.id)"
           @update:lat="(val) => locationForm.latitude = toNumberOrNull(val)"
           @update:lng="(val) => locationForm.longitude = toNumberOrNull(val)"
         />
