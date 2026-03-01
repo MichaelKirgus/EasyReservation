@@ -59,13 +59,13 @@ Route::get('/languages', [LanguagesController::class, 'index']);
 Route::get('/language-names', [LanguagesController::class, 'names']);
 Route::get('/email-validations/{token}', [EmailValidationController::class, 'verify']);
 Route::get('/reservations/undo-token/{token}', [ReservationController::class, 'undoByToken']);
-Route::get('/events/upcoming', [EventController::class, 'upcoming']);
 Route::get('/waitlist/undo-token/{token}', [WaitlistController::class, 'undoByToken']);
 
 Route::middleware(['site-token'])->group(function () {
     Route::get('/public/config', [ConfigController::class, 'show']);
     Route::get('/faqs', [FaqController::class, 'publicIndex']);
     Route::get('/privacy-policy', [PrivacyPolicyController::class, 'show']);
+    Route::get('/events/upcoming', [EventController::class, 'upcoming']);
     Route::post('/reservations', [ReservationController::class, 'store']);
     Route::post('/reservations/undo', [ReservationController::class, 'undo']);
     Route::post('/waitlist', [WaitlistController::class, 'store']);
