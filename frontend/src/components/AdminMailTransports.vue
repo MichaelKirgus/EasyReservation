@@ -78,7 +78,19 @@ const accounts = ref([])
 const groups = ref([])
 const loading = ref(false)
 const message = ref('')
+const messageKey = ref('')
+const messageParams = ref({})
+const messageFallback = ref('')
+const messageSuffix = ref('')
 const error = ref('')
+
+const messageText = computed(() => {
+  if (messageKey.value) {
+    const base = tr(messageKey.value, messageFallback.value, messageParams.value)
+    return messageSuffix.value ? `${base} ${messageSuffix.value}` : base
+  }
+  return message.value
+})
 const editingAccount = ref(null)
 const editingGroup = ref(null)
 const showAddAccountForm = ref(false)
@@ -362,7 +374,7 @@ async function loadBlacklistDomains() {
 async function loadAll() {
   if (!apiKey.value) { setError(tr('please_login_api_key_missing')); return }
   await Promise.all([loadAccounts(), loadGroups(), loadBlacklistDomains()])
-  setMessage(t('admin_mail_transports_data_loaded'))
+  setMessage('admin_mail_transports_data_loaded', {}, { fallback: 'Data loaded successfully' })
 }
 
 // Account operations
@@ -444,12 +456,12 @@ async function saveAccount(formData = null) {
       const res = await updateMailAccount(editingAccount.value.id, accountData, adminConfig())
       const saved = res?.data?.data || res?.data || res
       accounts.value = accounts.value.map(acc => sameId(acc.id, saved?.id) ? saved : acc)
-      setMessage(t('admin_mail_transports_account_saved'))
+      setMessage('admin_mail_transports_account_saved', {}, { fallback: 'Mail account saved successfully' })
     } else {
       const res = await createMailAccount(accountData, adminConfig())
       const saved = res?.data?.data || res?.data || res
       if (saved) accounts.value = [saved, ...accounts.value]
-      setMessage(t('admin_mail_transports_account_saved'))
+      setMessage('admin_mail_transports_account_saved', {}, { fallback: 'Mail account saved successfully' })
     }
     
     editingAccount.value = null
@@ -499,7 +511,7 @@ async function deleteAccount(id) {
     if (deleted === false) {
       setError((res?.message || t('admin_mail_transports_error_deleting_account')) + ' (backend could not delete)')
     } else {
-      setMessage(t('admin_mail_transports_account_deleted'))
+      setMessage('admin_mail_transports_account_deleted', {}, { fallback: 'Mail account deleted' })
     }
     await loadAccounts()
   } catch (e) {
@@ -515,7 +527,7 @@ async function testAccountConnection(id) {
   loading.value = true
   try {
     const result = await testMailAccount(id, adminConfig())
-    setMessage(t('admin_mail_transports_test_success') + ' ' + (result.message || ''))
+    setMessage('admin_mail_transports_test_success', {}, { fallback: 'Connection test successful!', suffix: result.message || '' })
   } catch (e) {
     setError(t('admin_mail_transports_test_failed') + e.message)
   } finally {
@@ -557,12 +569,12 @@ async function saveBlacklistDomain(formData = null) {
       const res = await updateBlacklistDomain(adminConfig(), editingBlacklistDomain.value.id, domainData)
       const saved = res?.data || res
       blacklistDomains.value = blacklistDomains.value.map(d => sameId(d.id, saved?.id) ? saved : d)
-      setMessage(t('admin_mail_transports_domain_saved'))
+      setMessage('admin_mail_transports_domain_saved', {}, { fallback: 'Domain saved successfully' })
     } else {
       const res = await createBlacklistDomain(adminConfig(), domainData)
       const saved = res?.data || res
       if (saved) blacklistDomains.value = [saved, ...blacklistDomains.value]
-      setMessage(t('admin_mail_transports_domain_saved'))
+      setMessage('admin_mail_transports_domain_saved', {}, { fallback: 'Domain saved successfully' })
     }
     
     editingBlacklistDomain.value = null
@@ -584,7 +596,7 @@ async function deleteBlacklistDomainItem(id) {
   try {
     await deleteBlacklistDomain(adminConfig(), id)
     blacklistDomains.value = blacklistDomains.value.filter(d => !sameId(d.id, id))
-    setMessage(t('admin_mail_transports_domain_deleted'))
+    setMessage('admin_mail_transports_domain_deleted', {}, { fallback: 'Domain deleted from blacklist' })
   } catch (e) {
     setError(e.message || t('admin_mail_transports_error_deleting_domain'))
   } finally {
@@ -642,12 +654,12 @@ async function saveGroup(formData = null) {
       const res = await updateMailGroup(editingGroup.value.id, groupData, adminConfig())
       const saved = res?.data?.data || res?.data || res
       groups.value = groups.value.map(g => sameId(g.id, saved?.id) ? saved : g)
-      setMessage(t('admin_mail_transports_group_saved'))
+      setMessage('admin_mail_transports_group_saved', {}, { fallback: 'Transport group saved successfully' })
     } else {
       const res = await createMailGroup(groupData, adminConfig())
       const saved = res?.data?.data || res?.data || res
       if (saved) groups.value = [saved, ...groups.value]
-      setMessage(t('admin_mail_transports_group_saved'))
+      setMessage('admin_mail_transports_group_saved', {}, { fallback: 'Transport group saved successfully' })
     }
     
     editingGroup.value = null
@@ -682,7 +694,7 @@ async function deleteGroup(id) {
   try {
     await deleteMailGroup(id, adminConfig())
     groups.value = groups.value.filter(g => !sameId(g.id, id))
-    setMessage(t('admin_mail_transports_group_deleted'))
+    setMessage('admin_mail_transports_group_deleted', {}, { fallback: 'Transport group deleted' })
     await loadGroups()
   } catch (e) {
     setError(e.message || t('admin_mail_transports_error_deleting_group'))
@@ -697,7 +709,7 @@ async function testGroupConnection(id) {
   loading.value = true
   try {
     const result = await testMailGroup(id, adminConfig())
-    setMessage(t('admin_mail_transports_test_success') + ' ' + (result.message || ''))
+    setMessage('admin_mail_transports_test_success', {}, { fallback: 'Connection test successful!', suffix: result.message || '' })
   } catch (e) {
     setError(t('admin_mail_transports_test_failed') + e.message)
   } finally {
@@ -738,7 +750,7 @@ async function handleAddAccountToGroup() {
   loading.value = true
   try {
     await addAccountToGroup(managingGroupAccounts.value.id, addAccountId.value, addAccountPriority.value || 0, adminConfig())
-    setMessage(t('admin_mail_transports_account_added_to_group'))
+    setMessage('admin_mail_transports_account_added_to_group', {}, { fallback: 'Account added to group' })
     addAccountId.value = null
     addAccountPriority.value = 0
     await loadGroupAccounts(managingGroupAccounts.value.id)
@@ -756,7 +768,7 @@ async function handleRemoveAccountFromGroup(accountId) {
   loading.value = true
   try {
     await removeAccountFromGroup(managingGroupAccounts.value.id, accountId, adminConfig())
-    setMessage(t('admin_mail_transports_account_removed_from_group'))
+    setMessage('admin_mail_transports_account_removed_from_group', {}, { fallback: 'Account removed from group' })
     await loadGroupAccounts(managingGroupAccounts.value.id)
     await loadGroups()
   } catch (e) {
@@ -771,7 +783,7 @@ async function handleUpdatePriority(accountId, newPriority) {
   loading.value = true
   try {
     await updateAccountPriority(managingGroupAccounts.value.id, accountId, newPriority, adminConfig())
-    setMessage(t('admin_mail_transports_priority_updated'))
+    setMessage('admin_mail_transports_priority_updated', {}, { fallback: 'Priority updated' })
     await loadGroupAccounts(managingGroupAccounts.value.id)
   } catch (e) {
     setError(e.message || 'Failed to update priority')
@@ -786,7 +798,20 @@ function getAccountName(accountId) {
 }
 
 // Helper functions
-function setMessage(msg) { message.value = msg; error.value = '' }
+function setMessage(key, params = {}, opts = {}) {
+  const { fallback = '', suffix = '' } = opts || {}
+  messageKey.value = key || ''
+  messageParams.value = params || {}
+  messageFallback.value = fallback
+  messageSuffix.value = suffix || ''
+  if (key) {
+    const base = tr(key, fallback, params)
+    message.value = suffix ? `${base} ${suffix}` : base
+  } else {
+    message.value = ''
+  }
+  error.value = ''
+}
 function setError(msg) { error.value = msg; message.value = '' }
 
 function handleKeyUpdate(e) {
@@ -813,7 +838,7 @@ onUnmounted(() => {
     
     <!-- Messages -->
     <div v-if="error" class="error">{{ error }}</div>
-    <div v-if="message" class="message">{{ message }}</div>
+    <div v-if="message" class="message">{{ messageText }}</div>
     
     <!-- Tabs with Add Button on Right -->
     <div class="tabs-row">
