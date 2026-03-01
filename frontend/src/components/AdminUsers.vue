@@ -14,7 +14,15 @@ const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.
 const users = ref([])
 const loading = ref(false)
 const message = ref('')
+const messageKey = ref('')
+const messageParams = ref({})
+const messageFallback = ref('')
 const error = ref('')
+
+const messageText = computed(() => {
+  if (!messageKey.value) return message.value
+  return tr(messageKey.value, messageFallback.value, messageParams.value)
+})
 const currentUser = ref(JSON.parse(localStorage.getItem('admin_user') || 'null'))
 const selectedUsers = ref([])
 const lastAutoErrorAt = ref(0)
@@ -23,6 +31,7 @@ const showToken = reactive({})
 const showResetPassword = ref(false)
 const resetUser = ref(null)
 const resetLoading = ref(false)
+const showCreateForm = ref(false)
 
 const userColumns = computed(() => [
   { key: 'id', label: tr('admin_users_column_id'), sortable: true },
@@ -48,8 +57,11 @@ const isAdmin = computed(() => {
   return role === 'admin' || role === 'superadmin';
 })
 
-function setMessage(msg) {
-  message.value = msg
+function setMessage(key, params = {}, fallback = '') {
+  messageKey.value = key
+  messageParams.value = params
+  messageFallback.value = fallback
+  message.value = key ? tr(key, fallback, params) : ''
   error.value = ''
 }
 
@@ -79,7 +91,7 @@ async function resetPassword(user, password) {
       body: JSON.stringify({ password })
     })
     if (!res.ok) throw new Error(await res.text())
-    setMessage(tr('password_changed'))
+    setMessage('password_changed')
     showResetPassword.value = false
     resetUser.value = null
   } catch (e) {
@@ -113,7 +125,7 @@ async function fetchUsers(opts = {}) {
     const res = await fetch(`${apiBase}/admin/users`, { headers: authHeaders() })
     if (!res.ok) throw new Error(await res.text())
     users.value = await parseJsonSafe(res)
-    if (!opts.auto) setMessage(tr('users_loaded'))
+    if (!opts.auto) setMessage('users_loaded')
   } catch (e) {
     setError(tr('error_loading') + ': ' + e, opts)
   } finally {
@@ -138,7 +150,7 @@ async function createUser() {
       newUser.api_token = data.api_token
     }
     users.value.push(newUser)
-    setMessage(tr('user_created'))
+    setMessage('user_created')
     Object.assign(form, { name: '', email: '', role: 'admin', active: true, password: '', api_token: '', api_token_is_hashed: false })
   } catch (e) {
     setError(tr('error_creating_user') + ': ' + e)
@@ -159,7 +171,7 @@ async function updateUser(user) {
     })
     if (!res.ok) throw new Error(await res.text())
     await parseJsonSafe(res)
-    setMessage(tr('user_updated'))
+    setMessage('user_updated')
   } catch (e) {
     setError(tr('error_saving') + ': ' + e)
   }
@@ -181,7 +193,7 @@ async function rotateToken(user, hash = false) {
       user.api_token = undefined
       user.api_token_is_hashed = true
     }
-    setMessage(tr('token_regenerated'))
+    setMessage('token_regenerated')
   } catch (e) {
     setError(tr('error_resetting_token') + ': ' + e)
   }
@@ -198,7 +210,7 @@ async function deleteUser(user) {
     if (!res.ok) throw new Error(text)
     users.value = users.value.filter((u) => u.id !== user.id)
     selectedUsers.value = selectedUsers.value.filter(id => id !== user.id)
-    setMessage(tr('user_deleted'))
+    setMessage('user_deleted')
   } catch (e) {
     setError(tr('deletion_failed') + ': ' + e)
   }
@@ -217,7 +229,7 @@ async function bulkDeleteUsers() {
     }
     users.value = users.value.filter(u => !selectedUsers.value.includes(u.id))
     selectedUsers.value = []
-    setMessage(tr('selected_users_deleted'))
+    setMessage('selected_users_deleted')
   } catch (e) {
     setError(tr('deletion_failed') + ': ' + e)
   }
@@ -240,7 +252,7 @@ async function enable2FA(user) {
   try {
     const res = await fetch(`${apiBase}/admin/users/${user.id}/2fa/enable`, { method: 'POST', headers: authHeaders() });
     if (!res.ok) throw new Error(await res.text());
-    setMessage(tr('2fa_enabled'));
+    setMessage('2fa_enabled');
     await fetchUsers();
   } catch (e) {
     setError(tr('2fa_activation_failed') + ': ' + e);
@@ -255,7 +267,7 @@ async function disable2FA(user) {
   try {
     const res = await fetch(`${apiBase}/admin/users/${user.id}/2fa/disable`, { method: 'POST', headers: authHeaders() });
     if (!res.ok) throw new Error(await res.text());
-    setMessage(tr('2fa_disabled'));
+    setMessage('2fa_disabled');
     await fetchUsers();
   } catch (e) {
     setError(tr('2fa_deactivation_failed') + ': ' + e);
@@ -270,7 +282,7 @@ async function reset2FA(user) {
   try {
     const res = await fetch(`${apiBase}/admin/users/${user.id}/2fa/reset`, { method: 'POST', headers: authHeaders() });
     if (!res.ok) throw new Error(await res.text());
-    setMessage(tr('2fa_reset'));
+    setMessage('2fa_reset');
     await fetchUsers();
   } catch (e) {
     setError(tr('2fa_reset_failed') + ': ' + e);
@@ -381,35 +393,45 @@ onUnmounted(() => {
 
 <template>
   <div class="stack">
-    <div v-if="message" class="message">{{ message }}</div>
+    <div v-if="message" class="message">{{ messageText }}</div>
     <div v-if="error" class="error">{{ error }}</div>
 
-
     <section class="card">
-      <h3>{{ tr('admin_users_form_title') }}</h3>
-      <div class="grid">
-        <label>{{ tr('admin_users_label_name') }}<input v-model="form.name" /></label>
-        <label>{{ tr('admin_users_label_email') }}<input v-model="form.email" /></label>
-        <label>{{ tr('admin_users_label_role') }}
-          <select v-model="form.role">
-            <option value="superadmin">{{ tr('admin_users_option_superadmin') }}</option>
-            <option value="admin">{{ tr('admin_users_option_admin') }}</option>
-            <option value="moderator">{{ tr('admin_users_option_moderator') }}</option>
-            <option value="user">{{ tr('admin_users_option_user') }}</option>
-            <option value="guest">{{ tr('admin_users_option_guest') }}</option>
-          </select>
-        </label>
-        <label class="inline">{{ tr('admin_users_label_active') }}<input type="checkbox" v-model="form.active" /></label>
-        <label class="full">{{ tr('admin_users_label_password') }}<input v-model="form.password" type="password" /></label>
-        <label class="full">{{ tr('admin_users_label_api_token') }}
-          <SecretField v-model="form.api_token" />
-        </label>
+      <div class="card-header">
+        <h3>{{ tr('admin_users_title') }}</h3>
+        <IconButton
+          v-if="!showCreateForm"
+          icon="plus"
+          :label="tr('admin_users_button_add')"
+          @click="showCreateForm = true"
+        />
       </div>
-      <IconButton icon="plus" :label="tr('admin_users_button_create')" @click="createUser" :disabled="loading" />
-    </section>
 
-    <section class="card">
-      <h3>{{ tr('admin_users_title') }}</h3>
+      <div v-if="showCreateForm" class="form-block">
+        <h4 class="form-title">{{ tr('admin_users_form_title') }}</h4>
+        <div class="grid">
+          <label>{{ tr('admin_users_label_name') }}<input v-model="form.name" /></label>
+          <label>{{ tr('admin_users_label_email') }}<input v-model="form.email" /></label>
+          <label>{{ tr('admin_users_label_role') }}
+            <select v-model="form.role">
+              <option value="superadmin">{{ tr('admin_users_option_superadmin') }}</option>
+              <option value="admin">{{ tr('admin_users_option_admin') }}</option>
+              <option value="moderator">{{ tr('admin_users_option_moderator') }}</option>
+              <option value="user">{{ tr('admin_users_option_user') }}</option>
+              <option value="guest">{{ tr('admin_users_option_guest') }}</option>
+            </select>
+          </label>
+          <label class="inline">{{ tr('admin_users_label_active') }}<input type="checkbox" v-model="form.active" /></label>
+          <label class="full">{{ tr('admin_users_label_password') }}<input v-model="form.password" type="password" /></label>
+          <label class="full">{{ tr('admin_users_label_api_token') }}
+            <SecretField v-model="form.api_token" />
+          </label>
+        </div>
+        <div class="form-actions">
+          <IconButton icon="plus" :label="tr('admin_users_button_create')" @click="createUser" :disabled="loading" />
+        </div>
+      </div>
+
       <AdminDataTable
         :columns="userColumns"
         :rows="users"
@@ -481,18 +503,22 @@ onUnmounted(() => {
 <style scoped>
 .stack { display: flex; flex-direction: column; gap: 0.75rem; }
 .controls { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: end; }
-.card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; background: #fff; }
+.card { border: 1px solid var(--border-strong); border-radius: 8px; padding: 1rem; background: var(--app-card-bg, var(--card)); color: var(--text); }
+.card-header { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; }
-label { display: flex; flex-direction: column; gap: 0.25rem; font-weight: 600; }
+label { display: flex; flex-direction: column; gap: 0.25rem; font-weight: 600; color: var(--text); }
 label.inline { flex-direction: row; align-items: center; gap: 0.5rem; }
 label.full { grid-column: 1 / -1; }
-input, select, button { font: inherit; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; }
-button { background: #2563eb; color: #fff; cursor: pointer; }
-button.danger { background: #dc2626; }
+input, select, button { font: inherit; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
+button { background: var(--primary); color: var(--primary-contrast); cursor: pointer; border-color: var(--primary); }
+button.danger { background: #dc2626; color: #fff; border-color: #b91c1c; }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
-.message { color: #065f46; background: #ecfdf3; border: 1px solid #a7f3d0; padding: 0.5rem; border-radius: 6px; }
-.error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; padding: 0.5rem; border-radius: 6px; }
+.message { color: var(--success-text); background: var(--success-bg); border: 1px solid var(--success-border); padding: 0.5rem; border-radius: 6px; }
+.error { color: var(--error-text); background: var(--error-bg); border: 1px solid var(--error-border); padding: 0.5rem; border-radius: 6px; }
 .actions { display: flex; flex-wrap: wrap; gap: 0.25rem; }
 .token-cell { display: flex; gap: 0.35rem; align-items: center; }
 .table-wrapper { overflow-x: auto; }
+.form-block { margin-top: 0.75rem; padding: 0.75rem; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface-muted); color: var(--text); }
+.form-title { margin: 0 0 0.5rem; font-size: 1rem; color: var(--text); }
+.form-actions { display: flex; justify-content: flex-end; margin-top: 0.5rem; }
 </style>
