@@ -160,6 +160,8 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/cron/next-run', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'getNextCronRun']);
     Route::get('/admin/diagnostics', [DiagnosticsController::class, 'show']);
 
+    Route::post('/admin/diagnostics/flush-state', [DiagnosticsController::class, 'flushState']);
+
     Route::get('/admin/diagnostics/redis-keys', [DiagnosticsController::class, 'redisKeys']);
     Route::delete('/admin/diagnostics/redis-keys', [DiagnosticsController::class, 'deleteRedisKey']);
     Route::get('/admin/rate-limit-diagnostics', [\App\Http\Controllers\Api\RateLimitDiagnosticsController::class, 'index']);

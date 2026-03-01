@@ -12,6 +12,7 @@ const tabs = computed(() => [
   { id: 'workers', label: tr('admin_diagnostics_tab_workers') },
   { id: 'logs', label: tr('admin_diagnostics_tab_logs') },
   { id: 'rate-limit', label: tr('admin_diagnostics_tab_rate_limit') },
+  { id: 'maintenance', label: tr('admin_diagnostics_tab_maintenance') },
 ])
 
 // Client-Zeit und Zeitzone
@@ -29,6 +30,7 @@ import AdminDataTable from './AdminDataTable.vue'
 const rateLimitLoading = ref(false)
 const rateLimitError = ref('')
 const rateLimitInfo = ref(null)
+const flushLoading = ref(false)
 
 const rateLimitColumns = computed(() => [
   { key: 'key', label: tr('diagnostics_rate_limit_key'), sortable: false },
@@ -61,12 +63,29 @@ function refreshActiveTab() {
     loadDiagnostics()
   } else if (tab === 'rate-limit') {
     loadRateLimitInfo()
+  } else if (tab === 'maintenance') {
+    // No periodic data to pull; noop.
   }
 }
 
 function changeTab(tabId) {
   selectedTab.value = tabId
   refreshActiveTab()
+}
+
+async function flushState() {
+  if (!window.confirm(tr('diagnostics_flush_confirm'))) return
+  flushLoading.value = true
+  try {
+    const res = await fetchWithAuth('diagnostics/flush-state', { method: 'POST' })
+    if (!res.ok) throw new Error(await res.text())
+    setMessage(tr('diagnostics_flush_success'))
+    setError('')
+  } catch (e) {
+    setError(tr('diagnostics_flush_error') + ': ' + (e?.message || e))
+  } finally {
+    flushLoading.value = false
+  }
 }
 
 // Worker-Status: dedicated endpoint for reliability
@@ -544,6 +563,25 @@ onUnmounted(() => {
               @auto-refresh="loadRateLimitInfo"
             />
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-else-if="selectedTab === 'maintenance'" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h4>{{ tr('diagnostics_flush_title') }}</h4>
+        </div>
+        <p class="muted">{{ tr('diagnostics_flush_description') }}</p>
+        <p class="error">{{ tr('diagnostics_flush_warning') }}</p>
+        <div class="actions">
+          <IconButton
+            icon="trash"
+            :label="tr('diagnostics_flush_button')"
+            :disabled="flushLoading"
+            @click="flushState"
+          />
+          <span v-if="flushLoading" class="muted">{{ tr('diagnostics_loading') }}</span>
         </div>
       </div>
     </div>

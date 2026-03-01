@@ -5,12 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\DiagnosticsService;
 use App\Services\WorkerStatusService;
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Session;
 
 class DiagnosticsController extends Controller
 {
-    public function __construct(private readonly DiagnosticsService $diagnostics)
+    public function __construct(private readonly DiagnosticsService $diagnostics, private readonly Filesystem $files)
     {
     }
 
@@ -37,6 +42,72 @@ class DiagnosticsController extends Controller
             return response()->json(['success' => true]);
         } catch (\Throwable $e) {
             return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function flushState(): JsonResponse
+    {
+        try {
+            $this->flushRedisStore();
+            $this->flushSessions();
+            return response()->json(['success' => true]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => __('diagnostics_flush_error'),
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function flushRedisStore(): void
+    {
+        try {
+            Redis::flushdb();
+        } catch (\Throwable $e) {
+            // Log but don't stop session cleanup
+            report($e);
+        }
+    }
+
+    private function flushSessions(): void
+    {
+        $driver = config('session.driver');
+
+        try {
+            switch ($driver) {
+                case 'file':
+                    $path = config('session.files');
+                    if ($path && $this->files->isDirectory($path)) {
+                        foreach ($this->files->files($path) as $file) {
+                            $this->files->delete($file);
+                        }
+                    }
+                    break;
+                case 'database':
+                    $table = config('session.table', 'sessions');
+                    DB::table($table)->truncate();
+                    break;
+                case 'redis':
+                    $connection = config('session.connection');
+                    try {
+                        Redis::connection($connection)->flushdb();
+                    } catch (\Throwable $e) {
+                        report($e);
+                    }
+                    break;
+                case 'array':
+                    // In-memory only; nothing to clear.
+                    break;
+                default:
+                    $handler = Session::getHandler();
+                    if (method_exists($handler, 'flush')) {
+                        $handler->flush();
+                    }
+                    break;
+            }
+        } catch (\Throwable $e) {
+            report($e);
+            throw $e;
         }
     }
 
