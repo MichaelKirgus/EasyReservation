@@ -35,6 +35,7 @@ class SendWebhookJob implements ShouldQueue
         $queue = $this->queue ?? ($this->onQueue ?? null);
         $workerName = config('app.worker_name');
         $startTime = now();
+        $monotonicStart = $this->monotonicNow();
 
         // --- Automatic placeholder resolution ---
         $placeholderService = app(\App\Services\PlaceholderService::class);
@@ -74,7 +75,7 @@ class SendWebhookJob implements ShouldQueue
         try {
             $response = \Illuminate\Support\Facades\Http::timeout(15)->withHeaders($resolvedHeaders)->post($resolvedUrl, $resolvedPayload);
             $finishTime = now();
-            $runtimeMs = $finishTime->diffInMilliseconds($startTime);
+            $runtimeMs = $this->runtimeMs($monotonicStart);
             Log::debug('SendWebhookJob: runtime_ms value (success)', ['runtime_ms' => $runtimeMs]);
             $jobCompleteData = [
                 'url' => $resolvedUrl,
@@ -101,7 +102,7 @@ class SendWebhookJob implements ShouldQueue
             ]);
         } catch (\Throwable $e) {
             $finishTime = now();
-            $runtimeMs = $finishTime->diffInMilliseconds($startTime);
+            $runtimeMs = $this->runtimeMs($monotonicStart);
             Log::debug('SendWebhookJob: runtime_ms value (error)', ['runtime_ms' => $runtimeMs]);
             $jobErrorData = [
                 'url' => $resolvedUrl,
@@ -128,5 +129,19 @@ class SendWebhookJob implements ShouldQueue
             ]);
             throw $e;
         }
+    }
+
+    private function monotonicNow(): float
+    {
+        return function_exists('hrtime')
+            ? hrtime(true) / 1_000_000_000
+            : microtime(true);
+    }
+
+    private function runtimeMs(float $start): int
+    {
+        $elapsedMs = (int) round(($this->monotonicNow() - $start) * 1000);
+
+        return $elapsedMs < 0 ? 0 : $elapsedMs;
     }
 }

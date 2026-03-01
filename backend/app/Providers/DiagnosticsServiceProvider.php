@@ -12,7 +12,7 @@ use Illuminate\Support\ServiceProvider;
 
 class DiagnosticsServiceProvider extends ServiceProvider
 {
-    /** @var array<string,float> */
+    /** @var array<string,array{monotonic: float, started_at: Carbon}> */
     private array $startTimes = [];
 
     public function register(): void
@@ -23,7 +23,10 @@ class DiagnosticsServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Queue::before(function (JobProcessing $event): void {
-            $this->startTimes[$this->jobKey($event->job)] = microtime(true);
+            $this->startTimes[$this->jobKey($event->job)] = [
+                'monotonic' => $this->monotonicNow(),
+                'started_at' => Carbon::now(),
+            ];
         });
 
         Queue::after(function (JobProcessed $event): void {
@@ -46,8 +49,8 @@ class DiagnosticsServiceProvider extends ServiceProvider
         $key = $this->jobKey($job);
         $start = $this->startTimes[$key] ?? null;
         $finishedAt = Carbon::now();
-        $startedAt = $start ? Carbon::createFromTimestamp($start) : null;
-        $runtimeMs = $start ? (int) round((microtime(true) - $start) * 1000) : null;
+        $startedAt = $start['started_at'] ?? null;
+        $runtimeMs = isset($start['monotonic']) ? $this->runtimeMs($start['monotonic']) : null;
 
         unset($this->startTimes[$key]);
 
@@ -70,5 +73,19 @@ class DiagnosticsServiceProvider extends ServiceProvider
     private function jobKey(object $job): string
     {
         return method_exists($job, 'uuid') ? (string) $job->uuid() : spl_object_hash($job);
+    }
+
+    private function monotonicNow(): float
+    {
+        return function_exists('hrtime')
+            ? hrtime(true) / 1_000_000_000
+            : microtime(true);
+    }
+
+    private function runtimeMs(float $start): int
+    {
+        $elapsedMs = (int) round(($this->monotonicNow() - $start) * 1000);
+
+        return $elapsedMs < 0 ? 0 : $elapsedMs;
     }
 }
