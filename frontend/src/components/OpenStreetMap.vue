@@ -11,6 +11,9 @@
       <button @click="useCurrentLocation" type="button">{{ tr('admin_locations_map_my_location_button', 'Mein Standort') }}</button>
     </div>
     <div ref="mapContainer" class="map-container"></div>
+    <p v-if="!isTouchDevice" class="scroll-hint">
+      {{ tr('admin_locations_map_scroll_hint', 'Hold Ctrl and scroll to zoom the map.') }}
+    </p>
     <div v-if="selectedCoords" class="marker-info">
       <p>{{ tr('admin_locations_map_position_label', 'Position') }}: {{ selectedCoords.lat.toFixed(6) }}, {{ selectedCoords.lng.toFixed(6) }}</p>
       <button @click="clearMarker">{{ tr('admin_locations_map_clear_marker', 'Marker entfernen') }}</button>
@@ -317,6 +320,11 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+.scroll-hint {
+  margin: -0.5rem 0 0.25rem;
+  color: #6b7280;
+  font-size: 0.9rem;
 }
 
 .map-container {

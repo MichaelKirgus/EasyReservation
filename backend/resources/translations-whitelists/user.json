@@ -77,5 +77,6 @@
     "nav_tab_archives",
     "nav_tab_audit_log",
     "project_footer_text",
-    "site_token_invalid_message"
+    "site_token_invalid_message",
+    "admin_locations_map_scroll_hint"
 ]

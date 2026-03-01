@@ -456,6 +456,7 @@
   "admin_locations_map_search_placeholder": "Adresse suchen...",
   "admin_locations_map_search_button": "Suchen",
   "admin_locations_map_my_location_button": "Mein Standort",
+  "admin_locations_map_scroll_hint": "Zum Zoomen Strg gedrückt halten und scrollen.",
   "admin_locations_map_position_label": "Position",
   "admin_locations_map_clear_marker": "Marker entfernen",
   "admin_events_columns_public_transport_url_hint": "/ Haltestellen (Text)",
