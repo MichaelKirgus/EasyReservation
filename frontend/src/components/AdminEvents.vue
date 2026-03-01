@@ -1,12 +1,12 @@
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import IconButton from './IconButton.vue'
 import AdminDataTable from './AdminDataTable.vue'
 import OpenStreetMap from './OpenStreetMap.vue'
 import { adminFetch } from '../utils/adminApi'
 import { useTranslation } from '../composables/useTranslation'
 
-const { tr } = useTranslation()
+const { tr, hasTranslation, translations } = useTranslation()
 const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const loading = ref(false)
@@ -123,6 +123,13 @@ function setError(msg, opts = {}) {
   error.value = msg; message.value = ''
 }
 function setMessage(msg) { message.value = msg; error.value = '' }
+
+// Re-translate any stored message once translations arrive (fixes timing where keys show briefly)
+watch(translations, () => {
+  if (message.value && hasTranslation(message.value)) {
+    message.value = tr(message.value)
+  }
+})
 
 // Event functions
 async function loadEvents(opts = {}) {

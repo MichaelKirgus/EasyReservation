@@ -15,6 +15,7 @@
     "waitlist_success_text",
     "reservation_success_text",
     "reservation_failed_prefix",
+    "common_messages_updated",
     "feedback_reservation_undo_success",
     "reservation_undo_failed_prefix",
     "waitlist_undo_success_text",
