@@ -98,6 +98,7 @@
   "admin_settings_group_text": "Text fields",
   "admin_settings_group_textarea": "Long text",
   "admin_settings_group_color": "Colors",
+  "admin_setting_maintenance_enabled_hint": "Enables maintenance mode. Users will see a maintenance message.",
   "admin_setting_reservation_custom_css": "Custom CSS",
   "admin_setting_custom_css_hint": "Custom CSS rules applied on the page (without the <style> tag).",
   "email_validation_pending_admin": "E-mail validation skipped. Awaiting admin approval.",

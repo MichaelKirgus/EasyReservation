@@ -98,6 +98,7 @@
   "admin_settings_group_text": "Textfelder",
   "admin_settings_group_textarea": "Mehrzeilige Texte",
   "admin_settings_group_color": "Farben",
+  "admin_setting_maintenance_enabled_hint": "Aktiviert den Wartungsmodus. Nutzer sehen eine Wartungsnachricht.",
   "admin_setting_reservation_custom_css": "Benutzerdefiniertes CSS",
   "admin_setting_custom_css_hint": "Eigene CSS-Regeln, die auf der Seite angewendet werden (ohne <style>-Tag).",
   "email_validation_pending_admin": "E-Mail-Validierung übersprungen. Warte auf Admin-Freigabe.",
