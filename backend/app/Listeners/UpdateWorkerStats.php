@@ -21,7 +21,11 @@ class UpdateWorkerStats
 
     public function handle(JobProcessed $event): void
     {
-        $workerId = gethostname() . ':' . getmypid();
+        // Align with WorkerHeartbeatJob/command: prefer WORKER_NAME when set
+        $hostname  = gethostname();
+        $pid       = getmypid();
+        $workerName = getenv('WORKER_NAME') ?: $hostname;
+        $workerId   = $workerName . ':' . $pid;
         $job = $event->job;
         $key = method_exists($job, 'uuid') ? (string) $job->uuid() : spl_object_hash($job);
 

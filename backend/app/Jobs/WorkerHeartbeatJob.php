@@ -24,7 +24,10 @@ class WorkerHeartbeatJob implements ShouldQueue
     {
         $hostname = gethostname();
         $pid      = getmypid();
-        $workerId = $hostname . ':' . $pid;
+
+        // Prefer explicit WORKER_NAME when provided so IDs stay stable across hosts
+        $workerName = getenv('WORKER_NAME') ?: $hostname;
+        $workerId   = $workerName . ':' . $pid;
 
         // ── Measure Redis latency ──
         $redisLatency = null;
