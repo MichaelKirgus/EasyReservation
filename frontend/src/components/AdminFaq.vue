@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
 import IconButton from './IconButton.vue'
 import { adminFetch } from '../utils/adminApi'
 import { useTranslation } from '../composables/useTranslation'
@@ -9,12 +9,15 @@ const { tr } = useTranslation()
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 const faqs = ref([])
 const loading = ref(false)
-const message = ref('')
+const messageKey = ref('')
 const error = ref('')
 const newFaq = reactive({ question: '', answer: '', is_published: true, position: null })
 
-function setMessage(msg) { message.value = msg; error.value = '' }
-function setError(msg) { error.value = msg; message.value = '' }
+// Recompute the translated message whenever translations load to avoid stale keys on first render
+const message = computed(() => messageKey.value ? tr(messageKey.value) : '')
+
+function setMessage(key) { messageKey.value = key; error.value = '' }
+function setError(msg) { error.value = msg; messageKey.value = '' }
 
 function sortFaqs(list) {
   return [...list].sort((a, b) => (a.position ?? 0) - (b.position ?? 0) || a.id - b.id)
@@ -29,7 +32,7 @@ async function loadFaqs() {
     if (!res.ok) throw new Error(text)
     const data = text ? JSON.parse(text) : []
     faqs.value = sortFaqs(data)
-    setMessage(tr('faqs_loaded'))
+    setMessage('faq_loaded')
   } catch (e) {
     setError(tr('error_loading') + ': ' + e)
   } finally {
@@ -53,7 +56,7 @@ async function createFaq() {
     if (created) {
       faqs.value = sortFaqs([created, ...faqs.value])
     }
-    setMessage(tr('faq_created'))
+    setMessage('faq_created')
     newFaq.question = ''
     newFaq.answer = ''
     newFaq.position = null
@@ -83,7 +86,7 @@ async function updateFaq(faq) {
     if (!res.ok) throw new Error(text)
     const updated = text ? JSON.parse(text) : faq
     faqs.value = sortFaqs(faqs.value.map(f => f.id === updated.id ? updated : f))
-    setMessage(tr('saved'))
+    setMessage('faq_saved')
   } catch (e) {
     setError(tr('saving_failed') + ': ' + e)
   } finally {
@@ -102,7 +105,7 @@ async function deleteFaq(id) {
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     faqs.value = faqs.value.filter(f => f.id !== id)
-    setMessage(tr('faq_deleted'))
+    setMessage('faq_deleted')
   } catch (e) {
     setError(tr('deletion_failed') + ': ' + e)
   } finally {
