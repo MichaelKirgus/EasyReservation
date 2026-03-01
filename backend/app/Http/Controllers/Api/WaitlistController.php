@@ -9,6 +9,7 @@ use App\Services\WaitlistService;
 use App\Services\SettingsService;
 use App\Services\EventTriggerService;
 use App\Services\SiteTokenService;
+use App\Services\EmailValidationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -22,6 +23,7 @@ class WaitlistController extends Controller
         private readonly SettingsService $settings,
         private readonly EventTriggerService $eventTriggers,
         private readonly SiteTokenService $siteTokenService,
+        private readonly EmailValidationService $emailValidation,
     ) {
     }
 
@@ -67,9 +69,40 @@ class WaitlistController extends Controller
                     return response()->json(['message' => __('waitlist_site_token_required')], 422);
                 }
             }
+
+            $validationFeatureEnabled = $this->emailValidation->emailValidationEnabled()
+                || $this->emailValidation->adminApprovalEnabled();
+
+            if ($validationFeatureEnabled) {
+                $validation = $this->emailValidation->createRequest('waitlist', $name, $email, $payload, $siteToken);
+
+                $validationData = [
+                    'id' => $validation->id,
+                    'status' => $validation->status,
+                    'type' => $validation->type,
+                    'display_name' => $validation->display_name,
+                    'email' => $validation->email,
+                    'expires_at' => $validation->expires_at,
+                    'requires_admin_approval' => $validation->requires_admin_approval,
+                ];
+
+                return response()->json([
+                    'message' => __('feedback_waitlist_success'),
+                    'validation_pending' => true,
+                    'target' => 'waitlist',
+                    'pending_admin' => $this->emailValidation->adminApprovalEnabled() && ! $this->emailValidation->emailValidationEnabled(),
+                    'validation' => $validationData,
+                ], 202);
+            }
+
             $entry = $this->waitlist->addToWaitlist($name, $email, $payload, $siteToken);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 409);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => __('reservation_validation_error'),
+                'error' => $e->getMessage(),
+            ], 500);
         }
 
         // Trigger: waitlist_enabled (bei erfolgreichem Eintrag)

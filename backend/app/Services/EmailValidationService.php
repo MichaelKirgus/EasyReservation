@@ -305,23 +305,27 @@ class EmailValidationService
         if (! $validation->requires_admin_approval) {
             // Finalize and return consistent array for reservation/waitlist
             $result = $this->finalize($validation);
+            $isWaitlist = $validation->type === 'waitlist'
+                || ($result instanceof \App\Models\EmailValidation && $result->type === 'waitlist')
+                || (is_array($result) && (($result['type'] ?? null) === 'waitlist' || array_key_exists('waitlist_entry_id', $result)));
             // $result may be EmailValidation (reservation) or array (waitlist)
             if ($result instanceof \App\Models\EmailValidation) {
                 return [
                     'reservation' => $result,
-                    'waitlist' => false,
+                    'waitlist' => $isWaitlist,
                     'pending_admin' => false,
                 ];
             } elseif (is_array($result)) {
                 // Waitlist flow
                 return $result + [
                     'pending_admin' => false,
+                    'waitlist' => $isWaitlist,
                 ];
             } else {
                 // Fallback
                 return [
                     'reservation' => null,
-                    'waitlist' => false,
+                    'waitlist' => $isWaitlist,
                     'pending_admin' => false,
                 ];
             }
