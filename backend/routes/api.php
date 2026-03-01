@@ -68,6 +68,7 @@ Route::middleware(['site-token'])->group(function () {
     Route::get('/privacy-policy', [PrivacyPolicyController::class, 'show']);
     Route::post('/reservations', [ReservationController::class, 'store']);
     Route::post('/reservations/undo', [ReservationController::class, 'undo']);
+    Route::post('/waitlist', [WaitlistController::class, 'store']);
 });
 
 Route::middleware(['role:admin,superadmin'])->group(function () {
