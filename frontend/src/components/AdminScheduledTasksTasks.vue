@@ -6,7 +6,7 @@
       <IconButton icon="plus" :label="tr('scheduled_tasks_button_new_task')" class="primary" variant="success" @click="createTask" />
     </h2>
     <div v-if="nextRunAt" class="info-box" style="margin-bottom:0.5em;">
-      <strong>{{ tr('scheduled_tasks_next_run_at') }}</strong>
+      <strong style="margin-right:0.5em;">{{ tr('scheduled_tasks_next_run_at') }}</strong>
       <span>{{ formatDateTime(nextRunAt) }}</span>
     </div>
     <AdminDataTable
