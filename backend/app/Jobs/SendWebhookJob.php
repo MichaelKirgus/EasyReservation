@@ -32,7 +32,7 @@ class SendWebhookJob implements ShouldQueue
 
     public function handle(): void
     {
-        $queue = $this->queue ?? ($this->onQueue ?? null);
+        $queue = $this->resolveQueueName();
         $workerName = config('app.worker_name');
         $startTime = now();
         $monotonicStart = $this->monotonicNow();
@@ -143,5 +143,29 @@ class SendWebhookJob implements ShouldQueue
         $elapsedMs = (int) round(($this->monotonicNow() - $start) * 1000);
 
         return $elapsedMs < 0 ? 0 : $elapsedMs;
+    }
+
+    private function resolveQueueName(): ?string
+    {
+        if (!empty($this->queue)) {
+            return $this->queue;
+        }
+
+        if (method_exists($this, 'queue')) {
+            try {
+                $queue = $this->queue();
+                if (is_string($queue) && $queue !== '') {
+                    return $queue;
+                }
+            } catch (\Throwable $e) {
+                // ignore and fall through
+            }
+        }
+
+        if (!empty($this->connection)) {
+            return $this->connection;
+        }
+
+        return config('queue.default');
     }
 }

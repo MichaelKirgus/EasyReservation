@@ -56,6 +56,11 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
 
     public function handle(): void
     {
+        $startedAt = now();
+        $monotonicStart = microtime(true);
+
+        $queueName = $this->resolveQueueName();
+
         $toEmail = $this->decryptIfEncrypted($this->toEmail);
         $toName = $this->toName ?: $toEmail;
         $fromAddress = $this->decryptIfEncrypted($this->fromAddress);
@@ -70,16 +75,13 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
         if ($validator->isDebugBlacklistedEmail($toEmail)) {
             $emailDomain = strtolower(substr(strrchr($toEmail, '@'), 1));
             JobLog::create([
-                'job' => 'SendMailJob',
-                'queue' => $this->queue ?? ($this->onQueue ?? null),
+                'job' => static::class,
+                'queue' => $queueName,
                 'worker_name' => config('app.worker_name'),
                 'message' => "Adress for domain ($emailDomain) not sent: {$toEmail}",
                 'status' => 'skipped',
-                'details' => json_encode([
-                    'to_email' => $toEmail,
-                    'domain' => $emailDomain,
-                    'reason' => 'debug_blacklist'
-                ])
+                'started_at' => $startedAt,
+                'finished_at' => now(),
             ]);
             Log::info('SendMailJob: Email skipped due to debug blacklist', [
                 'to_email' => $toEmail,
@@ -107,11 +109,12 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
         Log::info('SendMailJob: Starting email send process', $jobStartData);
 
         JobLog::create([
-            'job' => 'SendMailJob',
-            'queue' => $this->queue ?? ($this->onQueue ?? null),
+            'job' => static::class,
+            'queue' => $queueName,
             'worker_name' => config('app.worker_name'),
             'message' => "Email send started for {$toEmail}",
             'status' => 'started',
+            'started_at' => $startedAt,
             'details' => json_encode($jobStartData)
         ]);
 
@@ -161,14 +164,50 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
 
         Log::info('SendMailJob: Email sent successfully', $jobCompleteData);
 
+        $runtimeMs = (int) round((microtime(true) - $monotonicStart) * 1000);
+
+        $messageText = "Email sent to {$toEmail}: {$this->subject}";
+        if ($this->transportGroupName || $this->transportAccountName) {
+            $groupPart = $this->transportGroupName ? "group '{$this->transportGroupName}' (ID: {$this->transportGroupId})" : 'group n/a';
+            $accountPart = $this->transportAccountName ? "account '{$this->transportAccountName}' (ID: {$this->transportAccountId})" : 'account n/a';
+            $messageText .= " via {$groupPart}, {$accountPart}";
+        }
+
         JobLog::create([
-            'job' => 'SendMailJob',
-            'queue' => $this->queue ?? ($this->onQueue ?? null),
+            'job' => static::class,
+            'queue' => $queueName,
             'worker_name' => config('app.worker_name'),
-            'message' => "Email sent to {$toEmail}: {$this->subject} via group '{$this->transportGroupName}' (ID: {$this->transportGroupId}), account '{$this->transportAccountName}' (ID: {$this->transportAccountId})",
+            'message' => $messageText,
             'status' => 'success',
+            'runtime_ms' => $runtimeMs,
+            'started_at' => $startedAt,
+            'finished_at' => now(),
             'details' => json_encode($jobCompleteData)
         ]);
+    }
+
+    private function resolveQueueName(): ?string
+    {
+        if (!empty($this->queue)) {
+            return $this->queue;
+        }
+
+        if (method_exists($this, 'queue')) {
+            try {
+                $queue = $this->queue();
+                if (is_string($queue) && $queue !== '') {
+                    return $queue;
+                }
+            } catch (\Throwable $e) {
+                // ignore and fall through
+            }
+        }
+
+        if (!empty($this->connection)) {
+            return $this->connection;
+        }
+
+        return config('queue.default');
     }
 
     private function decryptIfEncrypted(?string $value): ?string

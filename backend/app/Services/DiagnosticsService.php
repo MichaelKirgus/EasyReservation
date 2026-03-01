@@ -83,7 +83,7 @@ class DiagnosticsService
                 ->latest('finished_at')
                 ->latest('id')
                 ->limit($jobLimit)
-                ->get(['id', 'job', 'queue', 'status', 'runtime_ms', 'message', 'started_at', 'finished_at'])
+                ->get(['id', 'job', 'queue', 'worker_name', 'status', 'runtime_ms', 'message', 'started_at', 'finished_at'])
                 ->map(function (JobLog $log) {
                     return [
                         'id' => $log->id,

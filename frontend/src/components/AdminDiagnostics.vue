@@ -510,7 +510,7 @@ onUnmounted(() => {
         <template #cell-finished_at="{ value }">{{ formatDateTime(value) }}</template>
         <template #cell-status="{ value }">
           <span
-            :class="['pill', value === 'processed' ? 'pill-processed' : 'pill-failed']"
+            :class="['pill', (value === 'processed' || value === 'success') ? 'pill-processed' : 'pill-failed']"
           >{{ value }}</span>
         </template>
         <template #cell-runtime_ms="{ value }">{{ value != null ? value + ' ms' : '–' }}</template>
