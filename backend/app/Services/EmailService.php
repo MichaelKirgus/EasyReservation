@@ -164,7 +164,10 @@ class EmailService
         $cc = $this->mergeEmailAddresses($templateCc, $globalCc);
         $bcc = $this->mergeEmailAddresses($templateBcc, $globalBcc);
 
-        $attachments = $this->attachmentsForTemplate($template);
+        $attachments = $this->attachmentsForTemplate([
+            'subject' => $template->subject,
+            'body' => $template->body,
+        ]);
 
         Log::info('EmailService: Dispatching validation email', [
             'to_email' => $validation->email,
@@ -260,7 +263,10 @@ class EmailService
         $cc = $this->mergeEmailAddresses($templateCc, $globalCc);
         $bcc = $this->mergeEmailAddresses($templateBcc, $globalBcc);
 
-        $attachments = $this->attachmentsForTemplate($template);
+        $attachments = $this->attachmentsForTemplate([
+            'subject' => $template->subject,
+            'body' => $template->body,
+        ]);
 
         if (!$transportGroupId) {
             \Illuminate\Support\Facades\Log::error('EmailService: No transport group ID provided for admin approval email');
@@ -357,7 +363,10 @@ class EmailService
         $cc = $templateCc ?: $globalCc;
         $bcc = $templateBcc ?: $globalBcc;
 
-        $attachments = $this->attachmentsForTemplate($template);
+        $attachments = $this->attachmentsForTemplate([
+            'subject' => $template['subject'],
+            'body' => $template['body'],
+        ]);
 
         if (!$transportGroupId) {
             \Illuminate\Support\Facades\Log::error('EmailService: No transport group ID provided for reservation notification');
@@ -590,7 +599,10 @@ class EmailService
         $cc = $templateCc ?: $globalCc;
         $bcc = $templateBcc ?: $globalBcc;
 
-        $attachments = $this->attachmentsForTemplate($template);
+        $attachments = $this->attachmentsForTemplate([
+            'subject' => $template->subject,
+            'body' => $template->body,
+        ]);
 
         SendMailJob::dispatch(
             $mailerConfig,
