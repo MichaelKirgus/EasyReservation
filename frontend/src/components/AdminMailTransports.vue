@@ -817,11 +817,11 @@ onUnmounted(() => {
     
     <!-- Tabs with Add Button on Right -->
     <div class="tabs-row">
-      <div class="tabs">
+      <div class="admin-tabs">
         <button 
           v-for="tab in tabs" 
           :key="tab.id" 
-          :class="['tab', { active: selectedTab === tab.id }]" 
+          :class="['admin-tab-button', { active: selectedTab === tab.id }]" 
           @click="selectedTab = tab.id"
         >
           {{ t(`admin_mail_transports_tab_${tab.id}`) }}
@@ -1094,9 +1094,6 @@ onUnmounted(() => {
 .stack { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; }
 .controls { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: end; }
 
-.tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.tab { padding: 0.5rem 0.75rem; border: 1px solid var(--border); background: var(--surface-muted); border-radius: 8px; cursor: pointer; color: var(--text); }
-.tab.active { background: var(--primary); color: #fff; border-color: var(--primary-dark); }
 
 .content-section { display: flex; flex-direction: column; gap: 1rem; }
 

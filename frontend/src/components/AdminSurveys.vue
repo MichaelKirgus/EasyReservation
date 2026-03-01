@@ -472,25 +472,25 @@ function selectSurveyForResults(survey) {
 <template>
   <div class="admin-surveys">
     <!-- Tabs -->
-    <div class="tabs" style="display:flex;gap:0.5rem;border-bottom:2px solid #e5e7eb;padding-bottom:0.5rem;">
+    <div class="admin-tabs">
       <button
+        class="admin-tab-button"
         :class="{ active: activeTab === 'surveys' }"
         @click="activeTab = 'surveys'"
-        style="padding:0.5rem 1rem;border:none;background:transparent;color:#6b7280;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;"
       >
         {{ tr('surveys') }}
       </button>
       <button
+        class="admin-tab-button"
         :class="{ active: activeTab === 'questions' }"
         @click="activeTab = 'questions'"
-        style="padding:0.5rem 1rem;border:none;background:transparent;color:#6b7280;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;"
       >
         {{ tr('global_questions') }}
       </button>
       <button
+        class="admin-tab-button"
         :class="{ active: activeTab === 'results' }"
         @click="activeTab = 'results'"
-        style="padding:0.5rem 1rem;border:none;background:transparent;color:#6b7280;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;"
       >
         {{ tr('survey_results') }}
       </button>
@@ -854,8 +854,6 @@ function selectSurveyForResults(survey) {
 .admin-surveys {
   padding: 20px;
 }
-
-.tabs button.active { color: #2563eb; border-bottom-color: #2563eb; }
 
 .tab-content {
   animation: fadeIn 0.2s ease;

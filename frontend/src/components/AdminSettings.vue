@@ -505,8 +505,8 @@ watch(() => props.langCode, () => fetchTranslations())
     <div v-if="error" class="error">{{ error }}</div>
     <div v-if="message" class="message">{{ message }}</div>
 
-    <div class="tabs">
-      <button v-for="tab in tabs" :key="tab.id" :class="['tab', { active: selectedTab === tab.id }]" @click="selectedTab = tab.id">
+    <div class="admin-tabs">
+      <button v-for="tab in tabs" :key="tab.id" :class="['admin-tab-button', { active: selectedTab === tab.id }]" @click="selectedTab = tab.id">
         {{ tabLabel(tab) }}
       </button>
     </div>
@@ -626,9 +626,6 @@ watch(() => props.langCode, () => fetchTranslations())
 <style scoped>
 .stack { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; }
 .controls { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: end; }
-.tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.tab { padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; background: #f8fafc; border-radius: 8px; cursor: pointer; color: #0f172a; }
-.tab.active { background: #2563eb; color: #fff; border-color: #1d4ed8; }
 .groups { display: flex; flex-direction: column; gap: 1rem; }
 .group { border: 1px solid var(--border-strong); border-radius: 10px; padding: 1rem; background: var(--app-card-bg, var(--surface)); box-shadow: 0 4px 14px var(--shadow); display: flex; flex-direction: column; gap: 0.5rem; color: var(--text); }
 .group h3 { margin: 0 0 0.25rem; font-size: 1.05rem; color: var(--text); }

@@ -436,14 +436,16 @@ onMounted(() => {
       </div>
 
       <!-- Tabs -->
-      <div class="tabs">
+      <div class="admin-tabs">
         <button
+          class="admin-tab-button"
           :class="{ active: viewTab === 'reservations' }"
           @click="viewTab = 'reservations'"
         >
           {{ tr('admin_archives_tab_reservations') }}
         </button>
         <button
+          class="admin-tab-button"
           :class="{ active: viewTab === 'waitlist' }"
           @click="viewTab = 'waitlist'"
         >
@@ -591,15 +593,6 @@ onMounted(() => {
   background: #f8fafc;
   border-radius: 6px;
   cursor: pointer;
-  color: var(--text);
-}
-.tabs button.active { background: #2563eb; color: #fff; border-color: #1d4ed8; }
-
-.filters { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
-.filters input, .filters select {
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
 }
 
 .archive-actions { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }

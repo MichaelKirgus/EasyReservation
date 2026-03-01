@@ -357,14 +357,16 @@ onMounted(() => {
 <template>
   <div class="stack">
     <!-- Tabs -->
-    <div class="tabs">
+    <div class="admin-tabs">
       <button 
+        class="admin-tab-button"
         :class="{ active: activeTab === 'events' }" 
         @click="activeTab = 'events'"
       >
         {{ tr('admin_events_title') }}
       </button>
       <button 
+        class="admin-tab-button"
         :class="{ active: activeTab === 'locations' }" 
         @click="activeTab = 'locations'"
       >
@@ -522,17 +524,6 @@ onMounted(() => {
 
 <style scoped>
 .stack { display: flex; flex-direction: column; gap: 0.75rem; }
-.tabs { display: flex; gap: 0.5rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; }
-.tabs button {
-  padding: 0.5rem 1rem;
-  border: none;
-  background: transparent;
-  color: #6b7280;
-  font-weight: 600;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-}
-.tabs button.active { color: #2563eb; border-bottom-color: #2563eb; }
 .tab-content { display: flex; flex-direction: column; gap: 0.75rem; }
 .controls { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .tab-header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }

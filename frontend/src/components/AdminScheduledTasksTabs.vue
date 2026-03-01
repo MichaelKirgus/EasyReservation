@@ -1,9 +1,9 @@
 <template>
   <div>
-    <div class="tabs">
-      <button :class="['tab', { active: activeTab === 'tasks' } ]" @click="activeTab = 'tasks'">{{ tr('scheduled_tasks_title') }}</button>
-      <button :class="['tab', { active: activeTab === 'triggers' } ]" @click="activeTab = 'triggers'">{{ tr('admin_event_triggers_title') }}</button>
-      <button :class="['tab', { active: activeTab === 'webhook-templates' } ]" @click="activeTab = 'webhook-templates'">{{ tr('admin_webhook_templates_title') }}</button>
+    <div class="admin-tabs">
+      <button :class="['admin-tab-button', { active: activeTab === 'tasks' } ]" @click="activeTab = 'tasks'">{{ tr('scheduled_tasks_title') }}</button>
+      <button :class="['admin-tab-button', { active: activeTab === 'triggers' } ]" @click="activeTab = 'triggers'">{{ tr('admin_event_triggers_title') }}</button>
+      <button :class="['admin-tab-button', { active: activeTab === 'webhook-templates' } ]" @click="activeTab = 'webhook-templates'">{{ tr('admin_webhook_templates_title') }}</button>
     </div>
     <div v-if="activeTab==='tasks'">
       <AdminScheduledTasksTasks />
@@ -29,23 +29,4 @@ const activeTab = ref('tasks')
 </script>
 
 <style scoped>
-.tabs {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.tab {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  background: #f8fafc;
-  border-radius: 8px;
-  cursor: pointer;
-  color: #0f172a;
-  font-weight: 600;
-}
-.tab.active {
-  background: #2563eb;
-  color: #fff;
-  border-color: #1d4ed8;
-}
 </style>
