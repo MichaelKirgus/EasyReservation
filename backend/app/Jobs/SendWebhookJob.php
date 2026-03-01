@@ -35,10 +35,28 @@ class SendWebhookJob implements ShouldQueue
         $queue = $this->queue ?? ($this->onQueue ?? null);
         $workerName = config('app.worker_name');
         $startTime = now();
+
+        // --- Automatic placeholder resolution ---
+        $placeholderService = app(\App\Services\PlaceholderService::class);
+        $resolvedUrl = $placeholderService->replaceString($this->url);
+        $resolvedPayload = $this->payload;
+        // If payload is an array, resolve recursively
+        if (is_array($resolvedPayload)) {
+            $resolvedPayload = json_decode($placeholderService->replaceString(json_encode($resolvedPayload)), true) ?? $resolvedPayload;
+        } elseif (is_string($resolvedPayload)) {
+            $resolvedPayload = json_decode($placeholderService->replaceString($resolvedPayload), true) ?? $resolvedPayload;
+        }
+        $resolvedHeaders = $this->headers;
+        if (is_array($resolvedHeaders)) {
+            $resolvedHeaders = json_decode($placeholderService->replaceString(json_encode($resolvedHeaders)), true) ?? $resolvedHeaders;
+        } elseif (is_string($resolvedHeaders)) {
+            $resolvedHeaders = json_decode($placeholderService->replaceString($resolvedHeaders), true) ?? $resolvedHeaders;
+        }
+
         $jobStartData = [
-            'url' => $this->url,
-            'payload' => $this->payload,
-            'headers' => $this->headers,
+            'url' => $resolvedUrl,
+            'payload' => $resolvedPayload,
+            'headers' => $resolvedHeaders,
             'trigger_id' => $this->triggerId,
             'event_type' => $this->eventType,
             'scheduled_task_id' => $this->scheduledTaskId,
@@ -47,19 +65,19 @@ class SendWebhookJob implements ShouldQueue
             'job' => 'SendWebhookJob',
             'queue' => $queue,
             'worker_name' => $workerName,
-            'message' => "Webhook send started for {$this->url}",
+            'message' => "Webhook send started for {$resolvedUrl}",
             'status' => 'started',
             'started_at' => $startTime,
             'details' => json_encode($jobStartData),
         ]);
 
         try {
-            $response = \Illuminate\Support\Facades\Http::timeout(15)->withHeaders($this->headers)->post($this->url, $this->payload);
+            $response = \Illuminate\Support\Facades\Http::timeout(15)->withHeaders($resolvedHeaders)->post($resolvedUrl, $resolvedPayload);
             $finishTime = now();
             $jobCompleteData = [
-                'url' => $this->url,
-                'payload' => $this->payload,
-                'headers' => $this->headers,
+                'url' => $resolvedUrl,
+                'payload' => $resolvedPayload,
+                'headers' => $resolvedHeaders,
                 'trigger_id' => $this->triggerId,
                 'event_type' => $this->eventType,
                 'scheduled_task_id' => $this->scheduledTaskId,
@@ -73,7 +91,7 @@ class SendWebhookJob implements ShouldQueue
                 'job' => 'SendWebhookJob',
                 'queue' => $queue,
                 'worker_name' => $workerName,
-                'message' => "Webhook sent to {$this->url} (Status: {$response->status()})",
+                'message' => "Webhook sent to {$resolvedUrl} (Status: {$response->status()})",
                 'status' => 'success',
                 'runtime_ms' => $finishTime->diffInMilliseconds($startTime),
                 'finished_at' => $finishTime,
@@ -82,9 +100,9 @@ class SendWebhookJob implements ShouldQueue
         } catch (\Throwable $e) {
             $finishTime = now();
             $jobErrorData = [
-                'url' => $this->url,
-                'payload' => $this->payload,
-                'headers' => $this->headers,
+                'url' => $resolvedUrl,
+                'payload' => $resolvedPayload,
+                'headers' => $resolvedHeaders,
                 'trigger_id' => $this->triggerId,
                 'event_type' => $this->eventType,
                 'scheduled_task_id' => $this->scheduledTaskId,
@@ -98,7 +116,7 @@ class SendWebhookJob implements ShouldQueue
                 'job' => 'SendWebhookJob',
                 'queue' => $queue,
                 'worker_name' => $workerName,
-                'message' => "Webhook send failed for {$this->url}: {$e->getMessage()}",
+                'message' => "Webhook send failed for {$resolvedUrl}: {$e->getMessage()}",
                 'status' => 'failed',
                 'runtime_ms' => $finishTime->diffInMilliseconds($startTime),
                 'finished_at' => $finishTime,

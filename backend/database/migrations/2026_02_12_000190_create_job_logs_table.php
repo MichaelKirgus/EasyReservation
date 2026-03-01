@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('job');
             $table->string('queue')->nullable();
             $table->string('status', 50);
-            $table->unsignedInteger('runtime_ms')->nullable();
+            $table->unsignedBigInteger('runtime_ms')->nullable();
             $table->text('message')->nullable();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('finished_at')->nullable();
