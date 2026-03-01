@@ -69,6 +69,7 @@ Route::middleware(['site-token'])->group(function () {
     Route::post('/reservations', [ReservationController::class, 'store']);
     Route::post('/reservations/undo', [ReservationController::class, 'undo']);
     Route::post('/waitlist', [WaitlistController::class, 'store']);
+    Route::post('/waitlist/undo', [WaitlistController::class, 'undo']);
 });
 
 Route::middleware(['role:admin,superadmin'])->group(function () {

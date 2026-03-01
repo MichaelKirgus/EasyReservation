@@ -11,6 +11,7 @@ use App\Services\EventTriggerService;
 use App\Services\SiteTokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class WaitlistController extends Controller
@@ -204,6 +205,57 @@ class WaitlistController extends Controller
         $this->waitlist->sendWaitlistCancelledEmail($entry);
 
         $entry->delete();
+
+        return response()->json(['message' => __('waitlist_entry_removed')]);
+    }
+
+    public function undo(Request $request): JsonResponse
+    {
+        $settings = $this->settings->all();
+        if ((int) ($settings['waitlist_undo_enabled'] ?? 0) !== 1) {
+            return response()->json(['message' => __('waitlist_undo_disabled')], 403);
+        }
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        $name = trim($data['name']);
+        $email = trim($data['email']);
+
+        if (! $this->validator->nameIsValid($name)) {
+            return response()->json(['message' => __('validation_invalid_name')], 422);
+        }
+
+        if (! $this->validator->emailIsValid($email)) {
+            return response()->json(['message' => __('validation_invalid_email')], 422);
+        }
+
+        $entries = WaitlistEntry::query()
+            ->where('status', 'pending')
+            ->whereRaw('LOWER(display_name) = ?', [Str::lower($name)])
+            ->get();
+
+        $entry = $entries->first(function (WaitlistEntry $entry) use ($email) {
+            return Str::lower((string) $entry->email) === Str::lower($email);
+        });
+
+        if (! $entry) {
+            return response()->json(['message' => __('waitlist_entry_not_found')], 404);
+        }
+
+        $entry->undo_used_at = now();
+        $entry->status = 'cancelled';
+        $entry->save();
+
+        // Send cancellation confirmation before deleting the entry
+        $this->waitlist->sendWaitlistCancelledEmail($entry);
+
+        $entry->delete();
+
+        // Trigger: waitlist_entry_removed (after deletion so placeholder values reflect current state)
+        $this->eventTriggers->handle('waitlist_entry_removed', ['waitlist_entry' => $entry]);
 
         return response()->json(['message' => __('waitlist_entry_removed')]);
     }
