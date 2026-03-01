@@ -550,11 +550,15 @@ class EmailService
             return;
         }
 
+        $undoLink = (!empty($recipient->undo_token))
+            ? $this->linkBuilder->buildUndoLink($recipient)
+            : '';
+
         $replacements = $this->placeholders->replacements([
             'name' => $recipient->display_name ?? '',
             'email' => $recipient->email ?? '',
-            'undo_link' => $recipient->undo_token ? $this->linkBuilder->buildUndoLink($recipient) : '',
-            'undo_link_html' => $recipient->undo_token ? '<a href="'.$this->linkBuilder->buildUndoLink($recipient).'">'.$this->linkBuilder->buildUndoLink($recipient).'</a>' : '',
+            'undo_link' => $undoLink,
+            'undo_link_html' => $undoLink ? '<a href="'.$undoLink.'">'.$undoLink.'</a>' : '',
             'validation_link' => '',
             'validation_link_html' => '',
             'survey_link' => '',

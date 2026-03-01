@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\EmailValidation;
 use App\Models\Reservation;
+use App\Models\WaitlistEntry;
 use Illuminate\Support\Str;
 
 class LinkBuildingService
@@ -40,11 +41,12 @@ class LinkBuildingService
     /**
      * Build undo link for reservations
      */
-    public function buildUndoLink(Reservation $reservation): string
+    public function buildUndoLink(Reservation|WaitlistEntry $target): string
     {
-        if (empty($reservation->undo_token)) {
-            $reservation->undo_token = (string) Str::uuid();
-            $reservation->save();
+        // Generate missing undo tokens for reservations; keep waitlist entries untouched to avoid unintended writes
+        if ($target instanceof Reservation && empty($target->undo_token)) {
+            $target->undo_token = (string) Str::uuid();
+            $target->save();
         }
 
         $base = trim((string) ($this->settings->get('email_validation_base_url', config('app.url'))));
@@ -52,9 +54,9 @@ class LinkBuildingService
             $base = rtrim(config('app.url'), '/');
         }
 
-        $params = ['u' => (string) $reservation->undo_token];
-        if (!empty($reservation->site_token)) {
-            $params['t'] = $reservation->site_token;
+        $params = ['u' => (string) $target->undo_token];
+        if (!empty($target->site_token)) {
+            $params['t'] = $target->site_token;
         }
 
         return $this->appendQuery($base, $params);
