@@ -13,12 +13,13 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Str;
-use App\Models\JobLog;
+use App\Jobs\Concerns\LogsJob;
 use Illuminate\Support\Facades\Log;
 
 class SendMailJob implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use LogsJob;
 
     /**
      * @param array $mailerConfig
@@ -74,15 +75,16 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
         $validator = app(\App\Services\ReservationValidationService::class);
         if ($validator->isDebugBlacklistedEmail($toEmail)) {
             $emailDomain = strtolower(substr(strrchr($toEmail, '@'), 1));
-            JobLog::create([
-                'job' => static::class,
-                'queue' => $queueName,
-                'worker_name' => config('app.worker_name'),
-                'message' => "Adress for domain ($emailDomain) not sent: {$toEmail}",
-                'status' => 'skipped',
-                'started_at' => $startedAt,
-                'finished_at' => now(),
-            ]);
+            $this->logJob(
+                static::class,
+                'skipped',
+                "Adress for domain ($emailDomain) not sent: {$toEmail}",
+                [],
+                null,
+                $startedAt,
+                now(),
+                $queueName
+            );
             Log::info('SendMailJob: Email skipped due to debug blacklist', [
                 'to_email' => $toEmail,
                 'domain' => $emailDomain
@@ -108,15 +110,16 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
         
         Log::info('SendMailJob: Starting email send process', $jobStartData);
 
-        JobLog::create([
-            'job' => static::class,
-            'queue' => $queueName,
-            'worker_name' => config('app.worker_name'),
-            'message' => "Email send started for {$toEmail}",
-            'status' => 'started',
-            'started_at' => $startedAt,
-            'details' => json_encode($jobStartData)
-        ]);
+        $this->logJob(
+            static::class,
+            'started',
+            "Email send started for {$toEmail}",
+            $jobStartData,
+            null,
+            $startedAt,
+            null,
+            $queueName
+        );
 
         $mailerName = 'dynamic_'.md5(json_encode($this->mailerConfig)).'_'.Str::random(6);
         Config::set('mail.mailers.'.$mailerName, $this->mailerConfig);
@@ -173,17 +176,16 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
             $messageText .= " via {$groupPart}, {$accountPart}";
         }
 
-        JobLog::create([
-            'job' => static::class,
-            'queue' => $queueName,
-            'worker_name' => config('app.worker_name'),
-            'message' => $messageText,
-            'status' => 'success',
-            'runtime_ms' => $runtimeMs,
-            'started_at' => $startedAt,
-            'finished_at' => now(),
-            'details' => json_encode($jobCompleteData)
-        ]);
+        $this->logJob(
+            static::class,
+            'success',
+            $messageText,
+            $jobCompleteData,
+            $runtimeMs,
+            $startedAt,
+            now(),
+            $queueName
+        );
     }
 
     private function resolveQueueName(): ?string

@@ -6,12 +6,13 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use App\Models\JobLog;
+use App\Jobs\Concerns\LogsJob;
 use Illuminate\Support\Facades\Log;
 
 class SendWebhookJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use LogsJob;
 
     public string $url;
     public array $payload;
@@ -62,15 +63,16 @@ class SendWebhookJob implements ShouldQueue
             'event_type' => $this->eventType,
             'scheduled_task_id' => $this->scheduledTaskId,
         ];
-        JobLog::create([
-            'job' => 'SendWebhookJob',
-            'queue' => $queue,
-            'worker_name' => $workerName,
-            'message' => "Webhook send started for {$resolvedUrl}",
-            'status' => 'started',
-            'started_at' => $startTime,
-            'details' => json_encode($jobStartData),
-        ]);
+        $this->logJob(
+            'SendWebhookJob',
+            'started',
+            "Webhook send started for {$resolvedUrl}",
+            $jobStartData,
+            null,
+            $startTime,
+            null,
+            $queue
+        );
 
         try {
             $response = \Illuminate\Support\Facades\Http::timeout(15)->withHeaders($resolvedHeaders)->post($resolvedUrl, $resolvedPayload);
@@ -90,16 +92,16 @@ class SendWebhookJob implements ShouldQueue
                 'timestamp' => $finishTime->toISOString(),
             ];
             Log::info('SendWebhookJob: Webhook sent successfully', $jobCompleteData);
-            JobLog::create([
-                'job' => 'SendWebhookJob',
-                'queue' => $queue,
-                'worker_name' => $workerName,
-                'message' => "Webhook sent to {$resolvedUrl} (Status: {$response->status()})",
-                'status' => 'success',
-                'runtime_ms' => $runtimeMs,
-                'finished_at' => $finishTime,
-                'details' => json_encode($jobCompleteData),
-            ]);
+            $this->logJob(
+                'SendWebhookJob',
+                'success',
+                "Webhook sent to {$resolvedUrl} (Status: {$response->status()})",
+                $jobCompleteData,
+                $runtimeMs,
+                $startTime,
+                $finishTime,
+                $queue
+            );
         } catch (\Throwable $e) {
             $finishTime = now();
             $runtimeMs = $this->runtimeMs($monotonicStart);
@@ -117,16 +119,16 @@ class SendWebhookJob implements ShouldQueue
                 'timestamp' => $finishTime->toISOString(),
             ];
             Log::error('SendWebhookJob: Webhook send failed', $jobErrorData);
-            JobLog::create([
-                'job' => 'SendWebhookJob',
-                'queue' => $queue,
-                'worker_name' => $workerName,
-                'message' => "Webhook send failed for {$resolvedUrl}: {$e->getMessage()}",
-                'status' => 'failed',
-                'runtime_ms' => $runtimeMs,
-                'finished_at' => $finishTime,
-                'details' => json_encode($jobErrorData),
-            ]);
+            $this->logJob(
+                'SendWebhookJob',
+                'failed',
+                "Webhook send failed for {$resolvedUrl}: {$e->getMessage()}",
+                $jobErrorData,
+                $runtimeMs,
+                $startTime,
+                $finishTime,
+                $queue
+            );
             throw $e;
         }
     }

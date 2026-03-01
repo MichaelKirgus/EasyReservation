@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Jobs\SendMailJob;
-use App\Models\JobLog;
+use App\Jobs\Concerns\LogsJob;
 use Illuminate\Support\Str;
 use App\Models\EmailTemplate;
 use App\Models\MailTransportGroup;
@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 
 class EmailBroadcastService
 {
+    use LogsJob;
     public function __construct(
         private readonly SettingsService $settings,
         private readonly IcsService $ics,
@@ -78,16 +79,17 @@ class EmailBroadcastService
         foreach ($recipients as $recipient) {
             $email = $recipient['email'] ?? '';
             if ($validator->isDebugBlacklistedEmail($email)) {
-                JobLog::create([
-                    'job' => 'EmailBroadcastService',
-                    'queue' => 'mail',
-                    'worker_name' => env('WORKER_NAME'),
-                    'status' => 'warning',
-                    'runtime_ms' => 0,
-                    'message' => 'Mail skipped: ' . $email . ' (Domain on debug blacklist).',
-                    'started_at' => now(),
-                    'finished_at' => now(),
-                ]);
+                $now = now();
+                $this->logJob(
+                    'EmailBroadcastService',
+                    'warning',
+                    'Mail skipped: ' . $email . ' (Domain on debug blacklist).',
+                    [],
+                    0,
+                    $now,
+                    $now,
+                    'mail'
+                );
                 $skippedBlacklisted++;
                 continue;
             }

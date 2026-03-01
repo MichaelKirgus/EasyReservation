@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\AuditLog;
 use App\Models\JobLog;
+use App\Jobs\Concerns\LogsJob;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Log;
 class CleanUpAuditLogsJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use LogsJob;
 
     public function handle()
     {
@@ -31,15 +33,15 @@ class CleanUpAuditLogsJob implements ShouldQueue
         ];
 
         // Log job start
-        JobLog::create([
-            'job' => 'CleanUpAuditLogsJob',
-            'queue' => $queue,
-            'worker_name' => $workerName,
-            'message' => "Cleanup started for audit logs older than {$retentionDays} days.",
-            'status' => 'started',
-            'details' => json_encode($jobStartData),
-            'started_at' => $startTime,
-        ]);
+        $this->logJob(
+            'CleanUpAuditLogsJob',
+            'started',
+            "Cleanup started for audit logs older than {$retentionDays} days.",
+            $jobStartData,
+            null,
+            $startTime,
+            null
+        );
 
         try {
             $deleted = AuditLog::where('created_at', '<', $cutoff)->delete();
@@ -54,16 +56,15 @@ class CleanUpAuditLogsJob implements ShouldQueue
 
             Log::info("CleanUpAuditLogsJob: Deleted {$deleted} audit log entries older than {$retentionDays} days.");
 
-            JobLog::create([
-                'job' => 'CleanUpAuditLogsJob',
-                'queue' => $queue,
-                'worker_name' => $workerName,
-                'message' => "Deleted {$deleted} audit log entries older than {$retentionDays} days.",
-                'status' => 'success',
-                'details' => json_encode($jobCompleteData),
-                'started_at' => $startTime,
-                'finished_at' => $finishTime,
-            ]);
+            $this->logJob(
+                'CleanUpAuditLogsJob',
+                'success',
+                "Deleted {$deleted} audit log entries older than {$retentionDays} days.",
+                $jobCompleteData,
+                null,
+                $startTime,
+                $finishTime
+            );
         } catch (\Throwable $e) {
             $finishTime = now();
             $jobErrorData = [
@@ -77,16 +78,15 @@ class CleanUpAuditLogsJob implements ShouldQueue
 
             Log::error('CleanUpAuditLogsJob: Error during cleanup', $jobErrorData);
 
-            JobLog::create([
-                'job' => 'CleanUpAuditLogsJob',
-                'queue' => $queue,
-                'worker_name' => $workerName,
-                'message' => "Error during cleanup: {$e->getMessage()}",
-                'status' => 'error',
-                'details' => json_encode($jobErrorData),
-                'started_at' => $startTime,
-                'finished_at' => $finishTime,
-            ]);
+            $this->logJob(
+                'CleanUpAuditLogsJob',
+                'error',
+                "Error during cleanup: {$e->getMessage()}",
+                $jobErrorData,
+                null,
+                $startTime,
+                $finishTime
+            );
         }
     }
 }

@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\Models\JobLog;
+use App\Jobs\Concerns\LogsJob;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
@@ -12,6 +12,8 @@ use Illuminate\Support\ServiceProvider;
 
 class DiagnosticsServiceProvider extends ServiceProvider
 {
+    use LogsJob;
+
     /** @var array<string,array{monotonic: float, started_at: Carbon}> */
     private array $startTimes = [];
 
@@ -55,16 +57,16 @@ class DiagnosticsServiceProvider extends ServiceProvider
         unset($this->startTimes[$key]);
 
         try {
-            JobLog::create([
-                'job' => method_exists($job, 'resolveName') ? $job->resolveName() : get_class($job),
-                'queue' => method_exists($job, 'getQueue') ? $job->getQueue() : null,
-                'worker_name' => env('WORKER_NAME'),
-                'status' => $status,
-                'runtime_ms' => $runtimeMs,
-                'message' => $message,
-                'started_at' => $startedAt,
-                'finished_at' => $finishedAt,
-            ]);
+            $this->logJob(
+                method_exists($job, 'resolveName') ? $job->resolveName() : get_class($job),
+                $status,
+                $message ?? '',
+                [],
+                $runtimeMs,
+                $startedAt,
+                $finishedAt,
+                method_exists($job, 'getQueue') ? $job->getQueue() : null
+            );
         } catch (\Throwable $e) {
             // Never break the queue on diagnostics logging failures.
         }

@@ -16,6 +16,7 @@ class JobLog extends Model
         'status',
         'runtime_ms',
         'message',
+        'details',
         'started_at',
         'finished_at',
     ];
