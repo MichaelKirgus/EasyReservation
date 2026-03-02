@@ -77,6 +77,10 @@ const waitlistFullText = computed(() => {
   }
   return ''
 })
+const waitlistFullHtml = computed(() => waitlistFullText.value ? renderMarkdown(waitlistFullText.value) : '')
+const waitlistFullAlign = computed(() => config.settings?.waitlist_full_text_align || 'left')
+const reservationLimitAlign = computed(() => config.settings?.reservation_limit_text_align || 'left')
+const reservationLimitHtml = computed(() => renderMarkdown(config.settings.reservation_limit_text) || tr('feedback_reservation_limit', 'Reservation limit reached.'))
 
 const publicFields = computed(() => {
   const mapped = (config.form_fields || []).filter(f => f && f.visible_public).map(f => ({ ...f }))
@@ -654,7 +658,13 @@ function goToGDPR() {
             <small v-if="field.help_text" v-html="renderFieldHelp(field)" :style="{ textAlign: field.text_align || 'left' }"></small>
           </div>
 
-          <p v-if="waitlistFullText" class="hint">{{ waitlistFullText }}</p>
+          <p v-if="waitlistFullHtml" class="hint" v-html="waitlistFullHtml" :style="{ textAlign: waitlistFullAlign }"></p>
+          <p
+            v-if="slotsFull && !waitlistEnabled && reservationLimitHtml"
+            class="hint"
+            v-html="reservationLimitHtml"
+            :style="{ textAlign: reservationLimitAlign }"
+          ></p>
 
           <button
             type="submit"

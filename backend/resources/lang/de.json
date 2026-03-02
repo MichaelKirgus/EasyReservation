@@ -1477,6 +1477,8 @@
   "admin_setting_reservation_header_align": "Header-Ausrichtung",
   "admin_setting_waitlist_public_align": "Warteliste öffentlich Ausrichtung",
   "admin_setting_reservation_attendees_align": "Teilnehmer-Ausrichtung",
+  "admin_setting_waitlist_full_text_align": "Ausrichtung Warteliste-Volltext",
+  "admin_setting_reservation_limit_text_align": "Ausrichtung Reservierungslimit-Text",
   "admin_setting_clear_localstorage_on_logout": "Local Storage beim Logout leeren",
   "admin_setting_login_rate_limit_attempts": "Login Rate-Limit Versuche",
   "admin_setting_login_rate_limit_decay_minutes": "Login Rate-Limit Zeitfenster (Minuten)",

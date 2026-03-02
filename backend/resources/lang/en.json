@@ -1477,6 +1477,8 @@
   "admin_setting_reservation_header_align": "Header alignment",
   "admin_setting_waitlist_public_align": "Waitlist public alignment",
   "admin_setting_reservation_attendees_align": "Attendees alignment",
+  "admin_setting_waitlist_full_text_align": "Waitlist full text alignment",
+  "admin_setting_reservation_limit_text_align": "Reservation limit text alignment",
   "admin_setting_clear_localstorage_on_logout": "Clear local storage on logout",
   "admin_setting_login_rate_limit_attempts": "Login rate limit attempts",
   "admin_setting_login_rate_limit_decay_minutes": "Login rate limit decay (minutes)",

@@ -179,6 +179,8 @@ const tabFieldMap = {
     'reservation_header_align',
     'waitlist_public_align',
     'reservation_attendees_align',
+    'waitlist_full_text_align',
+    'reservation_limit_text_align',
   ]),
   security: new Set([
     'login_rate_limit_attempts',
