@@ -161,18 +161,59 @@ onUnmounted(() => {
 const cachedLoadingImage = ref('')
 try { cachedLoadingImage.value = localStorage.getItem('reservation_loading_image') || '' } catch (_) { cachedLoadingImage.value = '' }
 
+const cachedSvgColorLight = ref('#222')
+const cachedSvgColorDark = ref('#fff')
+try { cachedSvgColorLight.value = localStorage.getItem('loading_svg_color_light') || '#222' } catch (_) {}
+try { cachedSvgColorDark.value = localStorage.getItem('loading_svg_color_dark') || '#fff' } catch (_) {}
 
 const loadingSvgColor = computed(() => {
-  // Use the new settings keys for light/dark SVG color
+  // Use the new settings keys for light/dark SVG color, with localStorage cache fallback
   const isDark = (theme.value || 'light') === 'dark'
-  if (isDark) return config.settings.loading_svg_color_dark || '#fff'
-  return config.settings.loading_svg_color_light || '#222'
+  if (isDark) return config.settings.loading_svg_color_dark || cachedSvgColorDark.value
+  return config.settings.loading_svg_color_light || cachedSvgColorLight.value
 })
 
 const loadingImageUrl = computed(() => {
   const url = config.settings?.reservation_loading_image || cachedLoadingImage.value
   return url ? mediaUrl(url) : ''
 })
+
+const loadingImageIsSvg = computed(() => {
+  const url = loadingImageUrl.value || ''
+  return url.toLowerCase().endsWith('.svg')
+})
+
+const inlineSvgContent = ref('')
+const inlineSvgFetchedUrl = ref('')
+
+watch(loadingImageUrl, async (url) => {
+  if (!url || !loadingImageIsSvg.value) {
+    inlineSvgContent.value = ''
+    inlineSvgFetchedUrl.value = ''
+    return
+  }
+  if (url === inlineSvgFetchedUrl.value) return
+  try {
+    // Use same-origin relative path when the URL points to the backend origin
+    // so Vite's dev proxy handles it and avoids CORS issues
+    let fetchUrl = url
+    if (mediaBase && mediaBase !== window.location.origin && url.startsWith(mediaBase)) {
+      fetchUrl = url.slice(mediaBase.length)
+    }
+    const res = await fetch(fetchUrl)
+    if (!res.ok) throw new Error('Failed to fetch SVG')
+    const text = await res.text()
+    // Basic validation: must contain <svg
+    if (text.includes('<svg')) {
+      inlineSvgContent.value = text
+      inlineSvgFetchedUrl.value = url
+    } else {
+      inlineSvgContent.value = ''
+    }
+  } catch (_) {
+    inlineSvgContent.value = ''
+  }
+}, { immediate: true })
 
 
 async function loadConfig() {
@@ -193,6 +234,17 @@ async function loadConfig() {
         localStorage.setItem('reservation_loading_image', loadingImg)
       } else {
         localStorage.removeItem('reservation_loading_image')
+      }
+      // Cache SVG spinner colors for immediate use on next page load
+      const svgLight = config.settings.loading_svg_color_light || ''
+      const svgDark = config.settings.loading_svg_color_dark || ''
+      if (svgLight) {
+        localStorage.setItem('loading_svg_color_light', svgLight)
+        cachedSvgColorLight.value = svgLight
+      }
+      if (svgDark) {
+        localStorage.setItem('loading_svg_color_dark', svgDark)
+        cachedSvgColorDark.value = svgDark
       }
     } catch (_) {}
     localStorage.setItem('site_token', siteToken.value || '')
@@ -608,7 +660,8 @@ function goToGDPR() {
         </div>
     <div class="backdrop">
       <div v-if="loading" class="loading-overlay" aria-live="polite" aria-busy="true">
-        <img v-if="loadingImageUrl" :src="loadingImageUrl" alt="Loading" class="loader-image" />
+        <div v-if="loadingImageUrl && loadingImageIsSvg && inlineSvgContent" class="loader-image inline-svg" :style="{ color: loadingSvgColor }" v-html="inlineSvgContent"></div>
+        <img v-else-if="loadingImageUrl" :src="loadingImageUrl" alt="Loading" class="loader-image" />
         <svg v-else class="loader-image" viewBox="0 0 50 50" :style="{ color: loadingSvgColor }" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="25" cy="25" r="20" stroke="currentColor" stroke-width="5" opacity="0.2" />
           <path d="M45 25c0-11.046-8.954-20-20-20" stroke="currentColor" stroke-width="5" stroke-linecap="round">
@@ -792,6 +845,8 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
 .plain-list { list-style: none; padding-left: 0; margin: 0; }
 .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; z-index: 60; }
 .loader-image { width: 64px; height: 64px; animation: spin 1s linear infinite; object-fit: contain; }
+.inline-svg { display: flex; align-items: center; justify-content: center; }
+.inline-svg :deep(svg) { width: 100%; height: 100%; }
 .loader-spinner { width: 48px; height: 48px; border: 4px solid var(--border-strong); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
