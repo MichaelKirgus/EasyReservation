@@ -1330,6 +1330,7 @@
   "admin_mail_transports_columns_auth_method": "Auth-Methode",
   "admin_mail_transports_columns_username": "Benutzername",
   "admin_mail_transports_columns_timeout": "Timeout (s)",
+  "admin_mail_transports_columns_retry_count": "Anzahl Wiederholungen",
   "admin_mail_transports_columns_rate_limit": "Ratenbegrenzung",
   "admin_mail_transports_columns_rate_limit_minute": "Rate/Min",
   "admin_mail_transports_columns_rate_limit_hour": "Rate/Stunde",

@@ -129,6 +129,7 @@ const accountForm = reactive({
   authMethod: 'plain',
   ignoreSelfSigned: false,
   timeout: 30,
+  retryCount: 3,
   rateLimitEnabled: false,
   rateLimitPerMinute: null,
   rateLimitPerHour: null,
@@ -162,6 +163,7 @@ const accountColumns = computed(() => [
   { key: 'auth_method', label: tr('admin_mail_transports_columns_auth_method'), sortable: true },
   { key: 'username', label: tr('admin_mail_transports_columns_username'), sortable: true },
   { key: 'timeout', label: tr('admin_mail_transports_columns_timeout'), sortable: true, type: 'number' },
+  { key: 'retry_count', label: tr('admin_mail_transports_columns_retry_count'), sortable: true, type: 'number' },
   { key: 'rate_limit_enabled', label: tr('admin_mail_transports_columns_rate_limit'), sortable: true, type: 'boolean' },
   { key: 'rate_limit_per_minute', label: tr('admin_mail_transports_columns_rate_limit_minute'), sortable: true, type: 'number' },
   { key: 'rate_limit_per_hour', label: tr('admin_mail_transports_columns_rate_limit_hour'), sortable: true, type: 'number' },
@@ -228,6 +230,7 @@ function t(key) {
     admin_mail_transports_columns_auth_method: tr('admin_mail_transports_columns_auth_method', 'Auth Method'),
     admin_mail_transports_columns_username: tr('admin_mail_transports_columns_username', 'Username'),
     admin_mail_transports_columns_timeout: tr('admin_mail_transports_columns_timeout', 'Timeout (s)'),
+    admin_mail_transports_columns_retry_count: tr('admin_mail_transports_columns_retry_count', 'Retry Count'),
     admin_mail_transports_columns_rate_limit: tr('admin_mail_transports_columns_rate_limit', 'Rate Limiting'),
     admin_mail_transports_columns_rate_limit_minute: tr('admin_mail_transports_columns_rate_limit_minute', 'Rate/Min'),
     admin_mail_transports_columns_rate_limit_hour: tr('admin_mail_transports_columns_rate_limit_hour', 'Rate/Hour'),
@@ -395,6 +398,7 @@ function openAccountForm(account = null) {
     accountForm.rateLimitEnabled = !!account.rate_limit_enabled
     accountForm.rateLimitPerMinute = account.rate_limit_per_minute || null
     accountForm.rateLimitPerHour = account.rate_limit_per_hour || null
+    accountForm.retryCount = account.retry_count || 3
     accountForm.fromAddress = account.from_address || ''
     accountForm.replyToAddress = account.reply_to_address || ''
     accountForm.returnPathAddress = account.return_path_address || ''
@@ -415,6 +419,7 @@ function openAccountForm(account = null) {
     accountForm.rateLimitEnabled = false
     accountForm.rateLimitPerMinute = null
     accountForm.rateLimitPerHour = null
+    accountForm.retryCount = 3
     accountForm.fromAddress = ''
     accountForm.replyToAddress = ''
     accountForm.returnPathAddress = ''
@@ -442,6 +447,7 @@ async function saveAccount(formData = null) {
       auth_method: accountForm.authMethod,
       ignore_self_signed: accountForm.ignoreSelfSigned ? 1 : 0,
       timeout: accountForm.timeout,
+      retry_count: accountForm.retryCount,
       rate_limit_enabled: accountForm.rateLimitEnabled ? 1 : 0,
       rate_limit_per_minute: accountForm.rateLimitPerMinute || null,
       rate_limit_per_hour: accountForm.rateLimitPerHour || null,
@@ -489,6 +495,7 @@ function cancelAccountForm() {
   accountForm.rateLimitEnabled = false
   accountForm.rateLimitPerMinute = null
   accountForm.rateLimitPerHour = null
+  accountForm.retryCount = 3
   accountForm.fromAddress = ''
   accountForm.replyToAddress = ''
   accountForm.returnPathAddress = ''

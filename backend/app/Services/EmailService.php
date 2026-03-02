@@ -73,6 +73,7 @@ class EmailService
             'transport_group_name' => $group->name,
             'transport_account_id' => $account->id,
             'transport_account_name' => $account->name,
+            'retry_count' => $account->retry_count,
         ];
         Log::info('EmailService: Using transport group for email', [
             'transport_group_id' => $transportGroupId,
@@ -190,7 +191,8 @@ class EmailService
             $tg['transport_group_id'] ?? null,
             $tg['transport_group_name'] ?? null,
             $tg['transport_account_id'] ?? null,
-            $tg['transport_account_name'] ?? null
+            $tg['transport_account_name'] ?? null,
+            $tg['retry_count'] ?? null
         );
     }
 
@@ -295,7 +297,8 @@ class EmailService
             $tg['transport_group_id'] ?? null,
             $tg['transport_group_name'] ?? null,
             $tg['transport_account_id'] ?? null,
-            $tg['transport_account_name'] ?? null
+            $tg['transport_account_name'] ?? null,
+            $tg['retry_count'] ?? null
         );
     }
 
@@ -395,7 +398,8 @@ class EmailService
             $tg['transport_group_id'] ?? null,
             $tg['transport_group_name'] ?? null,
             $tg['transport_account_id'] ?? null,
-            $tg['transport_account_name'] ?? null
+            $tg['transport_account_name'] ?? null,
+            $tg['retry_count'] ?? null
         );
     }
 
@@ -615,7 +619,8 @@ class EmailService
             $tg['transport_group_id'] ?? null,
             $tg['transport_group_name'] ?? null,
             $tg['transport_account_id'] ?? null,
-            $tg['transport_account_name'] ?? null
+            $tg['transport_account_name'] ?? null,
+            $tg['retry_count'] ?? null
         );
     }
 
@@ -765,7 +770,24 @@ class EmailService
         $cc = $this->mergeEmailAddresses($templateCc, $globalCc);
         $bcc = $this->mergeEmailAddresses($templateBcc, $globalBcc);
 
-        SendMailJob::dispatch($mailerConfig, $recipientEmail, $recipientName, $subject, $body, $fromAddress, $fromName, [], $cc, $bcc);
+        $tg = $this->lastTransportGroupInfo ?? [];
+        SendMailJob::dispatch(
+            $mailerConfig,
+            $recipientEmail,
+            $recipientName,
+            $subject,
+            $body,
+            $fromAddress,
+            $fromName,
+            [],
+            $cc,
+            $bcc,
+            $tg['transport_group_id'] ?? null,
+            $tg['transport_group_name'] ?? null,
+            $tg['transport_account_id'] ?? null,
+            $tg['transport_account_name'] ?? null,
+            $tg['retry_count'] ?? null
+        );
     }
 
     /**

@@ -333,7 +333,8 @@ class MailTransportService
                     $group->id,
                     $group->name,
                     $account->id,
-                    $account->name
+                    $account->name,
+                    $account->retry_count
                 );
 
                 return true;

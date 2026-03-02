@@ -47,6 +47,9 @@ return new class extends Migration
             $table->boolean('rate_limit_enabled')->default(false);
             $table->integer('rate_limit_per_minute')->nullable();
             $table->integer('rate_limit_per_hour')->nullable();
+
+            // Retry behavior for this account
+            $table->integer('retry_count')->default(3);
             
             // Email headers
             $table->string('from_address')->nullable(); // Send as address

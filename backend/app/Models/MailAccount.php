@@ -28,6 +28,7 @@ class MailAccount extends Model
         'rate_limit_enabled',
         'rate_limit_per_minute',
         'rate_limit_per_hour',
+        'retry_count',
         'from_address',
         'reply_to_address',
         'return_path_address',
@@ -39,6 +40,7 @@ class MailAccount extends Model
         'rate_limit_enabled' => 'boolean',
         'rate_limit_per_minute' => 'integer',
         'rate_limit_per_hour' => 'integer',
+        'retry_count' => 'integer',
         'is_active' => 'boolean',
         'oauth2_token_expiry' => 'datetime',
     ];

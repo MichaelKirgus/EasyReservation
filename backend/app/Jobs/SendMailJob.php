@@ -22,6 +22,11 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
     use LogsJob;
 
     /**
+     * Number of attempts the queue worker should make before failing.
+     */
+    public int $tries;
+
+    /**
      * @param array $mailerConfig
      * @param string $toEmail
      * @param string|null $toName
@@ -36,6 +41,7 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
      * @param string|null $transportGroupName
      * @param int|null $transportAccountId
      * @param string|null $transportAccountName
+     * @param int|null $retryCount
      */
     public function __construct(
         private readonly array $mailerConfig,
@@ -52,7 +58,9 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
         private readonly ?string $transportGroupName = null,
         private readonly ?int $transportAccountId = null,
         private readonly ?string $transportAccountName = null,
+        private readonly ?int $retryCount = null,
     ) {
+        $this->tries = max(1, (int) ($this->retryCount ?? 3));
     }
 
     public function handle(): void

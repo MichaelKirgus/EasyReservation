@@ -15,6 +15,7 @@ const props = defineProps({
       authMethod: 'plain',
       ignoreSelfSigned: false,
       timeout: 30,
+      retryCount: 3,
       rateLimitEnabled: false,
       rateLimitPerMinute: null,
       rateLimitPerHour: null,
@@ -198,6 +199,17 @@ function getApiKeyLabel() {
           type="number"
           min="1"
           max="300"
+        />
+      </label>
+
+      <!-- Retry Count -->
+      <label class="field">
+        <span>Retry Count</span>
+        <input
+          v-model.number="form.retryCount"
+          type="number"
+          min="1"
+          max="10"
         />
       </label>
       
