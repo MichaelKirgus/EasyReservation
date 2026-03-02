@@ -16,6 +16,7 @@ class WaitlistService
         private readonly EmailBroadcastService $mailer,
         private readonly EmailService $emailService,
         private readonly MailTransportService $mailTransportService,
+        private readonly EmailValidationService $emailValidation,
     ) {
     }
 
@@ -318,6 +319,8 @@ class WaitlistService
 
         try {
             $this->emailService->sendWaitlistPromotedEmail($transportGroupId, $reservation);
+            // Also send the standard reservation success notification so promoted users get the same message as direct reservations
+            $this->emailValidation->sendReservationNotification($reservation, 'email_reservation_success_template_id', true);
         } catch (\Throwable $e) {
             Log::warning('Waitlist promotion email failed', [
                 'error' => $e->getMessage(),
