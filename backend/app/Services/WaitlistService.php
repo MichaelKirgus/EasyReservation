@@ -52,59 +52,67 @@ class WaitlistService
         $name = trim($name);
         $email = trim((string) $email);
 
-        $limit = (int) ($this->settings->get('waitlist_limit', 0) ?? 0);
-        $pendingCount = WaitlistEntry::query()->where('status', 'pending')->count();
-        if ($limit > 0 && $pendingCount >= $limit) {
-            throw new \RuntimeException(__('feedback_waitlist_full'));
-        }
+        return DB::transaction(function () use ($name, $email, $payload, $siteToken) {
+            $limit = (int) ($this->settings->get('waitlist_limit', 0) ?? 0);
+            $pendingCount = WaitlistEntry::query()->lockForUpdate()->where('status', 'pending')->count();
+            if ($limit > 0 && $pendingCount >= $limit) {
+                throw new \RuntimeException(__('feedback_waitlist_full'));
+            }
 
-        $user = auth()->user();
-        $adminExempt = (int)($this->settings->get('waitlist_duplicate_check_admin_exempt', 0) ?? 0) === 1;
-        $isAdminOrMod = $user && in_array($user->role, ['admin', 'moderator', 'superadmin']);
-        $skipDuplicateCheck = $adminExempt && $isAdminOrMod;
-        $allowDuplicateName = (int)($this->settings->get('waitlist_allow_duplicate_name', 0) ?? 0) === 1;
-        $allowDuplicateEmail = (int)($this->settings->get('waitlist_allow_duplicate_email', 0) ?? 0) === 1;
+            $user = auth()->user();
+            $adminExempt = (int)($this->settings->get('waitlist_duplicate_check_admin_exempt', 0) ?? 0) === 1;
+            $isAdminOrMod = $user && in_array($user->role, ['admin', 'moderator', 'superadmin']);
+            $skipDuplicateCheck = $adminExempt && $isAdminOrMod;
+            $allowDuplicateName = (int)($this->settings->get('waitlist_allow_duplicate_name', 0) ?? 0) === 1;
+            $allowDuplicateEmail = (int)($this->settings->get('waitlist_allow_duplicate_email', 0) ?? 0) === 1;
 
-        if (! $skipDuplicateCheck) {
-            if (! $allowDuplicateName) {
-                $duplicateName = WaitlistEntry::query()
-                    ->where('status', 'pending')
-                    ->whereRaw('LOWER(display_name) = ?', [Str::lower($name)])
-                    ->exists();
-                if ($duplicateName) {
-                    throw new \RuntimeException(__('feedback_waitlist_success'));
+            if (! $skipDuplicateCheck) {
+                if (! $allowDuplicateName) {
+                    $duplicateName = WaitlistEntry::query()
+                        ->where('status', 'pending')
+                        ->whereRaw('LOWER(display_name) = ?', [Str::lower($name)])
+                        ->lockForUpdate()
+                        ->exists();
+                    if ($duplicateName) {
+                        throw new \RuntimeException(__('feedback_waitlist_success'));
+                    }
+                }
+
+                if (! $allowDuplicateEmail && $email !== null && $email !== '') {
+                    $pendingEntries = WaitlistEntry::query()
+                        ->where('status', 'pending')
+                        ->lockForUpdate()
+                        ->get(['id', 'email']);
+
+                    $duplicateEmail = $pendingEntries->first(function (WaitlistEntry $entry) use ($email) {
+                        return Str::lower((string) ($entry->email ?? '')) === Str::lower($email);
+                    });
+
+                    if ($duplicateEmail) {
+                        throw new \RuntimeException(__('feedback_waitlist_success'));
+                    }
                 }
             }
 
-            if (! $allowDuplicateEmail && $email !== null && $email !== '') {
-                $duplicateEmail = WaitlistEntry::query()
-                    ->where('status', 'pending')
-                    ->whereRaw('LOWER(email) = ?', [Str::lower($email)])
-                    ->exists();
-                if ($duplicateEmail) {
-                    throw new \RuntimeException(__('feedback_waitlist_success'));
-                }
+            // Automatisch einen gültigen Gast-Site-Token verwenden, falls keiner übergeben wurde
+            if (empty($siteToken)) {
+                $siteToken = app(\App\Services\SiteTokenService::class)->getValidSiteToken();
             }
-        }
 
-        // Automatisch einen gültigen Gast-Site-Token verwenden, falls keiner übergeben wurde
-        if (empty($siteToken)) {
-            $siteToken = app(\App\Services\SiteTokenService::class)->getValidSiteToken();
-        }
+            $entry = WaitlistEntry::create([
+                'display_name' => $name,
+                'email' => $email === '' ? null : $email,
+                'payload' => $payload,
+                'status' => 'pending',
+                'undo_token' => (string) Str::uuid(),
+                'site_token' => $siteToken,
+            ]);
 
-        $entry = WaitlistEntry::create([
-            'display_name' => $name,
-            'email' => $email === '' ? null : $email,
-            'payload' => $payload,
-            'status' => 'pending',
-            'undo_token' => (string) Str::uuid(),
-            'site_token' => $siteToken,
-        ]);
+            // Trigger: waitlist_entry_added (on new waitlist entry creation)
+            app(\App\Services\EventTriggerService::class)->handle('waitlist_entry_added', ['waitlist_entry' => $entry]);
 
-        // Trigger: waitlist_entry_added (on new waitlist entry creation)
-        app(\App\Services\EventTriggerService::class)->handle('waitlist_entry_added', ['waitlist_entry' => $entry]);
-
-        return $entry;
+            return $entry;
+        });
     }
 
     public function promoteOldestIfSlotAvailable(): ?Reservation
@@ -209,35 +217,6 @@ class WaitlistService
         return $template && $template->transport_group_id ? $template->transport_group_id : null;
     }
 
-    private function buildMailerConfig(?int $transportGroupId = null): ?array
-    {
-        if ($transportGroupId) {
-            // Use MailTransportService to get config from transport group
-            return $this->mailTransportService->buildMailerConfigFromTransportGroup($transportGroupId);
-        }
-        
-        // Fallback to global settings
-        $host = $this->settings->get('mail_host');
-        $port = (int) ($this->settings->get('mail_port') ?? 0);
-        $username = $this->settings->get('mail_username');
-        $password = $this->settings->get('mail_password');
-        $encryption = $this->settings->get('mail_encryption', null);
-
-        if (! $host || ! $port) {
-            return null;
-        }
-
-        return [
-            'transport' => 'smtp',
-            'host' => $host,
-            'port' => $port,
-            'username' => $username,
-            'password' => $password,
-            'encryption' => $encryption,
-            'timeout' => null,
-        ];
-    }
-
     public function sendWaitlistValidationSuccessEmail(WaitlistEntry $entry): void
     {
         \Illuminate\Support\Facades\Log::debug('WaitlistService: Starting waitlist validation success email sending', [
@@ -330,12 +309,11 @@ class WaitlistService
             $reservation->save();
         }
 
-        // Get transport group ID from template
+        // Get transport group ID from template; fallback to global mail config if missing
         $transportGroupId = $this->getTransportGroupIdFromTemplate($templateId);
 
         if (!$transportGroupId) {
-            \Illuminate\Support\Facades\Log::error('WaitlistService: No transport group ID found for waitlist promoted email');
-            return;
+            \Illuminate\Support\Facades\Log::warning('WaitlistService: No transport group for promoted email, falling back to global mail config');
         }
 
         try {

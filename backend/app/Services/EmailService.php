@@ -528,14 +528,10 @@ class EmailService
             $reservation->save();
         }
 
-        if (!$transportGroupId) {
-            \Illuminate\Support\Facades\Log::error('EmailService: No transport group ID provided for waitlist promoted email');
-            return;
-        }
-
         $mailerConfig = $this->getMailerConfigFromTransportGroup($transportGroupId);
+
         if (!$mailerConfig) {
-            \Illuminate\Support\Facades\Log::error('EmailService: Could not build mailer config from transport group ' . $transportGroupId);
+            \Illuminate\Support\Facades\Log::error('EmailService: No mailer config available for waitlist promoted email (missing/invalid transport group)');
             return;
         }
 
@@ -548,6 +544,7 @@ class EmailService
             ]);
         }
     }
+
 
     /**
      * Backward-compatible wrapper: send email using transport info without TG metadata
@@ -670,33 +667,6 @@ class EmailService
 
         return ['subject' => $template->subject, 'body' => $template->body, 'cc' => $template->cc, 'bcc' => $template->bcc];
     }
-
-    /**
-     * Build mailer configuration
-     */
-    private function buildMailerConfig(): ?array
-    {
-        $host = $this->settings->get('mail_host');
-        $port = (int) ($this->settings->get('mail_port') ?? 0);
-        $username = $this->settings->get('mail_username');
-        $password = $this->settings->get('mail_password');
-        $encryption = $this->settings->get('mail_encryption', null) ?: null;
-
-        if (! $host || ! $port) {
-            return null;
-        }
-
-        return [
-            'transport' => 'smtp',
-            'host' => $host,
-            'port' => $port,
-            'username' => $username,
-            'password' => $password,
-            'encryption' => $encryption,
-            'timeout' => null,
-        ];
-    }
-
 
     /**
      * Get attachments for template

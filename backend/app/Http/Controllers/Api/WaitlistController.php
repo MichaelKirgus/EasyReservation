@@ -265,16 +265,13 @@ class WaitlistController extends Controller
             return response()->json(['message' => __('validation_invalid_email')], 422);
         }
 
-        $entries = WaitlistEntry::query()
-            ->where('status', 'pending')
-            ->whereRaw('LOWER(display_name) = ?', [Str::lower($name)])
-            ->get();
-
-        $entry = $entries->first(function (WaitlistEntry $entry) use ($email) {
-            return Str::lower((string) $entry->email) === Str::lower($email);
-        });
+        $entry = $this->findPendingWaitlistEntry($name, $email);
 
         if (! $entry) {
+            \Log::debug('Waitlist undo: no matching entry found', [
+                'name' => $name,
+                'email' => $email,
+            ]);
             return response()->json(['message' => __('waitlist_entry_not_found')], 404);
         }
 
@@ -291,6 +288,32 @@ class WaitlistController extends Controller
         $this->eventTriggers->handle('waitlist_entry_removed', ['waitlist_entry' => $entry]);
 
         return response()->json(['message' => __('waitlist_entry_removed')]);
+    }
+
+    /**
+     * Resolve a pending waitlist entry by name/email using decrypted email comparison.
+     */
+    private function findPendingWaitlistEntry(string $name, string $email): ?WaitlistEntry
+    {
+        $emailLower = Str::lower($email);
+
+        $entries = WaitlistEntry::query()
+            ->where('status', 'pending')
+            ->whereRaw('LOWER(display_name) = ?', [Str::lower($name)])
+            ->get();
+
+        $match = $entries->first(function (WaitlistEntry $entry) use ($emailLower) {
+            return Str::lower((string) ($entry->email ?? '')) === $emailLower;
+        });
+
+        if ($match) {
+            \Log::debug('Waitlist undo: matched entry', [
+                'waitlist_entry_id' => $match->id,
+                'name' => $match->display_name,
+            ]);
+        }
+
+        return $match;
     }
 
     private function shouldNotify(Request $request, mixed $override): bool

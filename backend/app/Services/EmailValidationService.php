@@ -172,9 +172,7 @@ class EmailValidationService
                     }
                 }
                 if (! $allowDuplicateEmail && $email !== null && $email !== '') {
-                    $duplicateEmail = Reservation::query()
-                        ->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])
-                        ->exists();
+                    $duplicateEmail = $this->reservationEmailExists($email);
                     if ($duplicateEmail) {
                         throw new \RuntimeException(__('email_already_reserved'));
                     }
@@ -197,10 +195,7 @@ class EmailValidationService
                     }
                 }
                 if (! $allowDuplicateEmail && $email !== null && $email !== '') {
-                    $duplicateEmail = WaitlistEntry::query()
-                        ->where('status', 'pending')
-                        ->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])
-                        ->exists();
+                    $duplicateEmail = $this->waitlistEmailExists($email);
                     if ($duplicateEmail) {
                         throw new \RuntimeException(__('email_already_on_waitlist'));
                     }
@@ -480,10 +475,7 @@ class EmailValidationService
             }
 
             if (! $allowDuplicateEmail && $email !== null && $email !== '') {
-                $duplicateEmail = Reservation::query()
-                    ->whereRaw('LOWER(email) = ?', [mb_strtolower($email)])
-                    ->lockForUpdate()
-                    ->exists();
+                $duplicateEmail = $this->reservationEmailExists($email, true);
                 if ($duplicateEmail) {
                     throw new \RuntimeException(__('email_already_reserved'));
                 }
@@ -575,40 +567,16 @@ HTML;
         return ['subject' => $defaultSubject, 'body' => $defaultBody];
     }
 
-    private function buildMailerConfig(): ?array
+    private function buildMailerConfigWithTransportGroup(?int $transportGroupId): ?array
     {
-        $host = $this->settings->get('mail_host');
-        $port = (int) ($this->settings->get('mail_port') ?? 0);
-        $username = $this->settings->get('mail_username');
-        $password = $this->settings->get('mail_password');
-        $encryption = $this->settings->get('mail_encryption', null);
-
-        if (! $host || ! $port) {
+        if (!$transportGroupId) {
+            Log::error('EmailValidationService: No transport group ID provided for mailer config');
             return null;
         }
-
-        return [
-            'transport' => 'smtp',
-            'host' => $host,
-            'port' => $port,
-            'username' => $username,
-            'password' => $password,
-            'encryption' => $encryption,
-            'timeout' => null,
-        ];
+        
+        // Use MailTransportService to get config from transport group
+        return $this->mailTransportService->buildMailerConfigFromTransportGroup($transportGroupId);
     }
-private function buildMailerConfigWithTransportGroup(?int $transportGroupId): ?array
-{
-    if (!$transportGroupId) {
-        Log::error('EmailValidationService: No transport group ID provided for mailer config');
-        return null;
-    }
-    
-    // Use MailTransportService to get config from transport group
-    return $this->mailTransportService->buildMailerConfigFromTransportGroup($transportGroupId);
-}
-
-
 
     public function sendReservationNotification(Reservation $reservation, string $templateSettingKey, bool $includeUndoLink): void
     {
@@ -633,6 +601,42 @@ private function buildMailerConfigWithTransportGroup(?int $transportGroupId): ?a
 
         // Use MailTransportService for failover support
         $this->emailService->sendReservationNotification($transportGroupId, $reservation, $templateSettingKey, $includeUndoLink);
+    }
+
+    /**
+     * Check if a reservation with the given email exists (email is stored encrypted).
+     * When $lock is true, rows are locked for update to avoid races during creation.
+     */
+    private function reservationEmailExists(string $email, bool $lock = false): bool
+    {
+        $query = Reservation::query();
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+
+        $reservations = $query->get(['id', 'email']);
+
+        $lower = mb_strtolower($email);
+
+        return $reservations->contains(function (Reservation $reservation) use ($lower) {
+            return mb_strtolower((string) ($reservation->email ?? '')) === $lower;
+        });
+    }
+
+    /**
+     * Check if a pending waitlist entry with the given email exists (email is stored encrypted).
+     */
+    private function waitlistEmailExists(string $email): bool
+    {
+        $entries = WaitlistEntry::query()
+            ->where('status', 'pending')
+            ->get(['id', 'email']);
+
+        $lower = mb_strtolower($email);
+
+        return $entries->contains(function (WaitlistEntry $entry) use ($lower) {
+            return mb_strtolower((string) ($entry->email ?? '')) === $lower;
+        });
     }
 
     private function baseReplacements(array $overrides = []): array

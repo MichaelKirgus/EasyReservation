@@ -313,56 +313,6 @@ class EmailBroadcastService
         return strtr($template, $replacements);
     }
 
-    private function buildMailerConfig(): ?array
-    {
-        $host = $this->settings->get('mail_host', config('mail.mailers.smtp.host'));
-        $port = (int) ($this->settings->get('mail_port', config('mail.mailers.smtp.port')) ?? 0);
-        $username = $this->settings->get('mail_username', config('mail.mailers.smtp.username'));
-        $password = $this->settings->get('mail_password', config('mail.mailers.smtp.password'));
-        $encryption = $this->settings->get('mail_encryption', config('mail.mailers.smtp.encryption')) ?: null;
-
-        if (! $host || ! $port) {
-            return null;
-        }
-
-        return [
-            'transport' => 'smtp',
-            'host' => $host,
-            'port' => $port,
-            'username' => $username,
-            'password' => $password,
-            'encryption' => $encryption,
-            'timeout' => null,
-        ];
-    }
-
-    private function buildMailerConfigFromTransportGroup(int $transportGroupId): ?array
-    {
-        // Get the transport group with its accounts
-        $group = \App\Models\MailTransportGroup::query()->with('accounts')->find($transportGroupId);
-        
-        if (! $group) {
-            return null;
-        }
-
-        // Use the first active account from the group as primary
-        $account = $group->accounts()->where('is_active', 1)->first();
-        
-        if (! $account) {
-            return null;
-        }
-
-        return [
-            'transport' => 'smtp',
-            'host' => $account->host,
-            'port' => (int) ($account->port ?? 587),
-            'username' => $account->username,
-            'password' => $account->password,
-            'encryption' => $account->encryption ?: null,
-            'timeout' => (int) ($account->timeout ?? 30),
-        ];
-    }
-
     private function buildWaitlistUndoLink(WaitlistEntry $entry): string
     {
         $undoEnabled = (int) ($this->settings->get('waitlist_undo_enabled', 0) ?? 0) === 1;

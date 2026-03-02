@@ -260,18 +260,13 @@ class ReservationController extends Controller
             return response()->json(['message' => __('validation_invalid_name')], 422);
         }
 
-        $query = Reservation::query()
-            ->whereRaw('LOWER(display_name) = ?', [Str::lower($name)]);
-
-        if ($email === '') {
-            $query->whereNull('email');
-        } else {
-            $query->where('email', $email);
-        }
-
-        $candidate = $query->first();
+        $candidate = $this->findReservationByNameAndEmail($name, $email);
 
         if (! $candidate) {
+            \Log::debug('Reservation undo: no matching reservation found', [
+                'name' => $name,
+                'email' => $email,
+            ]);
             return response()->json(['message' => __('reservation_not_found')], 404);
         }
 
@@ -354,5 +349,31 @@ class ReservationController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Find a reservation by case-insensitive name and decrypted email.
+     */
+    private function findReservationByNameAndEmail(string $name, string $email): ?Reservation
+    {
+        $emailLower = Str::lower($email);
+
+        $candidates = Reservation::query()
+            ->whereRaw('LOWER(display_name) = ?', [Str::lower($name)])
+            ->get();
+
+        $match = $candidates->first(function (Reservation $reservation) use ($emailLower) {
+            $resEmail = (string) ($reservation->email ?? '');
+            return Str::lower($resEmail) === $emailLower;
+        });
+
+        if ($match) {
+            \Log::debug('Reservation undo: matched reservation', [
+                'reservation_id' => $match->id,
+                'name' => $match->display_name,
+            ]);
+        }
+
+        return $match;
     }
 }
