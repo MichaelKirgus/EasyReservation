@@ -45,6 +45,7 @@
     "reservation_success_text",
     "reservation_undo_success_text",
     "reservation_undo_not_found_text",
+    "reservation_limit_text",
     "reservation_admin_validation_pending_text",
     "show_faq_button_landing_enabled",
     "show_gdpr_button_landing_enabled",

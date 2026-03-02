@@ -312,7 +312,17 @@ async function submitReservation() {
     form.payload = {}
     await loadConfig()
   } catch (e) {
-    setError(tr('reservation_failed_prefix', 'Reservation failed: ') + (e.message || e))
+    const msg = String(e?.message || e)
+    const reservationLimitMsg = renderMarkdown(config.settings.reservation_limit_text) || tr('feedback_reservation_limit', 'Reservation limit reached.')
+    const waitlistFullMsg = renderMarkdown(config.settings.waitlist_full_text) || tr('feedback_waitlist_full', 'Waitlist is full.')
+
+    if (msg.includes('reservation_limit_reached') || msg.includes('feedback_reservation_limit')) {
+      setError(reservationLimitMsg)
+    } else if (msg.includes('feedback_waitlist_full')) {
+      setError(waitlistFullMsg)
+    } else {
+      setError(tr('reservation_failed_prefix', 'Reservation failed: ') + msg)
+    }
   } finally {
     loading.value = false
   }
@@ -408,7 +418,17 @@ async function verifyTokenIfPresent() {
     }
     await loadConfig()
   } catch (e) {
-    setError(tr('email_validation_failed', 'Validierung fehlgeschlagen: ') + (e.message || e))
+    const msg = String(e?.message || e)
+    const reservationLimitMsg = renderMarkdown(config.settings.reservation_limit_text) || tr('feedback_reservation_limit', 'Reservation limit reached.')
+    const waitlistFullMsg = renderMarkdown(config.settings.waitlist_full_text) || tr('feedback_waitlist_full', 'Waitlist is full.')
+
+    if (msg.includes('reservation_limit_reached') || msg.includes('feedback_reservation_limit')) {
+      setError(reservationLimitMsg)
+    } else if (msg.includes('feedback_waitlist_full')) {
+      setError(waitlistFullMsg)
+    } else {
+      setError(tr('email_validation_failed', 'Validierung fehlgeschlagen: ') + msg)
+    }
   } finally {
     removeQueryParams(['v'])
   }
