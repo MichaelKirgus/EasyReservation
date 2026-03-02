@@ -38,9 +38,6 @@ Route::options('/{any}', fn () => response()->noContent())->where('any', '.*');
 
 // Public health check endpoint (no authentication required)
 Route::get('/health', [HealthController::class, 'check']);
-Route::get('/surveys/{survey}', [PublicSurveyController::class, 'show']);
-Route::post('/surveys/{survey}/submit', [PublicSurveyController::class, 'submit']);
-Route::get('/surveys/{survey}/check-status', [PublicSurveyController::class, 'checkStatus']);
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -66,6 +63,9 @@ Route::middleware(['site-token'])->group(function () {
     Route::get('/faqs', [FaqController::class, 'publicIndex']);
     Route::get('/privacy-policy', [PrivacyPolicyController::class, 'show']);
     Route::get('/events/upcoming', [EventController::class, 'upcoming']);
+    Route::get('/surveys/{survey}', [PublicSurveyController::class, 'show']);
+    Route::post('/surveys/{survey}/submit', [PublicSurveyController::class, 'submit']);
+    Route::get('/surveys/{survey}/check-status', [PublicSurveyController::class, 'checkStatus']);
     Route::post('/reservations', [ReservationController::class, 'store']);
     Route::post('/reservations/undo', [ReservationController::class, 'undo']);
     Route::post('/waitlist', [WaitlistController::class, 'store']);

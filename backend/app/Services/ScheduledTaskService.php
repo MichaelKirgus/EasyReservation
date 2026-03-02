@@ -327,10 +327,8 @@ class ScheduledTaskService
                     foreach ($recipients as $recipient) {
                         try {
                             $responseToken = $recipient['token'] ?? (string) \Illuminate\Support\Str::uuid();
-                            $surveyLink = route('public.survey.response', [
-                                'surveyId' => $survey->id,
-                                'token' => $responseToken,
-                            ]);
+                            $surveyLink = app(\App\Services\LinkBuildingService::class)
+                                ->buildSurveyLink($survey->id, $responseToken);
                             
                             // Build email body using template if provided
                             if ($template) {

@@ -11,6 +11,7 @@ class LinkBuildingService
 {
     public function __construct(
         private readonly SettingsService $settings,
+        private readonly SiteTokenService $siteTokens,
     ) {
     }
 
@@ -89,12 +90,17 @@ class LinkBuildingService
         }
 
         $params = ['survey_id' => (string) $surveyId];
-        
+
         if ($token) {
             $params['token'] = $token;
         } else {
             // Generate a unique token for the responder
             $params['token'] = (string) Str::uuid();
+        }
+
+        $siteToken = $this->siteTokens->getValidSiteToken();
+        if (!empty($siteToken)) {
+            $params['t'] = $siteToken;
         }
 
         return $this->appendQuery($base, $params);

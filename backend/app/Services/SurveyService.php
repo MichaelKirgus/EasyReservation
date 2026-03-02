@@ -43,10 +43,7 @@ class SurveyService
 
                 foreach ($recipients as $recipient) {
                     $responseToken = $recipient['token'] ?? (string) \Illuminate\Support\Str::uuid();
-                    $surveyLink = route('public.survey.response', [
-                        'surveyId' => $survey->id,
-                        'token' => $responseToken,
-                    ]);
+                    $surveyLink = $this->linkBuilder->buildSurveyLink($survey->id, $responseToken);
 
                     // Build email body
                     $subject = "Survey: {$survey->title}";
