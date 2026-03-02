@@ -27,6 +27,7 @@
     "waitlist_join_button_text",
     "waitlist_success_text",
     "waitlist_undo_success_text",
+    "waitlist_undo_not_found_text",
     "waitlist_disabled_text",
     "reservation_attendees_align",
     "reservation_card_opacity",

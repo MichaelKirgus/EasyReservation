@@ -29,6 +29,7 @@ export const settingsFields = [
     { key: 'waitlist_join_button_text', type: 'text', placeholders: true },
     { key: 'waitlist_success_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
     { key: 'waitlist_undo_success_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
+    { key: 'waitlist_undo_not_found_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
     { key: 'waitlist_disabled_text', type: 'text', placeholders: true },
     { key: 'reservation_enabled', type: 'boolean' },
     { key: 'reservation_undo_enabled', type: 'boolean' },

@@ -443,7 +443,12 @@ async function handleWaitlistUndoTokenIfPresent() {
     setMessage(renderMarkdown(config.settings.waitlist_undo_success_text) || tr('waitlist_undo_success_text', 'Reservation removed.'))
     await loadConfig()
   } catch (e) {
-    setError(tr('waitlist_undo_failed_prefix', 'Waitlist cancellation failed: ') + (e.message || e))
+    const customNotFound = renderMarkdown(config.settings.waitlist_undo_not_found_text) || tr('waitlist_undo_not_found_text', 'Entry not found.')
+    if (String(e?.message || '').includes('waitlist_entry_not_found')) {
+      setMessage(customNotFound)
+    } else {
+      setError(tr('waitlist_undo_failed_prefix', 'Waitlist cancellation failed: ') + (e.message || e))
+    }
   } finally {
     removeQueryParams(['wu'])
   }

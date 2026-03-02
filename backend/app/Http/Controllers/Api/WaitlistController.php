@@ -10,6 +10,7 @@ use App\Services\SettingsService;
 use App\Services\EventTriggerService;
 use App\Services\SiteTokenService;
 use App\Services\EmailValidationService;
+use App\Services\PlaceholderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -24,6 +25,7 @@ class WaitlistController extends Controller
         private readonly EventTriggerService $eventTriggers,
         private readonly SiteTokenService $siteTokenService,
         private readonly EmailValidationService $emailValidation,
+        private readonly PlaceholderService $placeholders,
     ) {
     }
 
@@ -227,7 +229,8 @@ class WaitlistController extends Controller
             ->first();
 
         if (! $entry) {
-            return response()->json(['message' => __('waitlist_entry_not_found')], 404);
+            $message = $this->customNotFoundMessage([]) ?? __('waitlist_entry_not_found');
+            return response()->json(['message' => $message], 404);
         }
 
         $entry->undo_used_at = now();
@@ -272,7 +275,10 @@ class WaitlistController extends Controller
                 'name' => $name,
                 'email' => $email,
             ]);
-            return response()->json(['message' => __('waitlist_entry_not_found')], 404);
+
+            $message = $this->customNotFoundMessage(['name' => $name, 'email' => $email]) ?? __('waitlist_entry_not_found');
+
+            return response()->json(['message' => $message], 404);
         }
 
         $entry->undo_used_at = now();
@@ -314,6 +320,28 @@ class WaitlistController extends Controller
         }
 
         return $match;
+    }
+
+    /**
+     * Resolve custom not-found message with placeholders if configured.
+     */
+    private function customNotFoundMessage(array $recipient): ?string
+    {
+        $raw = (string) ($this->settings->get('waitlist_undo_not_found_text', '') ?? '');
+        if ($raw === '') {
+            return null;
+        }
+
+        $replacements = $this->placeholders->replacements([
+            'name' => $recipient['name'] ?? '',
+            'email' => $recipient['email'] ?? '',
+            'undo_link' => '',
+            'undo_link_html' => '',
+            'validation_link' => '',
+            'validation_link_html' => '',
+        ]);
+
+        return strtr($raw, $replacements);
     }
 
     private function shouldNotify(Request $request, mixed $override): bool
