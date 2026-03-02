@@ -15,6 +15,7 @@ use App\Services\ReservationValidationService;
 use App\Services\SettingsService;
 use App\Services\SiteTokenService;
 use App\Services\WaitlistService;
+use App\Services\PlaceholderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -31,6 +32,7 @@ class ReservationController extends Controller
         private readonly EventTriggerService $eventTriggers,
         private readonly EmailService $emailService,
         private readonly SiteTokenService $siteTokenService,
+        private readonly PlaceholderService $placeholders,
     ) {
     }
 
@@ -267,7 +269,10 @@ class ReservationController extends Controller
                 'name' => $name,
                 'email' => $email,
             ]);
-            return response()->json(['message' => __('reservation_not_found')], 404);
+
+            $message = $this->customNotFoundMessage(['name' => $name, 'email' => $email]) ?? __('reservation_not_found');
+
+            return response()->json(['message' => $message], 404);
         }
 
         $this->emailValidation->sendReservationNotification($candidate, 'email_reservation_cancel_template_id', false);
@@ -301,7 +306,8 @@ class ReservationController extends Controller
         $reservation = Reservation::query()->where('undo_token', $token)->first();
 
         if (! $reservation) {
-            return response()->json(['message' => __('reservation_not_found')], 404);
+            $message = $this->customNotFoundMessage([]) ?? __('reservation_not_found');
+            return response()->json(['message' => $message], 404);
         }
 
         $this->emailValidation->sendReservationNotification($reservation, 'email_reservation_cancel_template_id', false);
@@ -349,6 +355,28 @@ class ReservationController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Resolve custom not-found message with placeholders if configured.
+     */
+    private function customNotFoundMessage(array $recipient): ?string
+    {
+        $raw = (string) ($this->settings->get('reservation_undo_not_found_text', '') ?? '');
+        if ($raw === '') {
+            return null;
+        }
+
+        $replacements = $this->placeholders->replacements([
+            'name' => $recipient['name'] ?? '',
+            'email' => $recipient['email'] ?? '',
+            'undo_link' => '',
+            'undo_link_html' => '',
+            'validation_link' => '',
+            'validation_link_html' => '',
+        ]);
+
+        return strtr($raw, $replacements);
     }
 
     /**

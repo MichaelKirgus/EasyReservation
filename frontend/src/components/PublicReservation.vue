@@ -340,7 +340,12 @@ async function undoReservation() {
     form.payload = {}
     await loadConfig()
   } catch (e) {
-    setError(tr('reservation_undo_failed_prefix', 'Undo failed: ') + (e.message || e))
+    const customNotFound = renderMarkdown(config.settings.reservation_undo_not_found_text) || tr('reservation_undo_not_found_text', 'Reservation not found.')
+    if (String(e?.message || '').includes('reservation_not_found')) {
+      setMessage(customNotFound)
+    } else {
+      setError(tr('reservation_undo_failed_prefix', 'Undo failed: ') + (e.message || e))
+    }
   } finally {
     loading.value = false
   }
@@ -423,7 +428,12 @@ async function handleUndoTokenIfPresent() {
     setMessage(renderMarkdown(config.settings.reservation_undo_success_text) || tr('reservation_undo_success_text', 'Reservation removed.'))
     await loadConfig()
   } catch (e) {
-    setError(tr('reservation_undo_failed_prefix', 'Undo failed: ') + (e.message || e))
+    const customNotFound = renderMarkdown(config.settings.reservation_undo_not_found_text) || tr('reservation_undo_not_found_text', 'Reservation not found.')
+    if (String(e?.message || '').includes('reservation_not_found')) {
+      setMessage(customNotFound)
+    } else {
+      setError(tr('reservation_undo_failed_prefix', 'Undo failed: ') + (e.message || e))
+    }
   } finally {
     removeQueryParams(['u'])
   }
