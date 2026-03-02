@@ -27,6 +27,11 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
     public int $tries;
 
     /**
+     * The number of seconds after which the job's unique lock will be released.
+     */
+    public int $uniqueFor = 30;
+
+    /**
      * @param array $mailerConfig
      * @param string $toEmail
      * @param string|null $toName
@@ -61,6 +66,18 @@ class SendMailJob implements ShouldQueue, ShouldBeUnique
         private readonly ?int $retryCount = null,
     ) {
         $this->tries = max(1, (int) ($this->retryCount ?? 3));
+    }
+
+    /**
+     * The unique ID of the job.
+     *
+     * Uses recipient email + subject hash so that different emails
+     * (e.g. waitlist promoted + reservation success) to the same
+     * recipient can be dispatched concurrently without being dropped.
+     */
+    public function uniqueId(): string
+    {
+        return sha1($this->toEmail . '|' . $this->subject);
     }
 
     public function handle(): void

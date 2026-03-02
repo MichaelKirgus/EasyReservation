@@ -16,7 +16,6 @@ class WaitlistService
         private readonly EmailBroadcastService $mailer,
         private readonly EmailService $emailService,
         private readonly MailTransportService $mailTransportService,
-        private readonly EmailValidationService $emailValidation,
     ) {
     }
 
@@ -295,11 +294,6 @@ class WaitlistService
             'email' => $reservation->email ?? 'unknown',
         ]);
 
-        $templateId = (int) ($this->settings->get('email_waitlist_promoted_template_id', 0) ?? 0);
-        if ($templateId <= 0) {
-            \Illuminate\Support\Facades\Log::warning('WaitlistService: No waitlist promoted template configured');
-            return;
-        }
         if (empty($reservation->email)) {
             \Illuminate\Support\Facades\Log::debug('WaitlistService: Reservation has no email, skipping');
             return;
@@ -310,19 +304,35 @@ class WaitlistService
             $reservation->save();
         }
 
-        // Get transport group ID from template; fallback to global mail config if missing
-        $transportGroupId = $this->getTransportGroupIdFromTemplate($templateId);
+        // Send waitlist promoted email (independent of reservation success email)
+        $templateId = (int) ($this->settings->get('email_waitlist_promoted_template_id', 0) ?? 0);
+        if ($templateId > 0) {
+            // Get transport group ID from template; fallback to global mail config if missing
+            $transportGroupId = $this->getTransportGroupIdFromTemplate($templateId);
 
-        if (!$transportGroupId) {
-            \Illuminate\Support\Facades\Log::warning('WaitlistService: No transport group for promoted email, falling back to global mail config');
+            if (!$transportGroupId) {
+                \Illuminate\Support\Facades\Log::warning('WaitlistService: No transport group for promoted email, falling back to global mail config');
+            }
+
+            try {
+                $this->emailService->sendWaitlistPromotedEmail($transportGroupId, $reservation);
+            } catch (\Throwable $e) {
+                Log::warning('Waitlist promotion email failed', [
+                    'error' => $e->getMessage(),
+                    'reservation_id' => $reservation->id,
+                ]);
+            }
+        } else {
+            \Illuminate\Support\Facades\Log::warning('WaitlistService: No waitlist promoted template configured');
         }
 
+        // Always send the standard reservation success notification so promoted users
+        // get the same confirmation as direct reservations, regardless of whether the
+        // promoted template is configured or whether that email succeeded.
         try {
-            $this->emailService->sendWaitlistPromotedEmail($transportGroupId, $reservation);
-            // Also send the standard reservation success notification so promoted users get the same message as direct reservations
-            $this->emailValidation->sendReservationNotification($reservation, 'email_reservation_success_template_id', true);
+            app(\App\Services\EmailValidationService::class)->sendReservationNotification($reservation, 'email_reservation_success_template_id', true);
         } catch (\Throwable $e) {
-            Log::warning('Waitlist promotion email failed', [
+            Log::warning('Waitlist promotion: reservation success email failed', [
                 'error' => $e->getMessage(),
                 'reservation_id' => $reservation->id,
             ]);
