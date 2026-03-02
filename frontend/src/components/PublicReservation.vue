@@ -360,11 +360,12 @@ async function undoReservation() {
   } catch (e) {
     const reservationNotFoundMsg = renderMarkdown(config.settings.reservation_undo_not_found_text) || tr('reservation_undo_not_found_text', 'Reservation not found.')
     const waitlistNotFoundMsg = renderMarkdown(config.settings.waitlist_undo_not_found_text) || tr('waitlist_undo_not_found_text', 'Entry not found.')
-    const status = e?.response?.status
-    const errMsg = String(e?.response?.data?.message || e?.message || e)
+    const errMsgRaw = e?.payload?.message || e?.message || e
+    const errMsg = String(errMsgRaw)
+    const is404 = (e?.status === 404) || errMsg.includes('HTTP 404') || errMsg.includes('reservation_not_found')
 
     // If no reservation matched, try waitlist undo as a fallback to keep a single button in the UI
-    if (status === 404 || errMsg.includes('reservation_not_found')) {
+    if (is404) {
       try {
         await fetchJsonWithAuth(
           `${apiBase}/waitlist/undo`,
@@ -385,9 +386,9 @@ async function undoReservation() {
         await loadConfig()
         return
       } catch (we) {
-        const wStatus = we?.response?.status
         const wMsg = String(we?.response?.data?.message || we?.message || we)
-        if (wStatus === 404 || wMsg.includes('waitlist_entry_not_found')) {
+        const wIs404 = wMsg.includes('HTTP 404') || wMsg.includes('waitlist_entry_not_found')
+        if (wIs404) {
           setMessage(waitlistNotFoundMsg)
         } else {
           setError(tr('waitlist_undo_failed_prefix', 'Waitlist cancellation failed: ') + wMsg)
@@ -396,7 +397,8 @@ async function undoReservation() {
       }
     }
 
-    setError(tr('reservation_undo_failed_prefix', 'Undo failed: ') + (e.message || e))
+    // Generic failure (non-404)
+    setError(tr('reservation_undo_failed_prefix', 'Undo failed: ') + errMsg)
   } finally {
     loading.value = false
   }

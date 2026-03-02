@@ -17,8 +17,19 @@ export async function fetchJsonWithAuth(url, opts = {}, tokens = {}) {
   const text = await response.text()
 
   if (!response.ok) {
-    const snippet = text ? ` ${text.slice(0, 120)}` : ''
-    throw new Error(`HTTP ${response.status} ${response.statusText}${snippet}`)
+    // Try to surface the backend message fully (no truncation) for better UI display
+    try {
+      const json = text ? JSON.parse(text) : null
+      const backendMessage = json?.message || json?.error || text || response.statusText
+      const err = new Error(`HTTP ${response.status} ${response.statusText}${backendMessage ? ` ${backendMessage}` : ''}`)
+      err.status = response.status
+      err.payload = json
+      throw err
+    } catch (_) {
+      const err = new Error(`HTTP ${response.status} ${response.statusText}${text ? ` ${text}` : ''}`)
+      err.status = response.status
+      throw err
+    }
   }
 
   const contentType = response.headers.get('content-type') || ''
