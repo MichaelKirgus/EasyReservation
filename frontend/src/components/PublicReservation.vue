@@ -351,19 +351,52 @@ async function undoReservation() {
       },
       { siteToken: siteToken.value, publicApiKey: publicApiKey.value },
     )
-    setMessage(tr('feedback_reservation_undo_success', 'Reservation removed.'))
+    setMessage(renderMarkdown(config.settings.reservation_undo_success_text) || tr('feedback_reservation_undo_success', 'Reservation removed.'))
     form.name = ''
     form.email = ''
 
     form.payload = {}
     await loadConfig()
   } catch (e) {
-    const customNotFound = renderMarkdown(config.settings.reservation_undo_not_found_text) || tr('reservation_undo_not_found_text', 'Reservation not found.')
-    if (String(e?.message || '').includes('reservation_not_found')) {
-      setMessage(customNotFound)
-    } else {
-      setError(tr('reservation_undo_failed_prefix', 'Undo failed: ') + (e.message || e))
+    const reservationNotFoundMsg = renderMarkdown(config.settings.reservation_undo_not_found_text) || tr('reservation_undo_not_found_text', 'Reservation not found.')
+    const waitlistNotFoundMsg = renderMarkdown(config.settings.waitlist_undo_not_found_text) || tr('waitlist_undo_not_found_text', 'Entry not found.')
+    const status = e?.response?.status
+    const errMsg = String(e?.response?.data?.message || e?.message || e)
+
+    // If no reservation matched, try waitlist undo as a fallback to keep a single button in the UI
+    if (status === 404 || errMsg.includes('reservation_not_found')) {
+      try {
+        await fetchJsonWithAuth(
+          `${apiBase}/waitlist/undo`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: form.name,
+              email: form.email,
+            }),
+          },
+          { siteToken: siteToken.value, publicApiKey: publicApiKey.value },
+        )
+        setMessage(renderMarkdown(config.settings.waitlist_undo_success_text) || tr('waitlist_undo_success_text', 'Reservation removed.'))
+        form.name = ''
+        form.email = ''
+        form.payload = {}
+        await loadConfig()
+        return
+      } catch (we) {
+        const wStatus = we?.response?.status
+        const wMsg = String(we?.response?.data?.message || we?.message || we)
+        if (wStatus === 404 || wMsg.includes('waitlist_entry_not_found')) {
+          setMessage(waitlistNotFoundMsg)
+        } else {
+          setError(tr('waitlist_undo_failed_prefix', 'Waitlist cancellation failed: ') + wMsg)
+        }
+        return
+      }
     }
+
+    setError(tr('reservation_undo_failed_prefix', 'Undo failed: ') + (e.message || e))
   } finally {
     loading.value = false
   }
@@ -582,7 +615,7 @@ function goToGDPR() {
         </svg>
       </div>
       <div v-if="message && !modalMessageEnabled" ref="messageRef" class="message" v-html="message"></div>
-      <div v-if="error && !modalErrorEnabled" ref="errorRef" class="error">{{ error }}</div>
+      <div v-if="error && !modalErrorEnabled" ref="errorRef" class="error" v-html="error"></div>
 
       <Teleport to="body">
         <div v-if="(modalMessageEnabled && message) || (modalErrorEnabled && error)" class="reservation-modal-backdrop" @click.self="() => { message = ''; error = '' }">
