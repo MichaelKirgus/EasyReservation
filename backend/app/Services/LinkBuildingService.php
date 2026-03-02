@@ -54,7 +54,9 @@ class LinkBuildingService
             $base = rtrim(config('app.url'), '/');
         }
 
-        $params = ['u' => (string) $target->undo_token];
+        // Use distinct query key for waitlist so the frontend can route to the correct endpoint
+        $undoKey = $target instanceof WaitlistEntry ? 'wu' : 'u';
+        $params = [$undoKey => (string) $target->undo_token];
         if (!empty($target->site_token)) {
             $params['t'] = $target->site_token;
         }
