@@ -302,7 +302,7 @@ class EmailValidationService
             $result = $this->finalize($validation);
             $isWaitlist = $validation->type === 'waitlist'
                 || ($result instanceof \App\Models\EmailValidation && $result->type === 'waitlist')
-                || (is_array($result) && (($result['type'] ?? null) === 'waitlist' || array_key_exists('waitlist_entry_id', $result)));
+                || (is_array($result) && (($result['type'] ?? null) === 'waitlist' || !empty($result['waitlist_entry_id'])));
             // $result may be EmailValidation (reservation) or array (waitlist)
             if ($result instanceof \App\Models\EmailValidation) {
                 return [
