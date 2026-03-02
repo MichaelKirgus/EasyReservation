@@ -312,11 +312,15 @@ async function submitReservation() {
     form.payload = {}
     await loadConfig()
   } catch (e) {
-    const msg = String(e?.message || e)
+    const serverMsg = e?.response?.data?.message
+    const msg = String(serverMsg || e?.message || e)
+    const rateLimitMsg = renderMarkdown(config.settings.email_validation_rate_limit_text) || tr('email_validation_rate_limited', 'Too many requests. Please try again later.')
     const reservationLimitMsg = renderMarkdown(config.settings.reservation_limit_text) || tr('feedback_reservation_limit', 'Reservation limit reached.')
     const waitlistFullMsg = renderMarkdown(config.settings.waitlist_full_text) || tr('feedback_waitlist_full', 'Waitlist is full.')
 
-    if (msg.includes('reservation_limit_reached') || msg.includes('feedback_reservation_limit')) {
+    if (e?.response?.status === 429 || msg.includes('email_validation_rate_limit')) {
+      setError(rateLimitMsg)
+    } else if (msg.includes('reservation_limit_reached') || msg.includes('feedback_reservation_limit')) {
       setError(reservationLimitMsg)
     } else if (msg.includes('feedback_waitlist_full')) {
       setError(waitlistFullMsg)

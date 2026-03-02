@@ -63,7 +63,7 @@ class EmailValidationService
         $key = 'email_validation_rate:' . $ip . ':' . now()->format('YmdH');
         $count = $this->rateLimitCache->get($key, 0);
         if ($count >= $limit) {
-            throw new \RuntimeException('Too many requests from IP, please try again later.');
+            throw new \RuntimeException('email_validation_rate_limit');
         }
         $this->rateLimitCache->put($key, $count + 1, now()->addHour());
     }

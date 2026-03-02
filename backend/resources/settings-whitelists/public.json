@@ -42,6 +42,7 @@
     "reservation_upcoming_events_array",
     "reservation_upcoming_events_list",
     "email_validation_pending_text",
+    "email_validation_rate_limit_text",
     "reservation_success_text",
     "reservation_undo_success_text",
     "reservation_undo_not_found_text",

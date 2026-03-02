@@ -132,6 +132,7 @@ export const settingsFields = [
     { key: 'ical_template', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
     { key: 'email_validation_rate_limit_per_hour', type: 'number', default: 5 },
     { key: 'email_validation_rate_limit_header', type: 'text', default: 'HTTP_X_FORWARDED_FOR' },
+    { key: 'email_validation_rate_limit_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },
     { key: 'privacy_policy_enabled', type: 'boolean' },
     { key: 'faq_enabled', type: 'boolean' },
     { key: 'privacy_policy_text', type: 'text', component: 'textarea', hintKey: 'admin_setting_markdown_hint', placeholders: true },

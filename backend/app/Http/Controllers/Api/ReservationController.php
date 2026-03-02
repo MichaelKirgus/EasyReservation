@@ -171,6 +171,17 @@ class ReservationController extends Controller
                     'validation' => $validationData,
                 ], 202);
             } catch (\Throwable $e) {
+                $isRateLimited = $e instanceof \RuntimeException && Str::contains($e->getMessage(), 'email_validation_rate_limit');
+                if ($isRateLimited) {
+                    $customRateLimit = $this->settings->get('email_validation_rate_limit_text');
+                    $rateLimitMessage = $customRateLimit ?: __('email_validation_rate_limited');
+
+                    return response()->json([
+                        'message' => $rateLimitMessage,
+                        'error' => $e->getMessage(),
+                    ], 429);
+                }
+
                 Log::error('ReservationController: Exception caught in store', [
                     'exception_class' => get_class($e),
                     'exception_message' => $e->getMessage(),

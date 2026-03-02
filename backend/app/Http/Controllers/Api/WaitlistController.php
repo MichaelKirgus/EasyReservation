@@ -99,6 +99,16 @@ class WaitlistController extends Controller
 
             $entry = $this->waitlist->addToWaitlist($name, $email, $payload, $siteToken);
         } catch (\RuntimeException $e) {
+            if (Str::contains($e->getMessage(), 'email_validation_rate_limit')) {
+                $customRateLimit = $this->settings->get('email_validation_rate_limit_text');
+                $rateLimitMessage = $customRateLimit ?: __('email_validation_rate_limited');
+
+                return response()->json([
+                    'message' => $rateLimitMessage,
+                    'error' => $e->getMessage(),
+                ], 429);
+            }
+
             return response()->json(['message' => $e->getMessage()], 409);
         } catch (\Throwable $e) {
             return response()->json([
