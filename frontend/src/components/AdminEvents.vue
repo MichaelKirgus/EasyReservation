@@ -16,6 +16,9 @@ const events = ref([])
 const selectedEvents = ref([])
 const lastAutoErrorAt = ref(0)
 
+// Calendar state
+const calendarCursor = ref(new Date())
+
 // Tab state
 
 const activeTab = ref('events')
@@ -166,6 +169,96 @@ function exportCsv(rows, fields, prefix) {
   downloadBlob(toCsv(rows, fields), makeFilename(prefix, 'csv'), 'text/csv')
 }
 
+function formatDateKey(date) {
+  const pad = n => n.toString().padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+const eventsByDate = computed(() => {
+  const map = {}
+  for (const ev of events.value) {
+    if (!ev?.start_at) continue
+    const d = new Date(ev.start_at)
+    if (Number.isNaN(d.getTime())) continue
+    const key = formatDateKey(d)
+    if (!map[key]) map[key] = []
+    map[key].push(ev)
+  }
+  return map
+})
+
+const dayNames = computed(() => {
+  const base = new Date(Date.UTC(2024, 0, 1)) // Monday
+  return Array.from({ length: 7 }, (_, idx) => {
+    const d = new Date(base)
+    d.setUTCDate(base.getUTCDate() + idx)
+    return d.toLocaleDateString(navigator.language, { weekday: 'short' })
+  })
+})
+
+const calendarMonthLabel = computed(() => calendarCursor.value.toLocaleDateString(navigator.language, { month: 'long', year: 'numeric' }))
+
+const calendarDays = computed(() => {
+  const cursor = calendarCursor.value
+  const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1)
+  const offset = (monthStart.getDay() + 6) % 7 // start week on Monday
+  const gridStart = new Date(monthStart)
+  gridStart.setDate(monthStart.getDate() - offset)
+
+  return Array.from({ length: 42 }, (_, idx) => {
+    const d = new Date(gridStart)
+    d.setDate(gridStart.getDate() + idx)
+    const key = formatDateKey(d)
+    return {
+      date: d,
+      key,
+      isCurrentMonth: d.getMonth() === cursor.getMonth(),
+      isToday: key === formatDateKey(new Date()),
+      events: eventsByDate.value[key] || [],
+    }
+  })
+})
+
+function isoWeekNumber(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7)
+}
+
+const calendarWeeks = computed(() => {
+  const weeks = []
+  for (let i = 0; i < calendarDays.value.length; i += 7) {
+    const days = calendarDays.value.slice(i, i + 7)
+    weeks.push({ week: isoWeekNumber(days[0].date), days })
+  }
+  return weeks
+})
+
+function shiftMonth(amount) {
+  const next = new Date(calendarCursor.value)
+  next.setMonth(calendarCursor.value.getMonth() + amount)
+  calendarCursor.value = next
+}
+
+function startNewEventOnDate(dayKey) {
+  resetEventForm()
+  eventForm.start_at = `${dayKey}T09:00`
+  showAddEventForm.value = true
+  nextTick(() => {
+    if (eventTitleInputRef.value) eventTitleInputRef.value.focus()
+  })
+}
+
+function openEventFromCalendar(ev) {
+  editEvent(ev)
+  showAddEventForm.value = true
+  nextTick(() => {
+    if (eventTitleInputRef.value) eventTitleInputRef.value.focus()
+  })
+}
+
 // Event form state
 const eventForm = reactive({
   id: null,
@@ -196,6 +289,7 @@ const locationForm = reactive({
 
 // Map reference for OpenStreetMap component
 const mapRef = ref(null)
+const eventTitleInputRef = ref(null)
 
 function setError(msg, opts = {}) {
   if (opts.auto) {
@@ -488,7 +582,7 @@ onMounted(() => {
       <div v-if="message" class="message">{{ message }}</div>
 
       <div v-if="showAddEventForm || eventForm.id" class="form-grid form-with-actions">
-        <label> {{ tr('admin_events_columns_title') }} <input v-model="eventForm.title" /></label>
+        <label> {{ tr('admin_events_columns_title') }} <input v-model="eventForm.title" ref="eventTitleInputRef" /></label>
         <label> {{ tr('admin_events_start_label') }} <input v-model="eventForm.start_at" type="datetime-local" /></label>
         <label> {{ tr('admin_events_end_label') }} <input v-model="eventForm.end_at" type="datetime-local" /></label>
         <label> {{ tr('admin_events_location_label') }}
@@ -543,6 +637,44 @@ onMounted(() => {
           <IconButton icon="trash" :label="tr('admin_events_delete_button')" variant="danger" @click="removeEvent(row.id)" />
         </template>
       </AdminDataTable>
+
+      <div class="calendar-card">
+        <div class="calendar-header">
+          <IconButton icon="chevronLeft" :label="tr('admin_events_calendar_prev', 'Previous month')" variant="ghost" size="sm" @click="shiftMonth(-1)" />
+          <div class="calendar-title">{{ calendarMonthLabel }}</div>
+          <IconButton icon="chevronRight" :label="tr('admin_events_calendar_next', 'Next month')" variant="ghost" size="sm" @click="shiftMonth(1)" />
+        </div>
+        <div class="calendar-grid">
+          <div class="calendar-week-label">{{ tr('admin_events_calendar_week_label', 'CW') }}</div>
+          <div v-for="name in dayNames" :key="name" class="calendar-day-name">{{ name }}</div>
+
+          <template v-for="week in calendarWeeks" :key="week.week">
+            <div class="calendar-week-number">{{ week.week }}</div>
+            <button
+              v-for="day in week.days"
+              :key="day.key"
+              class="calendar-cell"
+              :class="{ 'is-outside': !day.isCurrentMonth, 'is-today': day.isToday }"
+              type="button"
+              @click="startNewEventOnDate(day.key)"
+            >
+              <div class="calendar-date">{{ day.date.getDate() }}</div>
+              <div class="calendar-events">
+                <button
+                  v-for="ev in day.events"
+                  :key="ev.id"
+                  class="calendar-pill"
+                  type="button"
+                  @click.stop="openEventFromCalendar(ev)"
+                >
+                  {{ ev.title || tr('admin_events_columns_title') }}
+                </button>
+              </div>
+            </button>
+          </template>
+        </div>
+        <div class="calendar-hint">{{ tr('admin_events_calendar_hint', 'Click a day to start a new event') }}</div>
+      </div>
     </div>
 
 
@@ -653,4 +785,21 @@ button.ghost { background: #eef2ff; color: #1d4ed8; border-color: #c7d2fe; }
 button.danger { background: #dc2626; color: #fff; border-color: #dc2626; }
 .error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; padding: 0.5rem; border-radius: 6px; }
 .message { color: #065f46; background: #ecfdf3; border: 1px solid #a7f3d0; padding: 0.5rem; border-radius: 6px; }
+.calendar-card { border: 1px solid var(--border-strong); border-radius: 10px; padding: 0.75rem; background: var(--surface); box-shadow: 0 1px 2px var(--shadow); display: flex; flex-direction: column; gap: 0.5rem; color: var(--text); }
+.calendar-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.calendar-title { font-weight: 700; text-transform: capitalize; color: var(--text); }
+.calendar-grid { display: grid; grid-template-columns: 48px repeat(7, minmax(0, 1fr)); gap: 0.35rem; align-items: stretch; }
+.calendar-week-label, .calendar-week-number { display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text-muted); background: var(--surface-muted); border: 1px solid var(--border-strong); border-radius: 8px; min-height: 48px; }
+.calendar-week-number { color: var(--text); }
+.calendar-day-name { text-align: center; font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.calendar-cell { border: 1px solid var(--border-strong); border-radius: 8px; padding: 0.5rem; min-height: 96px; text-align: left; background: var(--surface-muted); color: var(--text); cursor: pointer; display: flex; flex-direction: column; gap: 0.35rem; transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease; }
+.calendar-cell:hover { border-color: var(--primary); background: var(--surface-strong); }
+.calendar-cell.is-outside { opacity: 0.55; }
+.calendar-cell.is-today { border-color: var(--primary); box-shadow: 0 0 0 2px var(--focus); }
+.calendar-date { font-weight: 800; color: var(--text); font-size: 1.05rem; letter-spacing: -0.01em; }
+.calendar-events { display: flex; flex-direction: column; gap: 0.25rem; }
+.calendar-pill { display: inline-block; padding: 0.15rem 0.4rem; border-radius: 999px; background: var(--surface-strong); color: var(--text); font-size: 0.85rem; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 1px solid var(--border-strong); cursor: pointer; text-align: left; }
+.calendar-pill:hover { border-color: var(--primary); background: var(--surface); box-shadow: 0 0 0 1px var(--primary); }
+.calendar-empty { color: var(--text-muted); font-size: 0.85rem; }
+.calendar-hint { color: var(--text-muted); font-size: 0.9rem; }
 </style>
