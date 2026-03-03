@@ -54,6 +54,7 @@ const showMobileMenu = ref(false)
 const globalLoading = ref(false)
 const privacyEnabled = ref(false)
 const faqEnabled = ref(false)
+const maintenanceEnabled = computed(() => Number((appSettings.settings || appSettings)?.maintenance_enabled || 0) === 1)
 // Default to true so the top bar renders even before config fetch completes
 const privacyLoaded = ref(true)
 const cachedLoadingImage = ref('')
@@ -114,11 +115,12 @@ watch(forcedThemeMode, (mode) => {
 const navGroups = computed(() => {
   const safeFaq = typeof faqEnabled === 'object' && faqEnabled !== null && 'value' in faqEnabled ? faqEnabled.value : false;
   const safePrivacy = typeof privacyEnabled === 'object' && privacyEnabled !== null && 'value' in privacyEnabled ? privacyEnabled.value : false;
+  const isMaintenance = typeof maintenanceEnabled === 'object' && maintenanceEnabled !== null && 'value' in maintenanceEnabled ? maintenanceEnabled.value : false;
   const publicTabs = [
     { to: '/', label: tr('nav_tab_reservation', 'Reservation'), show: true },
   ];
-  if (safeFaq) publicTabs.push({ to: '/faq', label: tr('nav_tab_faq', 'FAQ'), show: true });
-  if (safePrivacy) publicTabs.push({ to: '/privacy', label: tr('nav_tab_privacy', 'Privacy'), show: true });
+  if (safeFaq && !isMaintenance) publicTabs.push({ to: '/faq', label: tr('nav_tab_faq', 'FAQ'), show: true });
+  if (safePrivacy && !isMaintenance) publicTabs.push({ to: '/privacy', label: tr('nav_tab_privacy', 'Privacy'), show: true });
   const groups = [
     {
       id: 'public',
@@ -167,7 +169,12 @@ const navGroups = computed(() => {
             return !!show;
           }),
     }))
-    .filter(group => group.id === 'public' || group.tabs.length > 0);
+    .filter(group => {
+      if (group.id === 'public') {
+        return !isMaintenance;
+      }
+      return group.tabs.length > 0;
+    });
 });
 
 const openDropdown = ref(null)
@@ -477,7 +484,6 @@ async function fetchPrivacyEnabled() {
 
 <template>
   <main class="page">
-    <div v-if="appSettings.settings && Number(appSettings.settings.maintenance_enabled) === 1 && appSettings.settings.maintenance_message" class="maintenance-message" v-html="renderMarkdown(appSettings.settings.maintenance_message)"></div>
     <header class="topbar" v-if="privacyLoaded">
       <div class="brand-row">
         <div class="left-actions">
@@ -1078,6 +1084,24 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
 }
 
 [data-theme="dark"] .maintenance-message {
+  --maintenance-bg: #2d2612;
+  --maintenance-text: #facc15;
+  --maintenance-border: #a16207;
+  --maintenance-shadow: rgba(250, 204, 21, 0.13);
+}
+</style>
+
+<!-- Global (unscoped) maintenance variables to ensure both top banner and reservation view share the same theme-aware colors -->
+<style>
+:root {
+  --maintenance-bg: #fffbe6;
+  --maintenance-text: #b45309;
+  --maintenance-border: #fde68a;
+  --maintenance-shadow: rgba(251, 191, 36, 0.08);
+}
+
+[data-theme="dark"] .maintenance-message,
+[data-theme="dark"] .site-token-message {
   --maintenance-bg: #2d2612;
   --maintenance-text: #facc15;
   --maintenance-border: #a16207;

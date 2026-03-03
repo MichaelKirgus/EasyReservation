@@ -492,6 +492,13 @@ const attendeesAlign = computed(() => config.settings?.reservation_attendees_ali
 const waitlistPublicEnabled = computed(() => Number(config.settings?.waitlist_show_public || 0) === 1)
 const waitlistAlign = computed(() => config.settings?.waitlist_public_align || 'left')
 const waitlistEntries = computed(() => Array.isArray(config.waitlist) ? config.waitlist : [])
+const maintenanceEnabled = computed(() => Number(config.settings?.maintenance_enabled || 0) === 1)
+const maintenanceMessageHtml = computed(() => {
+  if (!maintenanceEnabled.value) return ''
+  const text = config.settings?.maintenance_message || ''
+  if (text) return renderMarkdown(text)
+  return renderMarkdown(tr('maintenance_default_message', 'Currently under maintenance. Please try again later.'))
+})
 
 
 async function verifyTokenIfPresent() {
@@ -680,125 +687,134 @@ function goToGDPR() {
           </div>
         </div>
       </Teleport>
-      <section class="card" :style="cardStyle">
-        <div class="button-row">
-            <div v-if="Number(config.settings.show_faq_button_landing_enabled) === 1">
-              <button type="button" class="ghost" @click="goToFaq" :style="faqButtonStyle">{{ tr('faq_button_text_label', 'FAQ') }}</button>
-            </div>
-            <div v-if="Number(config.settings.show_gdpr_button_landing_enabled) === 1">
-              <button type="button" class="ghost" @click="goToGDPR" :style="gdprButtonStyle">{{ tr('gdpr_button_text_label', 'Privacy') }}</button>
-            </div>
-        </div>
-        <div v-if="config.settings.reservation_top_image" class="top-image">
-          <img
-            :src="mediaUrl(config.settings.reservation_top_image)"
-            :alt="config.settings.reservation_top_image_alt_description || 'Top image'"
-            :style="topImageStyle"
-          />
-        </div>
-        <div class="title-row" :class="['align-' + (headerAlign || 'left')]"><h2 :style="{ textAlign: headerAlign }">{{ config.settings.reservation_name || tr('title_reservation_form', 'Reservierung') }}</h2></div>
-        <p v-if="renderedAdditionalInfo" v-html="renderedAdditionalInfo" :style="{ textAlign: headerAlign }"></p>
-        <p v-if="showNextEvent && nextEventText" class="next-event" :style="{ textAlign: headerAlign }">
-          <strong>{{ tr('next_event_label', 'Next event') }}:</strong> {{ nextEventText }}
-        </p>
-        <div v-if="showNextEvent && upcomingEvents.length" class="next-event-list" :style="{ textAlign: headerAlign }">
-          <strong>{{ tr('upcoming_events_label', 'Upcoming dates') }}:</strong>
-          <ul>
-            <li v-for="(evt, idx) in upcomingEvents" :key="idx">{{ evt }}</li>
-          </ul>
-        </div>
-         <p v-if="Number(config.settings.reservation_show_additional_info_link || 0) === 1 && config.settings.reservation_additional_info_link" :style="{ textAlign: headerAlign }">
-          <a :href="config.settings.reservation_additional_info_link" target="_blank" rel="noopener noreferrer" :style="{ display: 'inline-block' }">
-            {{ config.settings.reservation_additional_info_link_text || config.settings.reservation_additional_info_link }}
-          </a>
-         </p>
-        <details v-if="renderedDetails" class="details">
-          <summary :style="{ textAlign: headerAlign }">{{ detailsSummaryLabel }}</summary>
-          <div v-html="renderedDetails" :style="{ textAlign: headerAlign }"></div>
-          <p v-if="Number(config.settings.reservation_show_details_info_link || 0) === 1 && config.settings.reservation_details_info_link" :style="{ textAlign: headerAlign }">
-            <a :href="config.settings.reservation_details_info_link" target="_blank" rel="noopener noreferrer">
-              {{ config.settings.reservation_details_info_link_text || config.settings.reservation_details_info_link }}
-            </a>
-          </p>
-        </details>
-        <form class="form" @submit.prevent="submitReservation">
-          <div v-for="field in publicFields" :key="field.id" class="field">
-            <label :style="{ textAlign: field.text_align || 'left' }">
-              <span v-html="renderFieldLabel(field)"></span>
-            </label>
-            <template v-if="field.type === 'checkbox'">
-              <input type="checkbox" :checked="!!fieldValue(field)" :required="field.required" @change="setFieldValue(field, $event.target.checked)" :style="{ textAlign: field.text_align || 'left' }" />
-            </template>
-            <template v-else>
-              <component
-                :is="fieldInputComponent(field)"
-                :value="fieldValue(field)"
-                @input="setFieldValue(field, $event.target?.value ?? $event)"
-                :required="field.required"
-                :placeholder="field.placeholder"
-                :type="field.type === 'email' ? 'email' : 'text'"
-                :disabled="hideIdentityFields && (field.key === 'name' || field.key === 'email')"
-                :style="{ textAlign: field.text_align || 'left' }"
-              >
-                <option v-for="opt in field.options || []" :key="opt" :value="opt">{{ opt }}</option>
-              </component>
-            </template>
-            <small v-if="field.help_text" v-html="renderFieldHelp(field)" :style="{ textAlign: field.text_align || 'left' }"></small>
+      <template v-if="maintenanceEnabled">
+        <section class="card maintenance-card" :style="cardStyle">
+          <div class="maintenance-body">
+            <div class="maintenance-message" v-html="maintenanceMessageHtml"></div>
           </div>
+        </section>
+      </template>
+      <template v-else>
+        <section class="card" :style="cardStyle">
+          <div class="button-row">
+              <div v-if="Number(config.settings.show_faq_button_landing_enabled) === 1">
+                <button type="button" class="ghost" @click="goToFaq" :style="faqButtonStyle">{{ tr('faq_button_text_label', 'FAQ') }}</button>
+              </div>
+              <div v-if="Number(config.settings.show_gdpr_button_landing_enabled) === 1">
+                <button type="button" class="ghost" @click="goToGDPR" :style="gdprButtonStyle">{{ tr('gdpr_button_text_label', 'Privacy') }}</button>
+              </div>
+          </div>
+          <div v-if="config.settings.reservation_top_image" class="top-image">
+            <img
+              :src="mediaUrl(config.settings.reservation_top_image)"
+              :alt="config.settings.reservation_top_image_alt_description || 'Top image'"
+              :style="topImageStyle"
+            />
+          </div>
+          <div class="title-row" :class="['align-' + (headerAlign || 'left')]"><h2 :style="{ textAlign: headerAlign }">{{ config.settings.reservation_name || tr('title_reservation_form', 'Reservierung') }}</h2></div>
+          <p v-if="renderedAdditionalInfo" v-html="renderedAdditionalInfo" :style="{ textAlign: headerAlign }"></p>
+          <p v-if="showNextEvent && nextEventText" class="next-event" :style="{ textAlign: headerAlign }">
+            <strong>{{ tr('next_event_label', 'Next event') }}:</strong> {{ nextEventText }}
+          </p>
+          <div v-if="showNextEvent && upcomingEvents.length" class="next-event-list" :style="{ textAlign: headerAlign }">
+            <strong>{{ tr('upcoming_events_label', 'Upcoming dates') }}:</strong>
+            <ul>
+              <li v-for="(evt, idx) in upcomingEvents" :key="idx">{{ evt }}</li>
+            </ul>
+          </div>
+           <p v-if="Number(config.settings.reservation_show_additional_info_link || 0) === 1 && config.settings.reservation_additional_info_link" :style="{ textAlign: headerAlign }">
+            <a :href="config.settings.reservation_additional_info_link" target="_blank" rel="noopener noreferrer" :style="{ display: 'inline-block' }">
+              {{ config.settings.reservation_additional_info_link_text || config.settings.reservation_additional_info_link }}
+            </a>
+           </p>
+          <details v-if="renderedDetails" class="details">
+            <summary :style="{ textAlign: headerAlign }">{{ detailsSummaryLabel }}</summary>
+            <div v-html="renderedDetails" :style="{ textAlign: headerAlign }"></div>
+            <p v-if="Number(config.settings.reservation_show_details_info_link || 0) === 1 && config.settings.reservation_details_info_link" :style="{ textAlign: headerAlign }">
+              <a :href="config.settings.reservation_details_info_link" target="_blank" rel="noopener noreferrer">
+                {{ config.settings.reservation_details_info_link_text || config.settings.reservation_details_info_link }}
+              </a>
+            </p>
+          </details>
+          <form class="form" @submit.prevent="submitReservation">
+            <div v-for="field in publicFields" :key="field.id" class="field">
+              <label :style="{ textAlign: field.text_align || 'left' }">
+                <span v-html="renderFieldLabel(field)"></span>
+              </label>
+              <template v-if="field.type === 'checkbox'">
+                <input type="checkbox" :checked="!!fieldValue(field)" :required="field.required" @change="setFieldValue(field, $event.target.checked)" :style="{ textAlign: field.text_align || 'left' }" />
+              </template>
+              <template v-else>
+                <component
+                  :is="fieldInputComponent(field)"
+                  :value="fieldValue(field)"
+                  @input="setFieldValue(field, $event.target?.value ?? $event)"
+                  :required="field.required"
+                  :placeholder="field.placeholder"
+                  :type="field.type === 'email' ? 'email' : 'text'"
+                  :disabled="hideIdentityFields && (field.key === 'name' || field.key === 'email')"
+                  :style="{ textAlign: field.text_align || 'left' }"
+                >
+                  <option v-for="opt in field.options || []" :key="opt" :value="opt">{{ opt }}</option>
+                </component>
+              </template>
+              <small v-if="field.help_text" v-html="renderFieldHelp(field)" :style="{ textAlign: field.text_align || 'left' }"></small>
+            </div>
 
-          <p v-if="waitlistFullHtml" class="hint" v-html="waitlistFullHtml" :style="{ textAlign: waitlistFullAlign }"></p>
-          <p
-            v-if="slotsFull && !waitlistEnabled && reservationLimitHtml"
-            class="hint"
-            v-html="reservationLimitHtml"
-            :style="{ textAlign: reservationLimitAlign }"
-          ></p>
+            <p v-if="waitlistFullHtml" class="hint" v-html="waitlistFullHtml" :style="{ textAlign: waitlistFullAlign }"></p>
+            <p
+              v-if="slotsFull && !waitlistEnabled && reservationLimitHtml"
+              class="hint"
+              v-html="reservationLimitHtml"
+              :style="{ textAlign: reservationLimitAlign }"
+            ></p>
 
-          <button
-            type="submit"
-            :disabled="loading || !reservationEnabled"
-            :style="reservationButtonStyle"
-          >
-            {{ submitLabel }}
-          </button>
-          <button
-            v-if="undoEnabled && config.attendees.length > 0"
-            type="button"
-            class="ghost"
-            @click="undoReservation"
-            :disabled="loading"
-            :style="reservationUndoButtonStyle"
-          >
-            {{ tr('button_remove_reservation', 'Remove reservation') }}
-          </button>
-          <p v-if="!reservationEnabled" class="hint">{{ tr('feedback_reservation_disabled', 'Reservations are disabled.') }}</p>
-        </form>
-      </section>
+            <button
+              type="submit"
+              :disabled="loading || !reservationEnabled"
+              :style="reservationButtonStyle"
+            >
+              {{ submitLabel }}
+            </button>
+            <button
+              v-if="undoEnabled && config.attendees.length > 0"
+              type="button"
+              class="ghost"
+              @click="undoReservation"
+              :disabled="loading"
+              :style="reservationUndoButtonStyle"
+            >
+              {{ tr('button_remove_reservation', 'Remove reservation') }}
+            </button>
+            <p v-if="!reservationEnabled" class="hint">{{ tr('feedback_reservation_disabled', 'Reservations are disabled.') }}</p>
+          </form>
+        </section>
 
-      <section class="card" :style="cardStyle" v-if="showAttendees">
-        <h3 :style="{ textAlign: attendeesAlign }">{{ tr('title_attendees_form', 'Teilnehmer') }}</h3>
-        <ul v-if="config.attendees.length" class="plain-list" :style="{ textAlign: attendeesAlign }">
-          <li v-for="a in config.attendees" :key="a.display_name">{{ a.display_name }}</li>
-        </ul>
-        <p v-else :style="{ textAlign: attendeesAlign }">{{ tr('no_reservation_found', 'No reservations found.') }}</p>
-      </section>
+        <section class="card" :style="cardStyle" v-if="showAttendees">
+          <h3 :style="{ textAlign: attendeesAlign }">{{ tr('title_attendees_form', 'Teilnehmer') }}</h3>
+          <ul v-if="config.attendees.length" class="plain-list" :style="{ textAlign: attendeesAlign }">
+            <li v-for="a in config.attendees" :key="a.display_name">{{ a.display_name }}</li>
+          </ul>
+          <p v-else :style="{ textAlign: attendeesAlign }">{{ tr('no_reservation_found', 'No reservations found.') }}</p>
+        </section>
 
-      <section class="card" :style="cardStyle" v-if="waitlistPublicEnabled && waitlistEntries.length">
-        <h3 :style="{ textAlign: waitlistAlign }">{{ tr('waitlist_public_title', 'Warteliste') }}</h3>
-        <ul class="plain-list" :style="{ textAlign: waitlistAlign }">
-          <li v-for="w in waitlistEntries" :key="w.display_name + String(w.date_added || '')">{{ w.display_name }}</li>
-        </ul>
-      </section>
+        <section class="card" :style="cardStyle" v-if="waitlistPublicEnabled && waitlistEntries.length">
+          <h3 :style="{ textAlign: waitlistAlign }">{{ tr('waitlist_public_title', 'Warteliste') }}</h3>
+          <ul class="plain-list" :style="{ textAlign: waitlistAlign }">
+            <li v-for="w in waitlistEntries" :key="w.display_name + String(w.date_added || '')">{{ w.display_name }}</li>
+          </ul>
+        </section>
 
-      <section class="card" :style="cardStyle" v-if="showLimit">
-        <p :style="{ textAlign: attendeesAlign }">
-          {{ config.stats.count }} {{ tr('reservation_counter_part1', 'of') }} {{ config.stats.max }} {{ tr('reservation_counter_part2', 'places booked') }}
-        </p>
-      </section>
+        <section class="card" :style="cardStyle" v-if="showLimit">
+          <p :style="{ textAlign: attendeesAlign }">
+            {{ config.stats.count }} {{ tr('reservation_counter_part1', 'of') }} {{ config.stats.max }} {{ tr('reservation_counter_part2', 'places booked') }}
+          </p>
+        </section>
 
-      <footer v-if="Number(config.settings.show_project_footer) === 1" class="project-footer">
-        <span v-html="tr('project_footer_text', 'EasyReservation – Open Source Projekt auf GitHub')"></span>
-      </footer>
+        <footer v-if="Number(config.settings.show_project_footer) === 1" class="project-footer">
+          <span v-html="tr('project_footer_text', 'EasyReservation – Open Source Projekt auf GitHub')"></span>
+        </footer>
+      </template>
     </div>
   </div>
 </template>
@@ -850,7 +866,8 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
 .loader-spinner { width: 48px; height: 48px; border: 4px solid var(--border-strong); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-.site-token-message {
+.site-token-message,
+.maintenance-message {
   background: var(--maintenance-bg, #fffbe6);
   color: var(--maintenance-text, #b45309);
   border: 1px solid var(--maintenance-border, #fde68a);
@@ -862,6 +879,9 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
   box-shadow: 0 2px 8px var(--maintenance-shadow, rgba(251, 191, 36, 0.08));
   text-align: center;
 }
+.maintenance-card { min-height: 60vh; display: flex; align-items: center; justify-content: center; }
+.maintenance-body { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center; }
+.maintenance-message { width: 100%; max-width: 760px; }
 </style>
 
 <style>
@@ -902,5 +922,24 @@ button.ghost { background: var(--surface-strong); color: var(--primary); border-
   color: var(--primary-contrast);
   cursor: pointer;
   width: auto;
+}
+
+:global(:root) {
+  --maintenance-bg: #fffbe6;
+  --maintenance-text: #b45309;
+  --maintenance-border: #fde68a;
+  --maintenance-shadow: rgba(251, 191, 36, 0.08);
+}
+
+:global([data-theme="dark"]) .maintenance-message,
+:global([data-theme="dark"]) .site-token-message {
+  --maintenance-bg: #2d2612;
+  --maintenance-text: #facc15;
+  --maintenance-border: #a16207;
+  --maintenance-shadow: rgba(250, 204, 21, 0.13);
+  background: #2d2612;
+  color: #facc15;
+  border-color: #a16207;
+  box-shadow: 0 2px 8px rgba(250, 204, 21, 0.13);
 }
 </style>
