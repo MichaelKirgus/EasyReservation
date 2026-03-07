@@ -14,12 +14,12 @@ return new class extends Migration
         Schema::table('events', function (Blueprint $table) {
             // Add uuid column to events table for consistent iCal UID generation
             $table->uuid('uuid')->nullable()->unique()->after('id');
-            
-            // Set UUID for existing events if not present
-            \DB::table('events')
-                ->whereNull('uuid')
-                ->update(['uuid' => \DB::raw("UUID()")]);
         });
+
+        // Set UUID for existing events if not present
+        \DB::table('events')
+            ->whereNull('uuid')
+            ->update(['uuid' => \DB::raw("UUID()")]);
     }
 
     /**
