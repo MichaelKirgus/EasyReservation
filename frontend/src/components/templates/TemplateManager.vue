@@ -19,6 +19,8 @@ const transportGroups = ref([])
 const transportAccounts = ref([])
 const placeholders = ref([])
 const surveys = ref([])
+const icalTemplates = ref([])
+const attachmentTemplates = ref([])
 const loading = ref(false)
 const message = ref('')
 const error = ref('')
@@ -71,9 +73,31 @@ async function loadTransportOptions() {
   }
 }
 
+async function loadIcalTemplates() {
+  try {
+    const res = await fetchWithAuth('ical-templates')
+    if (!res.ok) throw new Error(await res.text())
+    icalTemplates.value = await res.json()
+  } catch (e) {
+    console.warn('Failed to load iCal templates:', e)
+    icalTemplates.value = []
+  }
+}
+
+async function loadAttachmentTemplates() {
+  try {
+    const res = await fetchWithAuth('attachment-templates')
+    if (!res.ok) throw new Error(await res.text())
+    attachmentTemplates.value = await res.json()
+  } catch (e) {
+    console.warn('Failed to load attachment templates:', e)
+    attachmentTemplates.value = []
+  }
+}
+
 // Transport group options for combobox
 const transportGroupOptions = computed(() => {
-  const options = []
+  const options = [{ value: '__none__', label: tr('none') }]
   transportGroups.value.forEach(group => {
     options.push({
       value: `group_${group.id}`,
@@ -113,10 +137,36 @@ const canManageTemplates = computed(() =>
   routePrefix.value === 'admin' || userRole.value === 'admin' || userRole.value === 'superadmin'
 )
 
+// iCal template options for combobox
+const icalTemplateOptions = computed(() => {
+  const options = [{ value: '', label: tr('admin_email_broadcast_select_transport_placeholder') }]
+  icalTemplates.value.forEach(template => {
+    options.push({
+      value: template.id,
+      label: template.name || `#${template.id}`
+    })
+  })
+  return options
+})
+
+// Attachment template options for combobox
+const attachmentTemplateOptions = computed(() => {
+  const options = [{ value: '', label: tr('admin_email_broadcast_select_transport_placeholder') }]
+  attachmentTemplates.value.forEach(template => {
+    options.push({
+      value: template.id,
+      label: template.name || `#${template.id}`
+    })
+  })
+  return options
+})
+
 onMounted(() => {
   loadTransportOptions()
   loadPlaceholders()
   loadSurveys()
+  loadIcalTemplates()
+  loadAttachmentTemplates()
 })
 </script>
 
@@ -142,6 +192,8 @@ onMounted(() => {
     <EmailTemplateList
       v-else-if="activeTab === 'email'"
       :transport-group-options="transportGroupOptions"
+      :ical-template-options="icalTemplateOptions"
+      :attachment-template-options="attachmentTemplateOptions"
       :is-admin-or-super-admin="isAdminOrSuperAdmin"
       :can-manage-templates="canManageTemplates"
       :placeholders="placeholders"

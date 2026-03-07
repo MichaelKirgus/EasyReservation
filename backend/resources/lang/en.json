@@ -649,10 +649,13 @@
   "admin_email_broadcast_messages_no_templates": "No templates available.",
   "admin_email_broadcast_columns_placeholder": "Placeholder",
   "admin_email_broadcast_refresh_label": "Refresh",
-  "admin_email_broadcast_transport_group_label": "Transport group (optional)",
+  "admin_email_broadcast_transport_group_label": "Transport group",
+  "admin_email_broadcast_ical_template_label": "iCal Template (optional)",
+  "admin_email_broadcast_attachment_template_label": "Attachment Template (optional)",
   "admin_email_broadcast_send_tab": "Email Send",
   "admin_email_broadcast_templates_tab": "Template Management",
   "admin_email_broadcast_select_template_placeholder": "Please select",
+  "admin_email_broadcast_edit_template_title": "Edit Template",
   "admin_email_broadcast_deduplicate_label": "Avoid duplicates based on email address",
   "admin_custom_placeholders_title": "Custom Placeholders",
   "admin_custom_placeholders_button_add": "Add placeholder",
@@ -1431,6 +1434,8 @@
   "admin_events_columns_capacity": "Capacity",
   "admin_email_broadcast_transport_group": "Transport group",
   "admin_email_broadcast_select_transport_placeholder": "Please select a transport group",
+  "admin_email_broadcast_select_ical_template_placeholder": "Select iCal template (optional)",
+  "admin_email_broadcast_select_attachment_template_placeholder": "Select attachment template (optional)",
   "admin_diagnostics_hide_heartbeat_jobs": "Hide heartbeat/scheduler jobs",
   "admin_diagnostics_max_results": "Max results",
   "admin_setting_loading_svg_color_light": "Loading SVG Color (Light Mode)",
@@ -1519,5 +1524,6 @@
   "admin_ical_templates_create_button": "Create New Template",
   "admin_ical_templates_edit_button": "Edit Template",
   "admin_ical_templates_delete_button": "Delete Template",
-  "admin_ical_templates_preview_button": "Preview"
+  "admin_ical_templates_preview_button": "Preview",
+  "none": "None"
 }

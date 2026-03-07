@@ -646,12 +646,15 @@
   "admin_email_broadcast_messages_no_templates": "Keine Vorlagen vorhanden.",
   "admin_email_broadcast_columns_placeholder": "Platzhalter",
   "admin_email_broadcast_refresh_label": "Aktualisieren",
-  "admin_email_broadcast_transport_group_label": "Transportgruppe (optional)",
+  "admin_email_broadcast_transport_group_label": "Transportgruppe",
+  "admin_email_broadcast_ical_template_label": "iCal-Vorlage (optional)",
+  "admin_email_broadcast_attachment_template_label": "Anhang-Vorlage (optional)",
   "admin_email_broadcast_select_survey_label": "Umfrage auswählen (optional)",
   "admin_email_broadcast_select_survey_placeholder": "Keine Umfrage (nur E-Mail senden)",
   "admin_email_broadcast_send_tab": "E-Mail-Versand",
   "admin_email_broadcast_templates_tab": "Vorlagenverwaltung",
   "admin_email_broadcast_select_template_placeholder": "Bitte auswählen",
+  "admin_email_broadcast_edit_template_title": "Vorlage bearbeiten",
   "admin_email_broadcast_deduplicate_label": "Duplikate anhand der E-Mail-Adresse vermeiden",
   "admin_custom_placeholders_title": "Benutzerdefinierte Platzhalter",
   "admin_custom_placeholders_button_add": "Platzhalter hinzufügen",
@@ -1431,6 +1434,8 @@
   "admin_events_columns_capacity": "Kapazität",
   "admin_email_broadcast_transport_group": "Transportgruppe",
   "admin_email_broadcast_select_transport_placeholder": "Bitte wählen Sie eine Transportgruppe",
+  "admin_email_broadcast_select_ical_template_placeholder": "iCal-Vorlage auswählen (optional)",
+  "admin_email_broadcast_select_attachment_template_placeholder": "Anhangsvorlage auswählen (optional)",
   "admin_diagnostics_hide_heartbeat_jobs": "Heartbeat/Scheduler-Jobs ausblenden",
   "admin_diagnostics_max_results": "Maximale Ergebnisse",
   "admin_setting_loading_svg_color_light": "Lade-SVG-Farbe (Hellmodus)",
@@ -1519,5 +1524,6 @@
   "admin_ical_templates_create_button": "Neue Vorlage erstellen",
   "admin_ical_templates_edit_button": "Vorlage bearbeiten",
   "admin_ical_templates_delete_button": "Vorlage löschen",
-  "admin_ical_templates_preview_button": "Vorschau"
+  "admin_ical_templates_preview_button": "Vorschau",
+  "none": "Keine"
 }

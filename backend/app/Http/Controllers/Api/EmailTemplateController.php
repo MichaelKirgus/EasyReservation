@@ -38,6 +38,8 @@ class EmailTemplateController extends Controller
                 'transport_group_id' => $template->transport_group_id,
                 'transport_type' => $transportType,
                 'transport_group_name' => $template->transportGroup?->name,
+                'ical_template_id' => $template->ical_template_id,
+                'attachment_template_id' => $template->attachment_template_id,
             ];
         });
         

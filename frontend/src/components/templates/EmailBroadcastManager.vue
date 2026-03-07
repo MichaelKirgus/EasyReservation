@@ -35,10 +35,10 @@ const form = reactive({
   selectedReservations: [],
   selectedWaitlist: [],
   customRecipients: [{ name: '', email: '' }],
-  transportGroupId: null,
+  transportGroupId: '__none__',
 })
 
-const formTemplate = reactive({ name: '', subject: '', body: '', cc: '', bcc: '', type: 'generic', transportGroupId: null })
+const formTemplate = reactive({ name: '', subject: '', body: '', cc: '', bcc: '', type: 'generic', transportGroupId: '__none__' })
 
 function setMessage(msg) { 
   message.value = msg; 
@@ -58,10 +58,12 @@ async function loadTemplates() {
   if (!res.ok) throw new Error(await res.text())
   const loadedTemplates = await res.json()
   loadedTemplates.forEach(tpl => {
+    // Convert transport group to string format for combobox selection
     if (tpl.transport_group_id && tpl.transport_type) {
       tpl.transportGroupId = `${tpl.transport_type}_${tpl.transport_group_id}`;
     } else {
-      tpl.transportGroupId = '';
+      // Use "__none__" to match the "None" option in comboboxes
+      tpl.transportGroupId = '__none__';
     }
   });
   templates.value = loadedTemplates;
@@ -122,8 +124,19 @@ async function sendBroadcast() {
     payload.survey_id = form.surveyId
   }
 
-  if (form.transportGroupId) {
-    payload.transport_group_id = parseInt(form.transportGroupId.toString().replace('group_', '').replace('account_', ''))
+  // Convert "__none__" to null for transport group
+  if (form.transportGroupId && form.transportGroupId !== '__none__') {
+    let transportType = '';
+    if (typeof form.transportGroupId === 'string') {
+      if (form.transportGroupId.startsWith('group_')) {
+        transportType = 'group';
+      } else if (form.transportGroupId.startsWith('account_')) {
+        transportType = 'account';
+      }
+      payload.transport_group_id = parseInt(form.transportGroupId.replace('group_', '').replace('account_', '')) || null;
+    } else {
+      payload.transport_group_id = form.transportGroupId;
+    }
   }
 
   if (form.userRoles && form.userRoles.length > 0) {
@@ -213,7 +226,7 @@ onMounted(() => {
             :disabled="!isAdminOrSuperAdmin"
             :title="isAdminOrSuperAdmin ? '' : tr('admin_email_broadcast_transport_group_moderator_hint')"
           >
-            <option value="" disabled>{{ tr('admin_email_broadcast_select_transport_placeholder') }}</option>
+            <option value="__none__">{{ tr('none') }}</option>
             <template v-for="opt in transportGroupOptions" :key="opt.value">
               <option :value="opt.value">{{ opt.label }}</option>
             </template>
