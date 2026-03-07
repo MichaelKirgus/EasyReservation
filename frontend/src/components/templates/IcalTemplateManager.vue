@@ -6,7 +6,7 @@ import { adminFetch, adminFetchJson } from '../../utils/adminApi'
 import { useTranslation } from '../../composables/useTranslation'
 
 const props = defineProps({
-  // Props can be added if needed for parent communication
+  placeholders: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits(['message', 'error'])
@@ -17,6 +17,7 @@ const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.
 const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 
 const templates = ref([])
+const placeholders = ref([])
 const loading = ref(false)
 const message = ref('')
 const error = ref('')
@@ -38,11 +39,33 @@ function setError(msg) {
   emit('error', msg);
 }
 
+const fetchWithAuth = (relative, opts = {}) => adminFetch(relative, opts, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
+
 onMounted(() => {
   if (apiKey.value) {
-    fetchTemplates();
+    loadAll();
   }
 });
+
+async function loadAll() {
+  try {
+    await Promise.all([
+      fetchTemplates(),
+      fetchPlaceholders()
+    ])
+  } catch (e) {
+    console.error('Failed to load data:', e)
+  }
+}
+
+async function fetchPlaceholders() {
+  try {
+    const res = await adminFetchJson('placeholders', {}, { apiKeyRef: apiKey, routePrefixRef: routePrefix });
+    placeholders.value = Array.isArray(res) ? res : [];
+  } catch (error) {
+    console.error('Failed to fetch placeholders:', error);
+  }
+}
 
 async function fetchTemplates() {
   loading.value = true;
@@ -114,6 +137,8 @@ const columns = ref([
   { key: 'name', label: tr('admin_ical_templates_name_label'), sortable: true },
   { key: 'content', label: tr('admin_ical_templates_content_label'), sortable: false }
 ])
+
+const hiddenColumns = ref(new Set(['id']))
 </script>
 
 <template>
@@ -150,31 +175,39 @@ const columns = ref([
         <IconButton icon="plus" :label="tr('admin_ical_templates_create_button')" @click="openCreateForm" />
       </div>
 
-      <table v-if="templates.length > 0" class="data-table">
-        <thead>
-          <tr>
-            <th>{{ tr('admin_ical_templates_id_label') }}</th>
-            <th>{{ tr('admin_ical_templates_name_label') }}</th>
-            <th>{{ tr('admin_ical_templates_content_label') }}</th>
-            <th class="actions">{{ tr('actions') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="template in templates" :key="template.id">
-            <td>{{ template.id }}</td>
-            <td>{{ template.name }}</td>
-            <td class="content-cell">
-              <div class="content-preview">{{ truncateContent(template.content) }}</div>
-            </td>
-            <td class="actions">
-              <IconButton icon="pencil" :title="tr('edit')" @click="openEditDialog(template)" />
-              <IconButton icon="trash" :title="tr('delete')" variant="danger" @click="deleteTemplate(template)" />
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <details v-if="placeholders.length" class="placeholder-info">
+        <summary>{{ tr('admin_email_broadcast_placeholder_info_title') }}</summary>
+        <div class="placeholder-list">
+          <code v-for="token in placeholders" :key="token">{{ token }}</code>
+        </div>
+      </details>
 
-      <div v-else class="empty-state">
+      <AdminDataTable
+        :columns="columns"
+        :rows="templates"
+        row-key="id"
+        :loading="loading"
+        enable-search
+        :page-size="10"
+        persist-key="admin-ical-templates"
+        :empty-text="tr('admin_ical_templates_empty_text')"
+        :initial-hidden-columns="['id']"
+      >
+        <template #cell-name="{ row }">
+          {{ row.name }}
+        </template>
+        <template #cell-content="{ row }">
+          <div class="content-cell">
+            <div class="content-preview">{{ truncateContent(row.content) }}</div>
+          </div>
+        </template>
+        <template #row-actions="{ row }">
+          <IconButton icon="pencil" :title="tr('edit')" @click="openEditDialog(row)" />
+          <IconButton icon="trash" :title="tr('delete')" variant="danger" @click="deleteTemplate(row)" />
+        </template>
+      </AdminDataTable>
+
+      <div v-if="templates.length === 0 && !loading" class="empty-state">
         {{ tr('admin_ical_templates_empty_text') }}
       </div>
     </div>
@@ -220,8 +253,6 @@ const columns = ref([
 .form-group { margin-bottom: 1.5rem; }
 .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
 .form-group input, .form-group textarea { width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text); box-sizing: border-box; }
-.placeholder-info { display: block; margin-top: 0.25rem; font-size: 0.875rem; color: var(--text-muted); }
-
 .form-actions, .dialog-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; }
 
 /* Dialog styles */

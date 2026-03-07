@@ -249,7 +249,7 @@ onMounted(() => {
         :page-size="10"
         persist-key="admin-email-templates"
         :empty-text="tr('admin_email_broadcast_empty_templates_text')"
-        :initial-hidden-columns="['cc', 'bcc']"
+        :initial-hidden-columns="['id', 'cc', 'bcc']"
         @refresh="loadTemplates"
       >
         <template #cell-name="{ row }">
@@ -313,10 +313,8 @@ onMounted(() => {
   margin-bottom: 0.5rem;
 }
 
-.placeholder-info { font-size: 0.9rem; color: var(--text-muted); }
 .placeholder-info summary { cursor: pointer; color: var(--primary); font-weight: 600; }
 .placeholder-list { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.35rem; }
-.placeholder-list code { background: var(--surface-muted); color: var(--text); padding: 0.2rem 0.35rem; border-radius: 4px; border: 1px solid var(--border); }
 
 .with-placeholder-icon { position: relative; display: flex; align-items: center; gap: 0.35rem; width: 100%; }
 .input-wrap { position: relative; display: flex; align-items: center; gap: 0.35rem; width: 100%; }

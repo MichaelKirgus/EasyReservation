@@ -101,6 +101,27 @@ body {
   color: var(--text-muted) !important;
 }
 
+.placeholder-info summary {
+  cursor: pointer;
+  color: var(--primary) !important;
+  font-weight: 600;
+}
+
+.placeholder-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+.placeholder-list code {
+  background: var(--surface-muted);
+  color: var(--text);
+  padding: 0.2rem 0.35rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
 button {
   background: var(--btn-bg, var(--primary)) !important;
   color: var(--btn-color, var(--primary-contrast)) !important;
