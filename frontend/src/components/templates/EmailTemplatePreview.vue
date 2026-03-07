@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import IconButton from './IconButton.vue'
-import { renderMarkdown } from '../utils/markdown'
-import { useTranslation } from '../composables/useTranslation'
+import IconButton from '../IconButton.vue'
+import { renderMarkdown } from '../../utils/markdown'
+import { useTranslation } from '../../composables/useTranslation'
 
 const { tr } = useTranslation()
 

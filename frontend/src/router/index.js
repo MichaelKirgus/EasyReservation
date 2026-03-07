@@ -3,7 +3,7 @@ import PublicReservation from '../components/PublicReservation.vue'
 import PublicPrivacy from '../components/PublicPrivacy.vue'
 import PublicFaq from '../components/PublicFaq.vue'
 import AdminReservations from '../components/AdminReservations.vue'
-import AdminEmailBroadcast from '../components/AdminEmailBroadcast.vue'
+import TemplateManager from '../components/templates/TemplateManager.vue'
 import AdminFaq from '../components/AdminFaq.vue'
 import AdminEvents from '../components/AdminEvents.vue'
 import AdminDiagnostics from '../components/AdminDiagnostics.vue'
@@ -27,7 +27,17 @@ const routes = [
   { path: '/faq', name: 'faq', component: PublicFaq },
   // Moderation
   { path: '/moderation/reservations', name: 'moderation-reservations', component: AdminReservations },
-  { path: '/moderation/email', name: 'moderation-email', component: AdminEmailBroadcast },
+  {
+    path: '/moderation/templates',
+    name: 'moderation-templates',
+    component: TemplateManager,
+    children: [
+      { path: '', redirect: { name: 'template-email-list' } },
+      { path: 'email/send', name: 'template-email-send', component: () => import('../components/templates/EmailBroadcastManager.vue') },
+      { path: 'email/list', name: 'template-email-list', component: () => import('../components/templates/EmailTemplateList.vue') },
+      { path: 'ical/list', name: 'template-ical-list', component: () => import('../components/templates/IcalTemplateManager.vue') },
+    ]
+  },
   { path: '/moderation/faq', name: 'moderation-faq', component: AdminFaq },
   { path: '/moderation/events', name: 'moderation-events', component: AdminEvents },
   { path: '/moderation/surveys', name: 'moderation-surveys', component: AdminSurveys },

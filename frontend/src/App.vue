@@ -132,7 +132,7 @@ const navGroups = computed(() => {
       label: tr('nav_moderation_label', 'Moderation'),
       tabs: [
         { to: '/moderation/reservations', label: tr('nav_tab_reservations', 'Reservations'), show: !!(currentUser && currentUser.role) },
-        { to: '/moderation/email', label: tr('nav_tab_email', 'Email'), show: !!(currentUser && currentUser.role) },
+        { to: '/moderation/templates', label: tr('nav_tab_templates', 'Templates'), show: !!(currentUser && currentUser.role) },
         { to: '/moderation/faq', label: tr('nav_tab_faq', 'FAQ'), show: !!(currentUser && currentUser.role) },
         { to: '/moderation/events', label: tr('nav_tab_events', 'Events'), show: !!(currentUser && currentUser.role) },
         { to: '/moderation/surveys', label: tr('nav_tab_surveys', 'Surveys'), show: !!(currentUser && currentUser.role) },
