@@ -128,7 +128,6 @@ class PlaceholderService
             '{{event_location_url}}' => $locationUrl,
             '{{event_location_url_html}}' => $locationUrl ? '<a href="' . $locationUrl . '" rel="noreferrer">' . $locationUrl . '</a>' : '',
             '{{event_url}}' => $next instanceof Event ? (string) ($next->url ?? '') : '',
-            '{{attach_event_ical}}' => '',
             '{{ical_event_uuid}}' => $next instanceof Event && $next->uuid ? (string) $next->uuid : '',
             // iCal-specific placeholders
             '{{ical_dtstamp}}' => now()->setTimezone($timezone)->format('Ymd\THis'),

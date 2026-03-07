@@ -343,8 +343,7 @@ class EmailBroadcastService
 
     private function templateWantsIcs(EmailTemplate $template): bool
     {
-        return str_contains($template->subject ?? '', '{{attach_event_ical}}')
-            || str_contains($template->body ?? '', '{{attach_event_ical}}');
+        return !empty($template->ical_template_id);
     }
 
     /**

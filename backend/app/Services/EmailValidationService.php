@@ -655,7 +655,6 @@ HTML;
             // Use location data instead of event data
             '{{event_location_city}}' => $this->resolveEventLocationCity(),
             '{{event_location_public_transport}}' => $this->resolveEventLocationPublicTransport(),
-            '{{attach_event_ical}}' => '',
         ];
 
         return $overrides + $base;
@@ -754,7 +753,6 @@ HTML;
 
     private function templateWantsIcs(array $template): bool
     {
-        return str_contains($template['subject'] ?? '', '{{attach_event_ical}}')
-            || str_contains($template['body'] ?? '', '{{attach_event_ical}}');
+        return !empty($template['ical_template_id']);
     }
 }

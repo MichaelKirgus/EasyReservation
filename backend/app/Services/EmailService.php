@@ -139,7 +139,6 @@ class EmailService
             'validation_link_html' => '<a href="'.$link.'">'.$link.'</a>',
             'undo_link' => '',
             'undo_link_html' => '',
-            'attach_event_ical' => '',
         ]);
 
         $template = $this->resolveTemplate();
@@ -246,7 +245,6 @@ class EmailService
             'validation_link_html' => '',
             'undo_link' => '',
             'undo_link_html' => '',
-            'attach_event_ical' => '',
         ]);
 
         $subject = $this->renderTemplate($template['subject'], $replacements);
@@ -340,7 +338,6 @@ class EmailService
             'undo_link_html' => $includeUndoLink ? '<a href="'.$undoLink.'">'.$undoLink.'</a>' : '',
             'validation_link' => '',
             'validation_link_html' => '',
-            'attach_event_ical' => '',
         ]);
 
         $template = $this->resolveTemplateById($templateId);
@@ -684,7 +681,7 @@ class EmailService
        // Get ical_template_id from email template if not explicitly provided
        $icalTemplateId = $template['ical_template_id'] ?? null;
        
-       // Add ICS attachment if requested
+       // Add ICS attachment if ical_template_id is set
        if ($this->templateWantsIcs($template)) {
            $ics = $this->ics->nextEventAttachment($icalTemplateId);
            if ($ics) {
@@ -726,8 +723,7 @@ class EmailService
      */
     private function templateWantsIcs(array $template): bool
     {
-        return str_contains($template['subject'] ?? '', '{{attach_event_ical}}')
-            || str_contains($template['body'] ?? '', '{{attach_event_ical}}');
+        return !empty($template['ical_template_id']);
     }
 
     /**
