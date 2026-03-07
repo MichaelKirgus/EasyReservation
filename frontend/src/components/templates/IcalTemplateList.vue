@@ -158,7 +158,7 @@ const hiddenColumns = ref(new Set(['id']))
         <div class="form-group">
           <label>{{ tr('admin_ical_templates_content_label') }}</label>
           <textarea v-model="formTemplate.content" rows="10" :placeholder="tr('admin_ical_templates_content_placeholder')" />
-          <small class="placeholder-info">{{ tr('placeholders_available') }}: uid, dtstamp, dtstart, dtend, timezone, title, location, notes, url, start_date, start_time, end_date, end_time</small>
+          <small class="placeholder-info">{{ tr('placeholders_available') }}</small>
         </div>
 
         <div class="form-actions">

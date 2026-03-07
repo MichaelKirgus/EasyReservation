@@ -44,47 +44,16 @@ class IcsService
             // Fallback to global setting for backward compatibility
             $template = $this->settings->get('ical_template');
         }
-        
-        $timezone = $this->settings->get('ical_timezone', 'Europe/Berlin');
 
-        // Generate UID from Event UUID if available, otherwise use event ID
-        $host = parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
-        $uid = ($event->uuid ? (string) $event->uuid : 'event-'.$event->id).'@'.$host;
-        $dtstamp = now()->setTimezone($timezone)->format('Ymd\THis');
-        $start = $event->start_at->copy()->setTimezone($timezone);
-        $end = $event->end_at
-            ? $event->end_at->copy()->setTimezone($timezone)
-            : $event->start_at->copy()->setTimezone($timezone)->addHour();
-        $dtstart = $start->format('Ymd\THis');
-        $dtend = $end->format('Ymd\THis');
-
-        // Alle Felder als Platzhalter, keine Zusammenbauten mehr
-        $replacements = [
-            '{{uid}}' => $uid,
-            '{{dtstamp}}' => $dtstamp,
-            '{{dtstart}}' => $dtstart,
-            '{{dtend}}' => $dtend,
-            '{{timezone}}' => $timezone,
-            '{{title}}' => $this->escape((string) $event->title),
-            '{{location}}' => $this->escape((string) $event->location),
-            '{{notes}}' => $this->escape((string) $event->notes),
-            '{{url}}' => $this->escape((string) $event->url),
-            '{{start_date}}' => $start->format('Y-m-d'),
-            '{{start_time}}' => $start->format('H:i'),
-            '{{end_date}}' => $end->format('Y-m-d'),
-            '{{end_time}}' => $end->format('H:i'),
-            // Für Kompatibilität mit alten Vorlagen:
-            '{{summary}}' => $this->escape((string) $event->title),
-            '{{description}}' => $this->escape((string) $event->notes),
-        ];
-        // Merge mit globalen Platzhaltern
-        $replacements = array_merge($this->placeholders->replacements(), $replacements);
+        // Use PlaceholderService replacements (which now include all iCal-specific placeholders)
+        // The placeholders are already escaped in the template if needed, or we can escape them here
+        $replacements = $this->placeholders->replacements();
 
         if ($template && is_string($template) && trim($template) !== '') {
             return strtr($template, $replacements);
         }
 
-        // Fallback: bisherige Logik (wie gehabt)
+        // Fallback: generate iCal content directly (for backward compatibility)
         $summary = $event->title ?: (string) $this->settings->get('reservation_name', 'Event');
         // Get location data from relationship
         $locationModel = $event->location_id ? $event->location()->first() : null;
@@ -111,7 +80,7 @@ class IcsService
             'CALSCALE:GREGORIAN',
             'METHOD:PUBLISH',
             'BEGIN:VEVENT',
-            'UID:'.$this->escape($uid),
+            'UID:'.$this->escape(($event->uuid ? (string) $event->uuid : 'event-'.$event->id).'@'.(parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost')),
             'DTSTAMP:'.$startUtc->format('Ymd\THis\Z'),
             'DTSTART:'.$startUtc->format('Ymd\THis\Z'),
             'DTEND:'.$endUtc->format('Ymd\THis\Z'),
