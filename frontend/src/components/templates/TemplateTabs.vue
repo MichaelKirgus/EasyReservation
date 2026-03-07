@@ -50,7 +50,5 @@ function switchTab(tabValue) {
 </template>
 
 <style scoped>
-.subtabs { display: flex; gap: 0.35rem; margin: 0.25rem 0; }
-.subtab { padding: 0.45rem 0.7rem; border: 1px solid var(--border); background: var(--surface-muted); border-radius: 6px; cursor: pointer; color: var(--text); }
-.subtab.active { background: var(--primary); color: var(--primary-contrast); border-color: var(--primary); }
+/* Uses global .subtabs and .subtab styles from style.css - no local overrides needed */
 </style>

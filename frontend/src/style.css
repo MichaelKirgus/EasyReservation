@@ -192,7 +192,7 @@ details summary {
   color: var(--text);
   font-size: 0.95rem;
   line-height: 1.25;
-  font-weight: 600;
+  font-weight: 600 !important;
   cursor: pointer;
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -202,6 +202,38 @@ details summary {
 }
 
 .admin-tab-button.active {
+  background: var(--primary);
+  color: var(--primary-contrast);
+  border-color: var(--primary);
+  box-shadow: 0 1px 2px var(--shadow);
+}
+
+/* Shared subtab styling for template components (reuses admin-tab-button style) */
+.subtabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.subtab {
+  padding: 0.5rem 1rem;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1.25;
+  font-weight: 600 !important;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.subtab:hover {
+  background: var(--surface-strong);
+}
+
+.subtab.active {
   background: var(--primary);
   color: var(--primary-contrast);
   border-color: var(--primary);
