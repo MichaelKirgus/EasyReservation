@@ -71,7 +71,9 @@ class EmailBroadcastService
         // Empfänger-Platzhalter werden direkt in replacements() gemerged
 
         $wantsIcs = $this->templateWantsIcs($template);
-        $icsAttachment = $wantsIcs ? $this->ics->nextEventAttachment() : null;
+        // Get ical_template_id from email template if not explicitly provided
+        $icalTemplateId = $template['ical_template_id'] ?? null;
+        $icsAttachment = $wantsIcs ? $this->ics->nextEventAttachment($icalTemplateId) : null;
 
         $queued = 0;
         $skippedBlacklisted = 0;

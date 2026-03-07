@@ -19,6 +19,7 @@ class Event extends Model
         'auto_email_template_id',
         'auto_email_offset_minutes_before',
         'auto_email_sent_at',
+        'uuid',
     ];
 
     protected $casts = [
@@ -31,5 +32,14 @@ class Event extends Model
     public function location(): ?BelongsTo
     {
         return $this->belongsTo(Location::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Event $event) {
+            if (!$event->uuid) {
+                $event->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
     }
 }

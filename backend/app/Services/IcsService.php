@@ -16,7 +16,7 @@ class IcsService
     ) {
     }
 
-    public function nextEventAttachment(): ?array
+    public function nextEventAttachment(?int $icalTemplateId = null): ?array
     {
         $event = $this->events->next();
         if (! $event || ! $event->start_at) {
@@ -26,19 +26,30 @@ class IcsService
         return [
             'name' => 'event.ics',
             'mime' => 'text/calendar; charset=utf-8',
-            'data' => $this->buildIcs($event),
+            'data' => $this->buildIcs($event, $icalTemplateId),
         ];
     }
 
-    private function buildIcs(Event $event): string
+    public function buildIcsForEvent(Event $event, ?int $icalTemplateId = null): string
     {
-        // ICS Template and Timezone from settings
-        $template = $this->settings->get('ical_template');
+        return $this->buildIcs($event, $icalTemplateId);
+    }
+
+    private function buildIcs(Event $event, ?int $icalTemplateId = null): string
+    {
+        // Get ICS template - either from provided ID or global setting (backward compatibility)
+        if ($icalTemplateId) {
+            $template = \App\Models\IcalTemplate::find($icalTemplateId)?->content;
+        } else {
+            // Fallback to global setting for backward compatibility
+            $template = $this->settings->get('ical_template');
+        }
+        
         $timezone = $this->settings->get('ical_timezone', 'Europe/Berlin');
 
-        // Alle Event-Infos als Platzhalter bereitstellen
+        // Generate UID from Event UUID if available, otherwise use event ID
         $host = parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
-        $uid = ($event->id ? 'event-'.$event->id : (string) Str::uuid()).'@'.$host;
+        $uid = ($event->uuid ? (string) $event->uuid : 'event-'.$event->id).'@'.$host;
         $dtstamp = now()->setTimezone($timezone)->format('Ymd\THis');
         $start = $event->start_at->copy()->setTimezone($timezone);
         $end = $event->end_at
@@ -114,6 +125,9 @@ class IcsService
         return implode("\r\n", $lines)."\r\n";
     }
 
+    /**
+     * Escape special characters for iCal format.
+     */
     private function escape(string $value): string
     {
         return str_replace(

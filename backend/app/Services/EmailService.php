@@ -682,7 +682,10 @@ class EmailService
             return [];
         }
 
-        $ics = $this->ics->nextEventAttachment();
+        // Get ical_template_id from email template if not explicitly provided
+        $icalTemplateId = $template['ical_template_id'] ?? null;
+        
+        $ics = $this->ics->nextEventAttachment($icalTemplateId);
         return $ics ? [$ics] : [];
     }
 

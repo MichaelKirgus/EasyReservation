@@ -1510,5 +1510,14 @@
   "diagnostics_rate_limit_no_entries": "No active rate-limit entries",
   "diagnostics_collapsed_hint": "Click to expand",
   "diagnostics_expanded_hint": "Click to collapse",
-  "site_token_invalid_message": "A valid site token is required to access this page. Please contact the administrator."
+  "site_token_invalid_message": "A valid site token is required to access this page. Please contact the administrator.",
+  "ical_template_deleted": "iCal template deleted successfully",
+  "admin_ical_templates_title": "iCal Templates",
+  "admin_ical_templates_name_label": "Template Name",
+  "admin_ical_templates_content_label": "iCal Template Content",
+  "admin_ical_templates_empty_text": "No iCal templates found",
+  "admin_ical_templates_create_button": "Create New Template",
+  "admin_ical_templates_edit_button": "Edit Template",
+  "admin_ical_templates_delete_button": "Delete Template",
+  "admin_ical_templates_preview_button": "Preview"
 }

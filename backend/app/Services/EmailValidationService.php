@@ -739,13 +739,16 @@ HTML;
         $this->waitlist->sendWaitlistValidationSuccessEmail($entry);
     }
 
-    private function attachmentsForTemplate(array $template): array
+    private function attachmentsForTemplate(array $template, ?int $icalTemplateId = null): array
     {
         if (! $this->templateWantsIcs($template)) {
             return [];
         }
 
-        $ics = $this->ics->nextEventAttachment();
+        // Get ical_template_id from email template if not explicitly provided
+        $icalTemplateId = $icalTemplateId ?? ($template['ical_template_id'] ?? null);
+        
+        $ics = $this->ics->nextEventAttachment($icalTemplateId);
         return $ics ? [$ics] : [];
     }
 

@@ -128,6 +128,7 @@ class PlaceholderService
             '{{event_location_url}}' => $locationUrl,
             '{{event_location_url_html}}' => $locationUrl ? '<a href="' . $locationUrl . '" rel="noreferrer">' . $locationUrl . '</a>' : '',
             '{{attach_event_ical}}' => '',
+            '{{ical_event_uuid}}' => $next instanceof Event && $next->uuid ? (string) $next->uuid : '',
             '{{reservation_list_max_count}}' => (string) ($this->settings->get('reservation_max', 0) ?? 0),
             '{{reservation_list_current_count}}' => (string) Reservation::query()->count(),
             '{{reservation_list_free_count}}' => (string) max(0, ($this->settings->get('reservation_max', 0) ?? 0) - Reservation::query()->count()),

@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\PublicSurveyController;
 use App\Http\Controllers\Api\MailAccountController;
 use App\Http\Controllers\Api\MailGroupController;
 use App\Http\Controllers\Api\EmailBlacklistDomainController;
+use App\Http\Controllers\Api\IcalTemplateController;
 use Illuminate\Support\Facades\Route;
 
 Route::options('/{any}', fn () => response()->noContent())->where('any', '.*');
@@ -207,6 +208,9 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
    Route::post('/admin/mail-groups/{group}/test', [MailGroupController::class, 'testConnection']);
 
    Route::apiResource('/admin/email-blacklist-domains', EmailBlacklistDomainController::class);
+
+   Route::apiResource('/admin/ical-templates', IcalTemplateController::class)->except(['create', 'edit', 'show']);
+   Route::get('/admin/ical-templates/{id}/preview', [IcalTemplateController::class, 'preview']);
 });
 
 Route::middleware(['role:superadmin,admin,moderator'])->group(function () {

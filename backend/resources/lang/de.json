@@ -1510,5 +1510,14 @@
   "diagnostics_rate_limit_no_entries": "Keine aktiven Rate-Limit-Einträge",
   "diagnostics_collapsed_hint": "Klicken zum Anzeigen",
   "diagnostics_expanded_hint": "Klicken zum Ausblenden",
-  "site_token_invalid_message": "Ein gültiger Site-Token ist erforderlich, um auf diese Seite zuzugreifen. Bitte wenden Sie sich an den Administrator."
+  "site_token_invalid_message": "Ein gültiger Site-Token ist erforderlich, um auf diese Seite zuzugreifen. Bitte wenden Sie sich an den Administrator.",
+  "ical_template_deleted": "iCal-Vorlage erfolgreich gelöscht",
+  "admin_ical_templates_title": "iCal-Vorlagen",
+  "admin_ical_templates_name_label": "Vorlagenname",
+  "admin_ical_templates_content_label": "iCal-Vorlageninhalt",
+  "admin_ical_templates_empty_text": "Keine iCal-Vorlagen gefunden",
+  "admin_ical_templates_create_button": "Neue Vorlage erstellen",
+  "admin_ical_templates_edit_button": "Vorlage bearbeiten",
+  "admin_ical_templates_delete_button": "Vorlage löschen",
+  "admin_ical_templates_preview_button": "Vorschau"
 }
