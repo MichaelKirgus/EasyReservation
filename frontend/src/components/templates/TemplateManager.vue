@@ -5,7 +5,8 @@ import IconButton from '../IconButton.vue'
 import TemplateTabs from './TemplateTabs.vue'
 import EmailBroadcastManager from './EmailBroadcastManager.vue'
 import EmailTemplateList from './EmailTemplateList.vue'
-import IcalTemplateManager from './IcalTemplateManager.vue'
+import IcalTemplateList from './IcalTemplateList.vue'
+import AttachmentTemplateList from './AttachmentTemplateList.vue'
 import { adminFetch } from '../../utils/adminApi'
 import { useTranslation } from '../../composables/useTranslation'
 
@@ -31,6 +32,7 @@ const activeTab = computed(() => {
   const path = route.path
   if (path.includes('/email/send')) return 'send'
   if (path.includes('/ical/list')) return 'ical'
+  if (path.includes('/attachment/list')) return 'attachments'
   return 'email' // Default to email template list
 })
 
@@ -148,8 +150,16 @@ onMounted(() => {
     />
     
     <!-- iCal Template Tab -->
-    <IcalTemplateManager
+    <IcalTemplateList
       v-else-if="activeTab === 'ical'"
+      @message="setMessage"
+      @error="setError"
+    />
+    
+    <!-- Attachment Template Tab -->
+    <AttachmentTemplateList
+      v-else-if="activeTab === 'attachments'"
+      :placeholders="placeholders"
       @message="setMessage"
       @error="setError"
     />

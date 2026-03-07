@@ -53,6 +53,8 @@ class EmailTemplateController extends Controller
             'body' => ['required', 'string'],
             'transport_group_id' => ['nullable', 'integer'],
             'transport_type' => ['nullable', 'string', 'in:group,account'],
+            'ical_template_id' => ['nullable', 'integer'],
+            'attachment_template_id' => ['nullable', 'integer'],
         ]);
 
         $template = EmailTemplate::create([
@@ -62,6 +64,8 @@ class EmailTemplateController extends Controller
             'body' => $data['body'],
             'transport_group_id' => $data['transport_group_id'] ?? null,
             'transport_type' => $data['transport_type'] ?? null,
+            'ical_template_id' => $data['ical_template_id'] ?? null,
+            'attachment_template_id' => $data['attachment_template_id'] ?? null,
         ]);
 
         return response()->json($template, 201);
@@ -76,6 +80,8 @@ class EmailTemplateController extends Controller
             'body' => ['sometimes', 'string'],
             'transport_group_id' => ['nullable', 'integer'],
             'transport_type' => ['nullable', 'string', 'in:group,account'],
+            'ical_template_id' => ['nullable', 'integer'],
+            'attachment_template_id' => ['nullable', 'integer'],
         ]);
 
         $emailTemplate->fill($data);

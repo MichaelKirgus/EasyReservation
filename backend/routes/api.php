@@ -32,6 +32,8 @@ use App\Http\Controllers\Api\PublicSurveyController;
 use App\Http\Controllers\Api\MailAccountController;
 use App\Http\Controllers\Api\MailGroupController;
 use App\Http\Controllers\Api\EmailBlacklistDomainController;
+use App\Http\Controllers\Api\AttachmentTemplateController;
+use App\Http\Controllers\Api\AttachmentUploadController;
 use App\Http\Controllers\Api\IcalTemplateController;
 use Illuminate\Support\Facades\Route;
 
@@ -210,6 +212,12 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
    Route::apiResource('/admin/email-blacklist-domains', EmailBlacklistDomainController::class);
 
    Route::apiResource('/admin/ical-templates', IcalTemplateController::class)->except(['create', 'edit', 'show']);
+
+   // Attachment templates (custom routes must come before apiResource to avoid conflicts)
+   Route::get('/admin/attachment-templates/{attachmentTemplate}/attachments', [AttachmentTemplateController::class, 'attachments']);
+   Route::post('/admin/attachment-templates/{attachmentTemplate}/upload', [AttachmentUploadController::class, 'upload']);
+   Route::delete('/admin/attachment-templates/{attachmentTemplate}/attachments/{attachment}', [AttachmentUploadController::class, 'destroy']);
+   Route::apiResource('/admin/attachment-templates', AttachmentTemplateController::class)->except(['create', 'edit', 'show']);
    Route::get('/admin/ical-templates/{id}/preview', [IcalTemplateController::class, 'preview']);
 });
 

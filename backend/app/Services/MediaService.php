@@ -63,4 +63,32 @@ class MediaService
 
         return false;
     }
+
+    /**
+     * List files in a storage directory.
+     */
+    public function listFiles(string $directory, array $allowedExtensions = []): array
+    {
+        $basePath = rtrim($directory, '/');
+        
+        $files = Storage::disk('public')->files($basePath);
+        
+        $filtered = array_values(array_filter($files, function ($file) use ($allowedExtensions) {
+            if (empty($allowedExtensions)) {
+                return true;
+            }
+            $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+            return in_array($ext, $allowedExtensions, true);
+        }));
+
+        return array_map(function ($file) {
+            $filename = basename($file);
+            $url = Storage::url($file);
+            return [
+                'filename' => $filename,
+                'path' => $url,
+                'url' => $url,
+            ];
+        }, $filtered);
+    }
 }

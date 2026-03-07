@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Jobs\SendMailJob;
+use App\Models\AttachmentTemplateAttachment;
 use App\Models\EmailTemplate;
 use App\Models\EmailValidation;
 use App\Models\JobLog;
@@ -676,18 +677,49 @@ class EmailService
     /**
      * Get attachments for template
      */
-    private function attachmentsForTemplate(array $template): array
-    {
-        if (! $this->templateWantsIcs($template)) {
-            return [];
-        }
+   private function attachmentsForTemplate(array $template): array
+   {
+       $attachments = [];
 
-        // Get ical_template_id from email template if not explicitly provided
-        $icalTemplateId = $template['ical_template_id'] ?? null;
-        
-        $ics = $this->ics->nextEventAttachment($icalTemplateId);
-        return $ics ? [$ics] : [];
-    }
+       // Get ical_template_id from email template if not explicitly provided
+       $icalTemplateId = $template['ical_template_id'] ?? null;
+       
+       // Add ICS attachment if requested
+       if ($this->templateWantsIcs($template)) {
+           $ics = $this->ics->nextEventAttachment($icalTemplateId);
+           if ($ics) {
+               $attachments[] = $ics;
+           }
+       }
+
+       // Get attachment_template_id from email template
+       $attachmentTemplateId = $template['attachment_template_id'] ?? null;
+       
+       // Add file attachments from attachment template
+       if ($attachmentTemplateId) {
+           $fileAttachments = AttachmentTemplateAttachment::where('attachment_template_id', $attachmentTemplateId)->get();
+           
+           foreach ($fileAttachments as $attachment) {
+               try {
+                   $filePath = storage_path('app/public/' . $attachment->storage_path);
+                   if (file_exists($filePath)) {
+                       $attachments[] = [
+                           'name' => $attachment->original_filename,
+                           'data' => file_get_contents($filePath),
+                           'mime' => $attachment->mime_type,
+                       ];
+                   }
+               } catch (\Exception $e) {
+                   \Illuminate\Support\Facades\Log::warning('EmailService: Failed to load attachment', [
+                       'attachment_id' => $attachment->id,
+                       'error' => $e->getMessage(),
+                   ]);
+               }
+           }
+       }
+
+       return $attachments;
+   }
 
     /**
      * Check if template wants ICS attachment

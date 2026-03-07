@@ -35,7 +35,8 @@ const routes = [
       { path: '', redirect: { name: 'template-email-list' } },
       { path: 'email/send', name: 'template-email-send', component: () => import('../components/templates/EmailBroadcastManager.vue') },
       { path: 'email/list', name: 'template-email-list', component: () => import('../components/templates/EmailTemplateList.vue') },
-      { path: 'ical/list', name: 'template-ical-list', component: () => import('../components/templates/IcalTemplateManager.vue') },
+      { path: 'ical/list', name: 'template-ical-list', component: () => import('../components/templates/IcalTemplateList.vue') },
+      { path: 'attachment/list', name: 'template-attachment-list', component: () => import('../components/templates/AttachmentTemplateList.vue') },
     ]
   },
   { path: '/moderation/faq', name: 'moderation-faq', component: AdminFaq },
