@@ -218,7 +218,7 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
    Route::post('/admin/attachment-templates/{attachmentTemplate}/upload', [AttachmentUploadController::class, 'upload']);
    Route::delete('/admin/attachment-templates/{attachmentTemplate}/attachments/{attachment}', [AttachmentUploadController::class, 'destroy']);
    Route::apiResource('/admin/attachment-templates', AttachmentTemplateController::class)->except(['create', 'edit', 'show']);
-   Route::get('/admin/ical-templates/{id}/preview', [IcalTemplateController::class, 'preview']);
+   Route::get('/admin/ical-templates/{icalTemplate}/preview', [IcalTemplateController::class, 'preview']);
 });
 
 Route::middleware(['role:superadmin,admin,moderator'])->group(function () {

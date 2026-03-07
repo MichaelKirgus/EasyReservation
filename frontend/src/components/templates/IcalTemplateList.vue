@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import IconButton from '../IconButton.vue'
 import AdminDataTable from '../AdminDataTable.vue'
+import IcalTemplatePreview from './IcalTemplatePreview.vue'
 import { adminFetch, adminFetchJson } from '../../utils/adminApi'
 import { useTranslation } from '../../composables/useTranslation'
 
@@ -22,20 +23,24 @@ const loading = ref(false)
 const message = ref('')
 const error = ref('')
 
+// Preview state
+const previewTemplate = ref(null)
+const showPreviewDialog = ref(false)
+
 // Form state
 const isEditing = ref(false)
 const showCreateForm = ref(false)
 const formTemplate = ref({ name: '', content: '' })
 const templateToDelete = ref(null)
 
-function setMessage(msg) { 
-  message.value = msg; 
-  error.value = ''; 
+function setMessage(msg) {
+  message.value = msg;
+  error.value = '';
   emit('message', msg);
 }
-function setError(msg) { 
-  error.value = msg; 
-  message.value = ''; 
+function setError(msg) {
+  error.value = msg;
+  message.value = '';
   emit('error', msg);
 }
 
@@ -127,6 +132,16 @@ async function confirmDelete() {
   }
 }
 
+function openPreview(template) {
+  previewTemplate.value = template
+  showPreviewDialog.value = true
+}
+
+function closePreview() {
+  showPreviewDialog.value = false
+  previewTemplate.value = null
+}
+
 function truncateContent(content) {
   if (!content || content.length <= 50) return content || '';
   return content.substring(0, 50) + '...';
@@ -202,8 +217,9 @@ const hiddenColumns = ref(new Set(['id']))
           </div>
         </template>
         <template #row-actions="{ row }">
-          <IconButton icon="pencil" :title="tr('edit')" @click="openEditDialog(row)" />
-          <IconButton icon="trash" :title="tr('delete')" variant="danger" @click="deleteTemplate(row)" />
+          <IconButton icon="pencil" :label="tr('icon_buttons_edit')" @click="openEditDialog(row)" />
+          <IconButton icon="eye" :label="tr('preview')" variant="primary" @click="openPreview(row)" />
+          <IconButton icon="trash" :label="tr('icon_buttons_delete')" variant="danger" @click="deleteTemplate(row)" />
         </template>
       </AdminDataTable>
 
@@ -232,6 +248,9 @@ const hiddenColumns = ref(new Set(['id']))
         </div>
       </div>
     </div>
+
+    <!-- Preview Dialog -->
+    <IcalTemplatePreview v-model="showPreviewDialog" :template="previewTemplate" @close="closePreview" />
   </div>
 </template>
 

@@ -60,8 +60,13 @@ class IcalTemplateController extends Controller
             'email' => ['nullable', 'string', 'email'],
         ]);
 
+        $recipient = [
+            'name' => $data['name'] ?? '',
+            'email' => $data['email'] ?? '',
+        ];
+
         // Get all placeholders
-        $placeholders = app(\App\Services\PlaceholderService::class)->replacements($data['name'] ?? null, $data['email'] ?? null);
+        $placeholders = app(\App\Services\PlaceholderService::class)->replacements($recipient);
         
         // Replace placeholders in content, keeping placeholder name if empty
         $resolvedContent = $this->replaceWithEmptyPlaceholders($icalTemplate->content ?? '', $placeholders);
