@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Event;
+use App\Models\FormField;
 use App\Models\Reservation;
 use App\Models\Survey;
 use App\Models\User;
@@ -56,6 +57,9 @@ class PlaceholderService
 
     public function replacements(array $recipient = []): array
     {
+        // Extract payload from recipient if present (for form field placeholders)
+        $payload = $recipient['payload'] ?? [];
+        
         $next = $this->events->next();
         $dateFormat = (string) ($this->settings->get('event_date_format', 'Y-m-d') ?: 'Y-m-d');
         $timeFormat = (string) ($this->settings->get('event_time_format', 'H:i') ?: 'H:i');
@@ -199,12 +203,16 @@ class PlaceholderService
             '{{faq_link_translated}}' => $faqLabel,
             '{{faq_link_html_translated}}' => '<a href="' . $faqLink . '">' . $faqLabel . '</a>',
         ];
+        
+        // Form field placeholders from payload
+        $formFieldTokens = $this->getFormFieldPlaceholders($payload);
+        
         // Context placeholders (e.g. error_message from event triggers)
         $contextTokens = [
             '{{error_message}}' => $this->contextPlaceholders['error_message'] ?? '',
         ];
-        // Reihenfolge: custom < core < context < recipientTokens (Empfänger-spezifische überschreiben alles)
-        return array_merge($custom, $core, $contextTokens, $recipientTokens);
+        // Reihenfolge: custom < core < formFieldTokens < context < recipientTokens
+        return array_merge($custom, $core, $formFieldTokens, $contextTokens, $recipientTokens);
     }
 
     public function tokens(): array
@@ -258,6 +266,32 @@ class PlaceholderService
         }
 
         return $names->map(fn ($v) => $v . "\n")->implode('');
+    }
+
+    /**
+     * Get form field placeholders from payload.
+     * Form fields are defined in FormField model with 'key' attribute.
+     * Placeholder format: {{form_field__{key}}}
+     *
+     * @param array $payload The payload array containing form field values
+     */
+    private function getFormFieldPlaceholders(array $payload): array
+    {
+        $placeholders = [];
+        
+        // Get all active form fields that are visible (for reference)
+        $formFields = FormField::query()->where('active', true)->get(['key']);
+        
+        foreach ($formFields as $field) {
+            $key = $field->key ?? '';
+            if ($key === '') continue;
+            
+            $placeholderKey = '{{form_field__' . $key . '}}';
+            $value = $payload[$key] ?? '';
+            $placeholders[$placeholderKey] = (string) $value;
+        }
+        
+        return $placeholders;
     }
 
     private function getWaitingListItems(): string

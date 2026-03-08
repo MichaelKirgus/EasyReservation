@@ -139,6 +139,7 @@ class EmailService
             'validation_link_html' => '<a href="'.$link.'">'.$link.'</a>',
             'undo_link' => '',
             'undo_link_html' => '',
+            'payload' => $validation->payload ?? [],
         ]);
 
         $template = $this->resolveTemplate();
@@ -248,6 +249,7 @@ class EmailService
             'validation_link_html' => '',
             'undo_link' => '',
             'undo_link_html' => '',
+            'payload' => $validation->payload ?? [],
         ]);
 
         $subject = $this->renderTemplate($template['subject'], $replacements);
@@ -344,6 +346,7 @@ class EmailService
             'undo_link_html' => $includeUndoLink ? '<a href="'.$undoLink.'">'.$undoLink.'</a>' : '',
             'validation_link' => '',
             'validation_link_html' => '',
+            'payload' => $reservation->payload ?? [],
         ]);
 
         $template = $this->resolveTemplateById($templateId);
@@ -588,6 +591,7 @@ class EmailService
             'validation_link_html' => '',
             'survey_link' => '',
             'survey_link_html' => '',
+            'payload' => $recipient->payload ?? [],
         ]);
 
         $toEmail = $this->resolveToEmail($template, $replacements, $recipient);

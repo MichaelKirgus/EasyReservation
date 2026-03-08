@@ -102,6 +102,7 @@ class EmailBroadcastService
                 'email' => $recipient['email'] ?? '',
                 'undo_link' => $recipient['undo_link'] ?? '',
                 'validation_link' => '',
+                'payload' => $recipient['payload'] ?? [],
             ];
             if ($surveyId) {
                 $survey = \App\Models\Survey::find($surveyId);
@@ -209,7 +210,7 @@ class EmailBroadcastService
                     $query->whereIn('id', $ids);
                 }
             }
-            $query->get(['id', 'display_name', 'email', 'undo_token'])
+            $query->get(['id', 'display_name', 'email', 'undo_token', 'payload'])
                 ->each(function (Reservation $reservation) use (&$recipients) {
                     $recipients->push([
                         'type' => 'reservation',
@@ -217,6 +218,7 @@ class EmailBroadcastService
                         'name' => $reservation->display_name,
                         'email' => $reservation->email,
                         'undo_link' => $reservation->email ? $this->linkBuilder->buildUndoLink($reservation) : '',
+                        'payload' => $reservation->payload ?? [],
                     ]);
                 });
         }
@@ -231,7 +233,7 @@ class EmailBroadcastService
                     $query->whereIn('id', $ids);
                 }
             }
-            $query->get(['id', 'display_name', 'email', 'undo_token'])
+            $query->get(['id', 'display_name', 'email', 'undo_token', 'payload'])
                 ->each(function (WaitlistEntry $entry) use (&$recipients) {
                     $recipients->push([
                         'type' => 'waitlist',
@@ -239,6 +241,7 @@ class EmailBroadcastService
                         'name' => $entry->display_name,
                         'email' => $entry->email,
                         'undo_link' => $this->linkBuilder->buildWaitlistUndoLink($entry),
+                        'payload' => $entry->payload ?? [],
                     ]);
                 });
         }

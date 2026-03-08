@@ -120,10 +120,10 @@ class EventTriggerService
         // Empfänger bestimmen
         $recipients = [];
         if ($trigger->recipient_attendees) {
-            $recipients = array_merge($recipients, Reservation::query()->get()->map(fn($r) => ['name' => $r->display_name, 'email' => $r->email])->toArray());
+            $recipients = array_merge($recipients, Reservation::query()->get()->map(fn($r) => ['name' => $r->display_name, 'email' => $r->email, 'payload' => $r->payload ?? []])->toArray());
         }
         if ($trigger->recipient_waitlist) {
-            $recipients = array_merge($recipients, WaitlistEntry::query()->get()->map(fn($r) => ['name' => $r->display_name, 'email' => $r->email])->toArray());
+            $recipients = array_merge($recipients, WaitlistEntry::query()->get()->map(fn($r) => ['name' => $r->display_name, 'email' => $r->email, 'payload' => $r->payload ?? []])->toArray());
         }
         if ($trigger->recipient_admins) {
             $adminRecipients = \App\Models\User::where('role', 'admin')->orWhere('role', 'superadmin')->pluck('email', 'name')->map(fn($email, $name) => ['name' => $name, 'email' => $email])->toArray();
@@ -168,6 +168,12 @@ class EventTriggerService
         $map = [];
         if (isset($context['error_message'])) {
             $map['error_message'] = (string) $context['error_message'];
+        }
+        // Add form field placeholders from reservation or waitlist_entry payload
+        if (isset($context['reservation']) && $context['reservation'] instanceof \App\Models\Reservation) {
+            $map['payload'] = $context['reservation']->payload ?? [];
+        } elseif (isset($context['waitlist_entry']) && $context['waitlist_entry'] instanceof \App\Models\WaitlistEntry) {
+            $map['payload'] = $context['waitlist_entry']->payload ?? [];
         }
         if (!empty($map)) {
             $this->placeholderService->setContextPlaceholders($map);
