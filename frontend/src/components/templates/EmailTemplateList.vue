@@ -78,6 +78,7 @@ const templateColumns = computed(() => [
   { key: 'ical_template_id', label: tr('admin_email_broadcast_ical_template_label'), sortable: false },
   { key: 'attachment_template_id', label: tr('admin_email_broadcast_attachment_template_label'), sortable: false },
   { key: 'subject', label: tr('admin_email_broadcast_columns_subject'), sortable: true },
+  { key: 'to', label: tr('admin_email_broadcast_columns_to'), sortable: false },
   { key: 'cc', label: tr('admin_email_broadcast_columns_cc'), sortable: false },
   { key: 'bcc', label: tr('admin_email_broadcast_columns_bcc'), sortable: false },
   { key: 'body', label: tr('admin_email_broadcast_columns_body'), sortable: false }
@@ -100,7 +101,7 @@ function openEditForm(template) {
   showEditForm.value = true
 }
 
-const templateForm = reactive({ name: '', subject: '', body: '', cc: '', bcc: '', type: 'generic', transportGroupId: '__none__', ical_template_id: null, attachment_template_id: null })
+const templateForm = reactive({ name: '', subject: '', to: '{{recipient_email}}', body: '', cc: '', bcc: '', type: 'generic', transportGroupId: '__none__', ical_template_id: null, attachment_template_id: null })
 
 async function saveTemplate(tpl) {
   if (!props.canManageTemplates) { setError(tr('templates_can_only_be_edited_by_admin')); return }
@@ -129,6 +130,7 @@ async function saveTemplate(tpl) {
       body: JSON.stringify({
         name: tpl.name,
         subject: tpl.subject,
+        to: tpl.to || '{{recipient_email}}',
         body: tpl.body,
         cc: tpl.cc || '',
         bcc: tpl.bcc || '',
@@ -183,6 +185,7 @@ async function createTemplate() {
       method: 'POST',
       body: JSON.stringify({
         ...templateForm,
+        to: templateForm.to || '{{recipient_email}}',
         transport_group_id: transportGroupId,
         transport_type: transportType,
         ical_template_id: icalTemplateId,
@@ -265,6 +268,13 @@ onMounted(() => {
           </label>
         </div>
 
+<label class="with-placeholder-icon">{{ tr('admin_email_broadcast_to_label') }}
+          <div class="input-wrap">
+            <input v-model="templateForm.to" :title="tr('admin_email_broadcast_to_title_hint')" />
+            <span class="placeholder-indicator" :title="tr('admin_email_broadcast_to_title_hint')" aria-hidden="true">⧉</span>
+          </div>
+        </label>
+
         <label class="with-placeholder-icon">{{ tr('admin_email_broadcast_cc_label') }}
           <div class="input-wrap">
             <input v-model="templateForm.cc" :title="tr('admin_email_broadcast_cc_title_hint')" />
@@ -339,6 +349,13 @@ onMounted(() => {
              </template>
            </select>
          </label>
+
+         <label class="with-placeholder-icon">{{ tr('admin_email_broadcast_to_label') }}
+           <div class="input-wrap">
+             <input v-model="editTemplate.to" :title="tr('admin_email_broadcast_to_title_hint')" />
+             <span class="placeholder-indicator" :title="tr('admin_email_broadcast_to_title_hint')" aria-hidden="true">⧉</span>
+           </div>
+         </label>
        </div>
 
        <label class="with-placeholder-icon">{{ tr('admin_email_broadcast_cc_label') }}
@@ -392,7 +409,7 @@ onMounted(() => {
         :page-size="10"
         persist-key="admin-email-templates"
         :empty-text="tr('admin_email_broadcast_empty_templates_text')"
-        :initial-hidden-columns="['id', 'cc', 'bcc', 'ical_template_id', 'attachment_template_id']"
+        :initial-hidden-columns="['id', 'to', 'cc', 'bcc', 'ical_template_id', 'attachment_template_id']"
         @refresh="loadTemplates"
       >
         <template #cell-name="{ row }">
@@ -404,9 +421,12 @@ onMounted(() => {
             <span class="placeholder-indicator" :title="placeholderText || tr('admin_email_broadcast_columns_placeholder')" aria-hidden="true">⧉</span>
           </div>
         </template>
-        <template #cell-cc="{ row }">
-          <input v-model="row.cc" :disabled="!canManageTemplates" @change="saveTemplate(row)" placeholder="kommagetrennt" />
-        </template>
+        <template #cell-to="{ row }">
+                  <input v-model="row.to" :disabled="!canManageTemplates" @change="saveTemplate(row)" placeholder="{{recipient_email}}" />
+                </template>
+                <template #cell-cc="{ row }">
+                  <input v-model="row.cc" :disabled="!canManageTemplates" @change="saveTemplate(row)" placeholder="kommagetrennt" />
+                </template>
         <template #cell-bcc="{ row }">
           <input v-model="row.bcc" :disabled="!canManageTemplates" @change="saveTemplate(row)" placeholder="kommagetrennt" />
         </template>

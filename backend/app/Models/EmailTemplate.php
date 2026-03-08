@@ -8,16 +8,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class EmailTemplate extends Model
 {
     protected $fillable = [
-        'name',
-        'type',
-        'subject',
-        'body',
-        'cc',
-        'bcc',
-        'transport_group_id',
-        'ical_template_id',
-        'attachment_template_id',
-    ];
+            'name',
+            'type',
+            'subject',
+            'body',
+            'cc',
+            'bcc',
+            'to',
+            'transport_group_id',
+            'ical_template_id',
+            'attachment_template_id',
+        ];
 
     public function transportGroup(): BelongsTo
     {

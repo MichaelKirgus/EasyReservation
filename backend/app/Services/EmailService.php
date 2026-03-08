@@ -148,39 +148,42 @@ class EmailService
             return;
         }
 
-        $subject = strtr($template['subject'], $replacements);
-        $body = strtr($template['body'], $replacements);
-
-        $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
-        $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
-
-        // Merge template-specific CC/BCC with global CC/BCC
-        $templateCc = $template['cc'] ?? null;
-        $templateBcc = $template['bcc'] ?? null;
+        $toEmail = $this->resolveToEmailFromTemplateArray($template, $replacements, $validation);
+                $toName = $validation->display_name;
         
-        $globalCc = $this->settings->get('mail_global_cc');
-        $globalBcc = $this->settings->get('mail_global_bcc');
-
-        // Merge template and global CC/BCC (remove duplicates)
-        $cc = $this->mergeEmailAddresses($templateCc, $globalCc);
-        $bcc = $this->mergeEmailAddresses($templateBcc, $globalBcc);
-
-        $attachments = $this->attachmentsForTemplate([
-            'subject' => $template['subject'] ?? null,
-            'body' => $template['body'] ?? null,
-        ]);
-
-        Log::info('EmailService: Dispatching validation email', [
-            'to_email' => $validation->email,
-            'subject' => $subject,
-            'transport_group_id' => $transportGroupId,
-        ]);
-
-        $tg = $this->lastTransportGroupInfo ?? [];
-        SendMailJob::dispatch(
-            $mailerConfig,
-            $validation->email,
-            $validation->display_name,
+                $subject = strtr($template['subject'], $replacements);
+                $body = strtr($template['body'], $replacements);
+        
+                $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
+                $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
+        
+                // Merge template-specific CC/BCC with global CC/BCC
+                $templateCc = $template['cc'] ?? null;
+                $templateBcc = $template['bcc'] ?? null;
+                
+                $globalCc = $this->settings->get('mail_global_cc');
+                $globalBcc = $this->settings->get('mail_global_bcc');
+        
+                // Merge template and global CC/BCC (remove duplicates)
+                $cc = $this->mergeEmailAddresses($templateCc, $globalCc);
+                $bcc = $this->mergeEmailAddresses($templateBcc, $globalBcc);
+        
+                $attachments = $this->attachmentsForTemplate([
+                    'subject' => $template['subject'] ?? null,
+                    'body' => $template['body'] ?? null,
+                ]);
+        
+                Log::info('EmailService: Dispatching validation email', [
+                    'to_email' => $toEmail,
+                    'subject' => $subject,
+                    'transport_group_id' => $transportGroupId,
+                ]);
+        
+                $tg = $this->lastTransportGroupInfo ?? [];
+                SendMailJob::dispatch(
+                    $mailerConfig,
+                    $toEmail,
+                    $toName,
             $subject,
             $body,
             $fromAddress,
@@ -281,11 +284,14 @@ class EmailService
             return;
         }
 
-        $tg = $this->lastTransportGroupInfo ?? [];
-        SendMailJob::dispatch(
-            $mailerConfig,
-            $adminEmail,
-            'Admin',
+        $toEmail = $this->resolveToEmailFromTemplateArray($template, $replacements, (object)['email' => $adminEmail]);
+                $toName = 'Admin';
+        
+                $tg = $this->lastTransportGroupInfo ?? [];
+                SendMailJob::dispatch(
+                    $mailerConfig,
+                    $toEmail,
+                    $toName,
             $subject,
             $body,
             $fromAddress,
@@ -381,11 +387,14 @@ class EmailService
             return;
         }
 
-        $tg = $this->lastTransportGroupInfo ?? [];
-        SendMailJob::dispatch(
-            $mailerConfig,
-            $reservation->email,
-            $reservation->display_name,
+        $toEmail = $this->resolveToEmailFromTemplateArray($template, $replacements, $reservation);
+                $toName = $reservation->display_name;
+        
+                $tg = $this->lastTransportGroupInfo ?? [];
+                SendMailJob::dispatch(
+                    $mailerConfig,
+                    $toEmail,
+                    $toName,
             $subject,
             $body,
             $fromAddress,
@@ -581,32 +590,35 @@ class EmailService
             'survey_link_html' => '',
         ]);
 
-        $subject = $this->renderTemplate($template->subject, $replacements);
-        $body = $this->renderTemplate($template->body, $replacements);
-
-        $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
-        $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
-
-        // Use template-specific CC/BCC if set, otherwise use global
-        $templateCc = $template->cc ?? null;
-        $templateBcc = $template->bcc ?? null;
+        $toEmail = $this->resolveToEmail($template, $replacements, $recipient);
+                $toName = $recipient->display_name ?? $recipient->email;
         
-        $globalCc = $this->settings->get('mail_global_cc');
-        $globalBcc = $this->settings->get('mail_global_bcc');
-
-        // If template has CC/BCC, use those; otherwise fall back to global
-        $cc = $templateCc ?: $globalCc;
-        $bcc = $templateBcc ?: $globalBcc;
-
-        $attachments = $this->attachmentsForTemplate([
-            'subject' => $template->subject,
-            'body' => $template->body,
-        ]);
-
-        SendMailJob::dispatch(
-            $mailerConfig,
-            $recipient->email,
-            $recipient->display_name ?? $recipient->email,
+                $subject = $this->renderTemplate($template->subject, $replacements);
+                $body = $this->renderTemplate($template->body, $replacements);
+        
+                $fromAddress = $this->settings->get('mail_from_address', config('mail.from.address'));
+                $fromName = $this->settings->get('mail_from_name', config('mail.from.name'));
+        
+                // Use template-specific CC/BCC if set, otherwise use global
+                $templateCc = $template->cc ?? null;
+                $templateBcc = $template->bcc ?? null;
+                
+                $globalCc = $this->settings->get('mail_global_cc');
+                $globalBcc = $this->settings->get('mail_global_bcc');
+        
+                // If template has CC/BCC, use those; otherwise fall back to global
+                $cc = $templateCc ?: $globalCc;
+                $bcc = $templateBcc ?: $globalBcc;
+        
+                $attachments = $this->attachmentsForTemplate([
+                    'subject' => $template->subject,
+                    'body' => $template->body,
+                ]);
+        
+                SendMailJob::dispatch(
+                    $mailerConfig,
+                    $toEmail,
+                    $toName,
             $subject,
             $body,
             $fromAddress,
@@ -623,17 +635,50 @@ class EmailService
     }
 
     /**
-     * Render template with replacements
-     */
-    private function renderTemplate(string $template, array $replacements): string
-    {
-        return strtr($template, $replacements);
-    }
-
-    /**
-     * Resolve email template by ID
-     */
-    private function resolveTemplateById(?int $templateId): ?array
+          * Resolve the 'to' email address from template or fallback to recipient.
+          *
+          * If template has a 'to' field set, it will be rendered with replacements
+          * and used as the recipient email. Otherwise, falls back to the recipient's email.
+          */
+         private function resolveToEmail($template, array $replacements, $recipient): string
+                 {
+                     // If template has 'to' field set (not empty), use it with placeholder replacement
+                     if (!empty($template->to)) {
+                         return $this->renderTemplate($template->to, $replacements);
+                     }
+                     
+                     // Fallback to recipient's email
+                     return $recipient->email ?? '';
+                 }
+         
+                 /**
+                  * Resolve the 'to' email address from template array or fallback to recipient.
+                  *
+                  * Used in methods where template is returned as an array (e.g., resolveTemplate).
+                  */
+                 private function resolveToEmailFromTemplateArray(array $template, array $replacements, $recipient): string
+                 {
+                     // If template has 'to' field set (not empty), use it with placeholder replacement
+                     if (!empty($template['to'])) {
+                         return $this->renderTemplate($template['to'], $replacements);
+                     }
+                     
+                     // Fallback to recipient's email
+                     return $recipient->email ?? '';
+                 }
+         
+                 /**
+                  * Render template with replacements
+                  */
+                 private function renderTemplate(string $template, array $replacements): string
+                 {
+                     return strtr($template, $replacements);
+                 }
+         
+             /**
+              * Resolve email template by ID
+              */
+             private function resolveTemplateById(?int $templateId): ?array
     {
         if (!$templateId) {
             \Illuminate\Support\Facades\Log::error('EmailService: No template ID provided');
@@ -642,7 +687,7 @@ class EmailService
 
         $template = EmailTemplate::query()->find($templateId);
         if ($template) {
-            return ['subject' => $template->subject, 'body' => $template->body, 'cc' => $template->cc, 'bcc' => $template->bcc];
+            return ['subject' => $template->subject, 'body' => $template->body, 'to' => $template->to, 'cc' => $template->cc, 'bcc' => $template->bcc];
         }
 
         \Illuminate\Support\Facades\Log::error('EmailService: Template not found for ID ' . $templateId);
@@ -668,7 +713,7 @@ class EmailService
             return null;
         }
 
-        return ['subject' => $template->subject, 'body' => $template->body, 'cc' => $template->cc, 'bcc' => $template->bcc];
+        return ['subject' => $template->subject, 'body' => $template->body, 'to' => $template->to, 'cc' => $template->cc, 'bcc' => $template->bcc];
     }
 
     /**
@@ -801,11 +846,14 @@ class EmailService
         $cc = $this->mergeEmailAddresses($templateCc, $globalCc);
         $bcc = $this->mergeEmailAddresses($templateBcc, $globalBcc);
 
-        $tg = $this->lastTransportGroupInfo ?? [];
-        SendMailJob::dispatch(
-            $mailerConfig,
-            $recipientEmail,
-            $recipientName,
+        $toEmail = $this->resolveToEmail($template, $replacements, (object)['email' => $recipientEmail]);
+                $toName = $recipientName;
+        
+                $tg = $this->lastTransportGroupInfo ?? [];
+                SendMailJob::dispatch(
+                    $mailerConfig,
+                    $toEmail,
+                    $toName,
             $subject,
             $body,
             $fromAddress,

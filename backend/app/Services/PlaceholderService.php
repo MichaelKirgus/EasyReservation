@@ -15,9 +15,10 @@ use App\Services\TranslationService;
 class PlaceholderService
 {
     private const RECIPIENT_TOKENS = [
-        '{{name}}',
-        '{{email}}',
-        '{{undo_link}}',
+            '{{name}}',
+            '{{email}}',
+            '{{recipient_email}}',
+            '{{undo_link}}',
         '{{undo_link_html}}',
         '{{validation_link}}',
         '{{validation_link_html}}',
@@ -180,9 +181,10 @@ class PlaceholderService
             ?? ($this->translationService->getTranslations($locale)['faq_title'] ?? 'FAQ');
         
         $recipientTokens = [
-            '{{name}}' => $recipient['name'] ?? '',
-            '{{email}}' => $recipient['email'] ?? '',
-            '{{undo_link}}' => $recipient['undo_link'] ?? '',
+                    '{{name}}' => $recipient['name'] ?? '',
+                    '{{email}}' => $recipient['email'] ?? '',
+                    '{{recipient_email}}' => $recipient['email'] ?? '',
+                    '{{undo_link}}' => $recipient['undo_link'] ?? '',
             '{{undo_link_html}}' => $recipient['undo_link_html'] ?? '',
             '{{validation_link}}' => $recipient['validation_link'] ?? '',
             '{{validation_link_html}}' => $recipient['validation_link_html'] ?? '',
