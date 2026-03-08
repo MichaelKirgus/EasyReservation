@@ -46,11 +46,161 @@ class MailAccount extends Model
     ];
 
     /**
+     * Decrypt password when retrieving from database.
+     * If decryption fails (data not encrypted), returns the raw value.
+     */
+    public function getPasswordAttribute($value)
+    {
+        if ($value && !empty($value)) {
+            try {
+                return \Illuminate\Support\Facades\Crypt::decryptString($value);
+            } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                // Data is not encrypted, return raw value
+                return $value;
+            }
+        }
+
+        return $value;
+    }
+
+    /**
+     * Encrypt password when storing to database.
+     */
+    public function setPasswordAttribute($value)
+    {
+        if ($value && !empty($value)) {
+            $this->attributes['password'] = \Illuminate\Support\Facades\Crypt::encryptString($value);
+        } else {
+            $this->attributes['password'] = $value;
+        }
+    }
+
+    /**
+     * Decrypt oauth2_client_secret when retrieving from database.
+     * If decryption fails (data not encrypted), returns the raw value.
+     */
+    public function getOauth2ClientSecretAttribute($value)
+    {
+        if ($value && !empty($value)) {
+            try {
+                return \Illuminate\Support\Facades\Crypt::decryptString($value);
+            } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                // Data is not encrypted, return raw value
+                return $value;
+            }
+        }
+
+        return $value;
+    }
+
+    /**
+     * Encrypt oauth2_client_secret when storing to database.
+     */
+    public function setOauth2ClientSecretAttribute($value)
+    {
+        if ($value && !empty($value)) {
+            $this->attributes['oauth2_client_secret'] = \Illuminate\Support\Facades\Crypt::encryptString($value);
+        } else {
+            $this->attributes['oauth2_client_secret'] = $value;
+        }
+    }
+
+    /**
+     * Decrypt oauth2_refresh_token when retrieving from database.
+     * If decryption fails (data not encrypted), returns the raw value.
+     */
+    public function getOauth2RefreshTokenAttribute($value)
+    {
+        if ($value && !empty($value)) {
+            try {
+                return \Illuminate\Support\Facades\Crypt::decryptString($value);
+            } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                // Data is not encrypted, return raw value
+                return $value;
+            }
+        }
+
+        return $value;
+    }
+
+    /**
+     * Encrypt oauth2_refresh_token when storing to database.
+     */
+    public function setOauth2RefreshTokenAttribute($value)
+    {
+        if ($value && !empty($value)) {
+            $this->attributes['oauth2_refresh_token'] = \Illuminate\Support\Facades\Crypt::encryptString($value);
+        } else {
+            $this->attributes['oauth2_refresh_token'] = $value;
+        }
+    }
+
+    /**
+     * Decrypt oauth2_access_token when retrieving from database.
+     * If decryption fails (data not encrypted), returns the raw value.
+     */
+    public function getOauth2AccessTokenAttribute($value)
+    {
+        if ($value && !empty($value)) {
+            try {
+                return \Illuminate\Support\Facades\Crypt::decryptString($value);
+            } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                // Data is not encrypted, return raw value
+                return $value;
+            }
+        }
+
+        return $value;
+    }
+
+    /**
+     * Encrypt oauth2_access_token when storing to database.
+     */
+    public function setOauth2AccessTokenAttribute($value)
+    {
+        if ($value && !empty($value)) {
+            $this->attributes['oauth2_access_token'] = \Illuminate\Support\Facades\Crypt::encryptString($value);
+        } else {
+            $this->attributes['oauth2_access_token'] = $value;
+        }
+    }
+
+    /**
      * Get the transport groups that this account belongs to.
      */
     public function transportGroups(): HasMany
     {
         return $this->hasMany(MailGroupAccount::class, 'account_id');
+    }
+
+    /**
+     * Decrypt username when retrieving from database.
+     * If decryption fails (data not encrypted), returns the raw value.
+     */
+    public function getUsernameAttribute($value)
+    {
+        if ($value && !empty($value)) {
+            try {
+                return \Illuminate\Support\Facades\Crypt::decryptString($value);
+            } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+                // Data is not encrypted, return raw value
+                return $value;
+            }
+        }
+
+        return $value;
+    }
+
+    /**
+     * Encrypt username when storing to database.
+     */
+    public function setUsernameAttribute($value)
+    {
+        if ($value && !empty($value)) {
+            $this->attributes['username'] = \Illuminate\Support\Facades\Crypt::encryptString($value);
+        } else {
+            $this->attributes['username'] = $value;
+        }
     }
 
     /**
