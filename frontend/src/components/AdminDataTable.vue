@@ -36,7 +36,14 @@ const dragIndex = ref(null)
 const autoRefreshEnabled = ref(!!props.autoRefreshDefaultEnabled)
 const autoRefreshInterval = ref(props.autoRefreshDefaultIntervalMs)
 const autoRefreshLock = ref(false)
+const intervalMenuOpen = ref(false)
+const columnMenuOpen = ref(false)
 let autoRefreshTimer = null
+
+function closeAllMenus() {
+  intervalMenuOpen.value = false
+  columnMenuOpen.value = false
+}
 
 const emptyTextComputed = computed(() => {
   return tr('admin_data_table_empty_text', 'No data available')
@@ -68,10 +75,18 @@ onMounted(() => {
     }
   }
   startAutoRefresh()
+
+ document.addEventListener('click', (e) => {
+   const target = e.target.closest('.column-toggle, .dropdown')
+   if (!target) {
+     closeAllMenus()
+   }
+ })
 })
 
 onUnmounted(() => {
-  stopAutoRefresh()
+ stopAutoRefresh()
+ document.removeEventListener('click', closeAllMenus)
 })
 
 watch(() => props.modelValue, (val) => {
@@ -243,11 +258,11 @@ function onDrop(globalIndex) {
               :label="tr('admin_data_table_auto_refresh_toggle')"
               @click="autoRefreshEnabled = !autoRefreshEnabled"
             />
-            <details class="dropdown interval-picker">
-              <summary>
+            <div class="dropdown interval-picker" @click.stop>
+              <span class="summary button-summary" @click="intervalMenuOpen = !intervalMenuOpen">
                 <IconButton as="span" icon="clock" size="sm" variant="ghost" :label="tr('admin_data_table_interval_select')" />
-              </summary>
-              <div class="dropdown-panel">
+              </span>
+              <div class="dropdown-panel" v-if="intervalMenuOpen">
                 <label>
                   {{ tr('admin_data_table_interval_label') }}
                   <select v-model.number="autoRefreshInterval" :disabled="!autoRefreshEnabled">
@@ -255,18 +270,18 @@ function onDrop(globalIndex) {
                   </select>
                 </label>
               </div>
-            </details>
+            </div>
           </div>
-          <details class="column-toggle" v-if="columns.length">
-            <summary>
+          <div class="column-toggle" v-if="columns.length" @click.stop>
+            <span class="summary button-summary" @click="columnMenuOpen = !columnMenuOpen">
               <IconButton as="span" icon="columns" size="sm" variant="ghost" :label="tr('admin_data_table_columns_toggle')" />
-            </summary>
-            <div class="column-list">
-              <label v-for="col in columns" :key="col.key">
-                <input type="checkbox" :checked="isVisible(col.key)" @change="toggleColumn(col.key)" /> {{ col.label }}
+            </span>
+            <div class="column-list" v-if="columnMenuOpen">
+              <label v-for="col in columns" :key="col.key" @click.stop>
+                <input type="checkbox" :checked="isVisible(col.key)" @change="toggleColumn(col.key); closeAllMenus()" /> {{ col.label }}
               </label>
             </div>
-          </details>
+          </div>
           <IconButton icon="refresh" size="sm" :label="tr('admin_data_table_loading')" variant="ghost" @click="triggerRefresh(false)" :disabled="loading" />
         </div>
       </div>
@@ -347,10 +362,9 @@ th.sortable { cursor: pointer; }
 .search { flex: 1 1 110px; display: none; min-width: 0; }
 .search input { padding: 0.4rem 0.5rem; border: 1px solid var(--border); border-radius: 6px; width: 92%; background: var(--surface); color: var(--text); }
 @media (min-width: 768px) { .search { display: block; max-width: 260px; } }
-.column-toggle summary, .dropdown summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; color: var(--text); }
-.column-toggle summary::-webkit-details-marker, .dropdown summary::-webkit-details-marker { display: none; }
+.button-summary { background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; color: var(--text); }
 .column-toggle { position: relative; }
-.column-toggle .column-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.25rem; padding: 0.5rem; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-muted); box-shadow: 0 6px 18px var(--shadow); position: absolute; right: 0; top: 110%; z-index: 5; min-width: 220px; color: var(--text); }
+.column-toggle .column-list { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.5rem; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-muted); box-shadow: 0 6px 18px var(--shadow); position: absolute; right: 0; top: 110%; z-index: 5; min-width: 220px; max-width: 300px; color: var(--text); }
 .dropdown { position: relative; }
 .dropdown .dropdown-panel { position: absolute; right: 0; top: 110%; z-index: 5; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-muted); padding: 0.5rem; box-shadow: 0 6px 18px var(--shadow); min-width: 180px; color: var(--text); }
 .dropdown .dropdown-panel select { width: 100%; padding: 0.35rem; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
