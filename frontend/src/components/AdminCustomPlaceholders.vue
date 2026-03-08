@@ -27,8 +27,15 @@
       <label class="form-field">{{ tr('admin_custom_placeholders_key_label') }}
         <input v-model="dialogData.key" :disabled="dialogMode === 'edit'" required />
       </label>
+      <label class="form-field">{{ tr('admin_custom_placeholders_type_label') }}
+        <select v-model="dialogData.type">
+          <option value="generic">Generic</option>
+          <option value="secret">Secret</option>
+        </select>
+      </label>
       <label class="form-field">{{ tr('admin_custom_placeholders_value_label') }}
-        <textarea v-model="dialogData.value" rows="6" style="resize:vertical;width:100%" required></textarea>
+        <SecretField v-if="dialogData.type === 'secret'" v-model="dialogData.value" :show="false" />
+        <textarea v-else v-model="dialogData.value" rows="6" style="resize:vertical;width:100%" required></textarea>
       </label>
       <label class="form-field">{{ tr('admin_custom_placeholders_description_label') }}
         <input v-model="dialogData.description" />
@@ -46,6 +53,7 @@
 import { ref, computed, onMounted } from 'vue';
 import AdminDataTable from './AdminDataTable.vue';
 import IconButton from './IconButton.vue';
+import SecretField from './SecretField.vue';
 import axios from 'axios';
 import { buildAdminHeaders } from '../utils/adminApi'
 import { useTranslation } from '../composables/useTranslation'
@@ -56,6 +64,7 @@ const { tr } = useTranslation()
 const columns = computed(() => [
   { key: 'key', label: tr('admin_custom_placeholders_columns_key'), required: true },
   { key: 'value', label: tr('admin_custom_placesholders_columns_value'), required: true },
+  { key: 'type', label: tr('admin_custom_placeholders_columns_type') },
   { key: 'description', label: tr('admin_custom_placeholders_columns_description') },
 ]);
 
@@ -74,19 +83,19 @@ async function fetchRows() {
 
 const showDialog = ref(false);
 const dialogMode = ref('add'); // 'add' | 'edit'
-const dialogData = ref({ key: '', value: '', description: '' });
+const dialogData = ref({ key: '', value: '', type: 'generic', description: '' });
 let editId = null;
 
 function openAddDialog() {
   dialogMode.value = 'add';
-  dialogData.value = { key: '', value: '', description: '' };
+  dialogData.value = { key: '', value: '', type: 'generic', description: '' };
   editId = null;
   showDialog.value = true;
 }
 
 function openEditDialog(row) {
   dialogMode.value = 'edit';
-  dialogData.value = { key: row.key, value: row.value, description: row.description };
+  dialogData.value = { key: row.key, value: row.value, type: row.type, description: row.description };
   editId = row.id;
   showDialog.value = true;
 }
@@ -99,6 +108,7 @@ async function clonePlaceholder(row) {
   const payload = {
     key: formatKey(newKey),
     value: row.value,
+    type: row.type,
     description: row.description,
   };
 

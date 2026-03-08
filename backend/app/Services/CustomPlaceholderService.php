@@ -11,6 +11,16 @@ class CustomPlaceholderService
      */
     public function getAll(): array
     {
-        return CustomPlaceholder::all()->pluck('value', 'key')->toArray();
+        $placeholders = CustomPlaceholder::all();
+        
+        // Decrypt secret placeholders for processing
+        return $placeholders->mapWithKeys(function ($placeholder) {
+            $key = $placeholder->key;
+            $value = $placeholder->is_encrypted
+                ? \Illuminate\Support\Facades\Crypt::decryptString($placeholder->value)
+                : $placeholder->value;
+            
+            return [$key => $value];
+        })->toArray();
     }
 }

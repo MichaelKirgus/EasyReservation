@@ -17,5 +17,7 @@ return [
         'mail_username',
         'mail_global_cc',
         'mail_global_bcc',
+        // Custom placeholder values (encrypted when type is 'secret')
+        'custom_placeholder_secret_value',
     ],
 ];
