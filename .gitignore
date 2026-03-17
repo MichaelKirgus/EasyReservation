@@ -2,3 +2,17 @@
 .vs/slnx.sqlite
 .vs/VSWorkspaceState.json
 .roo/mcp.json
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+playwright.config.ts
+.github/workflows/playwright.yml
+package-lock.json
+backend/package-lock.json
+frontend/package-lock.json
+tests/example.spec.ts

@@ -2,10 +2,14 @@
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
     "type": "module",
+    "engines": {
+        "node": "^20.19.0 || >=22.12.0",
+        "npm": ">=10"
+    },
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "dev:all": "concurrently --kill-others --names \"PHP,FRONT,QUEUE\" \"php artisan serve\" \"npm --prefix ../frontend run dev -- --host --port 5173\" \"php artisan queue:work redis --queue=default,heartbeat,work --tries=1 --verbose\" \"php artisan schedule:work --seconds=2 --verbose\"",
+        "dev:all": "concurrently --kill-others --names \"PHP,FRONT,QUEUE,SCHED\" \"php artisan serve\" \"npm --prefix ../frontend run dev -- --host --port 5173\" \"php artisan queue:work redis --queue=default,heartbeat,work --tries=1 --verbose\" \"php artisan schedule:work --seconds=2 --verbose\"",
         "dev:frontendbackend": "concurrently --kill-others --names \"PHP,FRONT,QUEUE\" \"php artisan serve\" \"npm --prefix ../frontend run dev -- --host --port 5173\" \"php artisan queue:work redis --queue=default,heartbeat,work --tries=1 --verbose\"",
         "queue:work": "php artisan queue:work redis --queue=default,heartbeat,work --tries=1 --verbose"
     },
