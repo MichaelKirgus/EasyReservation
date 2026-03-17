@@ -170,7 +170,7 @@ async function createTemplate() {
     const icalTemplateId = templateForm.ical_template_id === '__none__' ? null : templateForm.ical_template_id;
     const attachmentTemplateId = templateForm.attachment_template_id === '__none__' ? null : templateForm.attachment_template_id;
     // Convert "__none__" to null for transport group
-    const transportGroupId = templateForm.transportGroupId === '__none__' ? null : templateForm.transportGroupId;
+    let transportGroupId = templateForm.transportGroupId === '__none__' ? null : templateForm.transportGroupId;
     let transportType = '';
     if (transportGroupId && typeof transportGroupId === 'string') {
       if (transportGroupId.startsWith('group_')) {
