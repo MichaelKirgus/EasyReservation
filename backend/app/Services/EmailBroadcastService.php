@@ -97,10 +97,12 @@ class EmailBroadcastService
             }
 
             // If surveyId is provided, inject personalized survey link
+            $undoLink = $recipient['undo_link'] ?? '';
             $replacements = [
                 'name' => $recipient['name'] ?? '',
                 'email' => $recipient['email'] ?? '',
-                'undo_link' => $recipient['undo_link'] ?? '',
+                'undo_link' => $undoLink,
+                'undo_link_html' => $undoLink ? '<a href="' . $undoLink . '">' . $undoLink . '</a>' : '',
                 'validation_link' => '',
                 'payload' => $recipient['payload'] ?? [],
             ];
@@ -240,7 +242,7 @@ class EmailBroadcastService
                         'id' => $entry->id,
                         'name' => $entry->display_name,
                         'email' => $entry->email,
-                        'undo_link' => $this->linkBuilder->buildWaitlistUndoLink($entry),
+                        'undo_link' => $this->buildWaitlistUndoLink($entry),
                         'payload' => $entry->payload ?? [],
                     ]);
                 });
@@ -320,6 +322,10 @@ class EmailBroadcastService
 
     private function buildWaitlistUndoLink(WaitlistEntry $entry): string
     {
+        if (! $entry->email) {
+            return '';
+        }
+
         $undoEnabled = (int) ($this->settings->get('waitlist_undo_enabled', 0) ?? 0) === 1;
         if (! $undoEnabled) {
             return '';
