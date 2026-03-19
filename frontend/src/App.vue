@@ -149,6 +149,7 @@ const navGroups = computed(() => {
         { to: '/admin/scheduled-tasks', label: tr('nav_tab_scheduled_tasks', 'Scheduled Tasks'), show: !!(currentUser && currentUser.role) },
         { to: '/admin/custom-placeholders', label: tr('nav_tab_placeholders', 'Placeholders'), show: !!(currentUser && currentUser.role) },
         { to: '/admin/form-fields', label: tr('nav_tab_form_fields', 'Form Fields'), show: !!(currentUser && currentUser.role) },
+        { to: '/admin/validation-rules', label: tr('nav_tab_validation_rules', 'Validation Rules'), show: !!(currentUser && currentUser.role) },
         { to: '/admin/users', label: tr('nav_tab_users', 'Users'), show: !!(currentUser && currentUser.role) },
         { to: '/admin/archives', label: tr('nav_tab_archives', 'Archives'), show: !!(currentUser && currentUser.role) },
         { to: '/admin/auditlog', label: tr('nav_tab_audit_log', 'Audit Log'), show: currentUser && currentUser.role === 'superadmin' },

@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\EmailBlacklistDomainController;
 use App\Http\Controllers\Api\AttachmentTemplateController;
 use App\Http\Controllers\Api\AttachmentUploadController;
 use App\Http\Controllers\Api\IcalTemplateController;
+use App\Http\Controllers\Api\ValidationRuleController;
 use Illuminate\Support\Facades\Route;
 
 Route::options('/{any}', fn () => response()->noContent())->where('any', '.*');
@@ -187,6 +188,17 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::delete('/admin/webhook-templates/{id}', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'destroy']);
     Route::post('/admin/webhook-templates/{id}/clone', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'clone']);
     Route::post('/admin/webhook-templates/{id}/test', [\App\Http\Controllers\Api\WebhookTemplateController::class, 'test']);
+
+    Route::get('/admin/validation-rules', [ValidationRuleController::class, 'index']);
+    Route::get('/admin/validation-rules/config', [ValidationRuleController::class, 'getConfig']);
+    Route::patch('/admin/validation-rules/config', [ValidationRuleController::class, 'updateConfig']);
+    Route::post('/admin/validation-rules/reorder', [ValidationRuleController::class, 'reorder']);
+    Route::get('/admin/validation-rules/available-fields', [ValidationRuleController::class, 'getAvailableFields']);
+    Route::get('/admin/validation-rules/webhook-templates', [ValidationRuleController::class, 'getWebhookTemplates']);
+    Route::post('/admin/validation-rules', [ValidationRuleController::class, 'store']);
+    Route::get('/admin/validation-rules/{id}', [ValidationRuleController::class, 'show'])->whereNumber('id');
+    Route::put('/admin/validation-rules/{id}', [ValidationRuleController::class, 'update'])->whereNumber('id');
+    Route::delete('/admin/validation-rules/{id}', [ValidationRuleController::class, 'destroy'])->whereNumber('id');
 
     Route::get('/admin/archives', [ArchiveController::class, 'index']);
     Route::post('/admin/archives', [ArchiveController::class, 'store']);

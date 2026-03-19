@@ -16,6 +16,7 @@ use App\Services\SettingsService;
 use App\Services\SiteTokenService;
 use App\Services\WaitlistService;
 use App\Services\PlaceholderService;
+use App\Services\ValidationRuleEngine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -33,6 +34,7 @@ class ReservationController extends Controller
         private readonly EmailService $emailService,
         private readonly SiteTokenService $siteTokenService,
         private readonly PlaceholderService $placeholders,
+        private readonly ValidationRuleEngine $validationRuleEngine,
     ) {
     }
 
@@ -72,6 +74,21 @@ class ReservationController extends Controller
                 'message' => __('reservation_required_confirmation_missing'),
                 'missing' => $missingRequiredCheckboxes,
             ], 422);
+        }
+
+        // Validate using the new rule-based validation engine
+        $flatData = array_merge(
+            ['name' => $name, 'email' => $email],
+            $payload ?? []
+        );
+        $validationContext = [
+            'reservation_name' => $name,
+            'reservation_email' => $email,
+            'payload' => $payload ?? [],
+        ];
+        $validationResult = $this->validationRuleEngine->evaluate($flatData, $validationContext);
+        if ($validationResult->fails()) {
+            return response()->json(['message' => $validationResult->errorMessage()], 422);
         }
 
         if (! $this->validator->nameIsValid($name)) {
