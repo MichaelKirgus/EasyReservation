@@ -48,6 +48,15 @@ class EventTriggerController extends Controller
         return response()->json(['success' => true]);
     }
 
+    // Toggle active status
+    public function toggleActive($id)
+    {
+        $trigger = EventTrigger::findOrFail($id);
+        $trigger->active = !$trigger->active;
+        $trigger->save();
+        return response()->json(['success' => true, 'active' => $trigger->active]);
+    }
+
     // Simulate event
     public function simulate($id)
     {

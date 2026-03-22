@@ -39,6 +39,7 @@ class ScheduledTaskController extends Controller
             'active' => 'boolean',
             'run_once' => 'boolean',
             'skip_if_overdue' => 'boolean',
+            'action_list_id' => 'nullable|integer',
         ]);
         
         // Validation: Either run_at, cron_expression, or (relative_to + relative_offset_minutes) must be set
@@ -80,6 +81,7 @@ class ScheduledTaskController extends Controller
             'reference_id' => 'nullable|integer',
             'relative_to' => 'nullable|string',
             'relative_offset_minutes' => 'nullable|integer',
+            'action_list_id' => 'nullable|integer',
         ]);
         
         // Validate cron expression if provided

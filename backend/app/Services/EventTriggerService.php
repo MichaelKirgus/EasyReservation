@@ -109,6 +109,28 @@ class EventTriggerService
             $this->sendEmailForTrigger($trigger, $context);
         } elseif ($trigger->action_type === 'webhook') {
             $this->sendWebhookForTrigger($trigger, $context);
+        } elseif ($trigger->action_type === 'action_list') {
+            $this->executeActionListForTrigger($trigger, $context);
+        }
+    }
+
+    private function executeActionListForTrigger(EventTrigger $trigger, array $context)
+    {
+        // Check both template_id (legacy) and action_list_id
+        $actionListId = $trigger->template_id ?? $trigger->action_list_id;
+        if (!$actionListId) return;
+
+        // Apply context placeholders
+        $this->applyContextPlaceholders($context);
+
+        $service = app(\App\Services\ActionListService::class);
+        
+        try {
+            $service->executeActionList($actionListId, $context);
+            \Log::info('EventTriggerService: Action list execution completed for trigger ' . $trigger->id);
+        } catch (\Throwable $e) {
+            \Log::error('EventTriggerService: Action list execution failed for trigger ' . $trigger->id . ': ' . $e->getMessage());
+            throw $e;
         }
     }
 
@@ -163,23 +185,38 @@ class EventTriggerService
     /**
      * Apply context-specific placeholders to the PlaceholderService before executing an action.
      */
+    /**
+     * Apply context-specific placeholders to the PlaceholderService before executing an action.
+     */
     public function applyContextPlaceholders(array $context): void
     {
         $map = [];
+        
+        // Add event placeholders if present
+        if (isset($context['event']) && $context['event'] instanceof \App\Models\Event) {
+            $this->placeholderService->setEvent($context['event']);
+        }
+        
+        // Add reservation placeholders if present
+        if (isset($context['reservation']) && $context['reservation'] instanceof \App\Models\Reservation) {
+            $this->placeholderService->setReservation($context['reservation']);
+        }
+        
+        // Add waitlist_entry placeholders if present
+        if (isset($context['waitlist_entry']) && $context['waitlist_entry'] instanceof \App\Models\WaitlistEntry) {
+            $map['payload'] = $context['waitlist_entry']->payload ?? [];
+        }
+        
+        // Add error_message placeholder if present
         if (isset($context['error_message'])) {
             $map['error_message'] = (string) $context['error_message'];
         }
-        // Add form field placeholders from reservation or waitlist_entry payload
-        if (isset($context['reservation']) && $context['reservation'] instanceof \App\Models\Reservation) {
-            $map['payload'] = $context['reservation']->payload ?? [];
-        } elseif (isset($context['waitlist_entry']) && $context['waitlist_entry'] instanceof \App\Models\WaitlistEntry) {
-            $map['payload'] = $context['waitlist_entry']->payload ?? [];
-        }
+        
         if (!empty($map)) {
             $this->placeholderService->setContextPlaceholders($map);
         }
     }
-
+  
     private function sendWebhookForTrigger(EventTrigger $trigger, array $context)
     {
         // Prefer webhook_template_id if set, fallback to direct webhook_url

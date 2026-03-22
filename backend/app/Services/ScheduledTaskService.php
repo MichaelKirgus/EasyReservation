@@ -230,6 +230,36 @@ class ScheduledTaskService
                     }
                     break;
                 }
+                case 'action_list': {
+                    \Log::info('Executing action_list for task ' . $task->id);
+                    $service = app(\App\Services\ActionListService::class);
+                    // Check both options and direct column for action_list_id
+                    $actionListId = $task->options['action_list_id'] ?? $task->action_list_id;
+                    
+                    if (!$actionListId) {
+                        \Log::warning('Action list task without action_list_id: ' . $task->id);
+                        throw new \InvalidArgumentException('No action_list_id provided for task ' . $task->id);
+                    }
+                    
+                    // Build context from task reference
+                    $context = [];
+                    if ($task->reference_type === 'event' && $task->reference_id) {
+                        $context['event'] = \App\Models\Event::find($task->reference_id);
+                    } elseif ($task->reference_type === 'reservation' && $task->reference_id) {
+                        $context['reservation'] = \App\Models\Reservation::find($task->reference_id);
+                    } elseif ($task->reference_type === 'user' && $task->reference_id) {
+                        $context['user'] = \App\Models\User::find($task->reference_id);
+                    }
+                    
+                    try {
+                        $service->executeActionList($actionListId, $context);
+                        \Log::info('Action list execution completed for task ' . $task->id);
+                    } catch (\Throwable $e) {
+                        \Log::error('Action list execution failed for task ' . $task->id . ': ' . $e->getMessage());
+                        throw $e;
+                    }
+                    break;
+                }
                 case 'webhook': {
                     \Log::info('Executing webhook for task ' . $task->id);
                     $webhookService = app(\App\Services\WebhookService::class);

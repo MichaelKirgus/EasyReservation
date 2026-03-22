@@ -21,6 +21,7 @@ class EventTrigger extends Model
         'recipient_moderators',
         'custom_recipients',
         'webhook_template_id',
+        'action_list_id',
     ];
 
     protected $casts = [
@@ -31,10 +32,19 @@ class EventTrigger extends Model
         'recipient_waitlist' => 'boolean',
         'recipient_admins' => 'boolean',
         'recipient_moderators' => 'boolean',
+        'action_list_id' => 'integer',
     ];
 
     public function webhookTemplate()
     {
         return $this->belongsTo(WebhookTemplate::class);
+    }
+
+    /**
+     * Get the action list associated with this trigger.
+     */
+    public function actionList()
+    {
+        return $this->belongsTo(\App\Models\ActionList::class, 'action_list_id');
     }
 }

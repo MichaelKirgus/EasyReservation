@@ -36,6 +36,8 @@ use App\Http\Controllers\Api\AttachmentTemplateController;
 use App\Http\Controllers\Api\AttachmentUploadController;
 use App\Http\Controllers\Api\IcalTemplateController;
 use App\Http\Controllers\Api\ValidationRuleController;
+use App\Http\Controllers\Api\ActionListController;
+use App\Http\Controllers\Api\ActionListActionController;
 use Illuminate\Support\Facades\Route;
 
 Route::options('/{any}', fn () => response()->noContent())->where('any', '.*');
@@ -136,6 +138,7 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/event-triggers', [\App\Http\Controllers\Api\EventTriggerController::class, 'store']);
     Route::put('/admin/event-triggers/{id}', [\App\Http\Controllers\Api\EventTriggerController::class, 'update']);
     Route::delete('/admin/event-triggers/{id}', [\App\Http\Controllers\Api\EventTriggerController::class, 'destroy']);
+    Route::patch('/admin/event-triggers/{id}/toggle-active', [\App\Http\Controllers\Api\EventTriggerController::class, 'toggleActive']);
     Route::post('/admin/event-triggers/{id}/simulate', [\App\Http\Controllers\Api\EventTriggerController::class, 'simulate']);
 
     // Survey routes (must be before apiResource to avoid {survey} parameter conflict)
@@ -161,6 +164,14 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::apiResource('/admin/locations', LocationController::class);
     Route::apiResource('/admin/scheduled-tasks', \App\Http\Controllers\Api\ScheduledTaskController::class)->except(['create', 'edit', 'show']);
     Route::patch('/admin/scheduled-tasks/{id}/activate', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'activate']);
+
+    // Action Lists routes
+    Route::apiResource('/admin/action-lists', ActionListController::class)->except(['create', 'edit', 'show']);
+    Route::get('/admin/action-lists/{id}/actions', [ActionListActionController::class, 'index']);
+    Route::post('/admin/action-lists/{id}/actions', [ActionListActionController::class, 'store']);
+    Route::put('/admin/action-lists/{id}/actions/{actionId}', [ActionListActionController::class, 'update']);
+    Route::delete('/admin/action-lists/{id}/actions/{actionId}', [ActionListActionController::class, 'destroy']);
+    Route::post('/admin/action-lists/{id}/execute', [ActionListController::class, 'execute']);
     Route::patch('/admin/scheduled-tasks/{id}/deactivate', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'deactivate']);
     Route::post('/admin/scheduled-tasks/{id}/run-now', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'runNow']);
     Route::post('/admin/cron/next-run', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'getNextCronRun']);

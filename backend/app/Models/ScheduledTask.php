@@ -26,6 +26,7 @@ class ScheduledTask extends Model
         'reference_id',
         'relative_to',
         'relative_offset_minutes',
+        'action_list_id',
     ];
 
     protected $casts = [
@@ -40,6 +41,7 @@ class ScheduledTask extends Model
         'skip_if_overdue' => 'boolean',
         'reference_id' => 'integer',
         'relative_offset_minutes' => 'integer',
+        'action_list_id' => 'integer',
     ];
 
     // Geplantes Ausführungsdatum berechnen (absolut oder relativ, auch für alle Objekte)
@@ -165,5 +167,12 @@ class ScheduledTask extends Model
     {
         // Return the expression itself as a simple description
         return $expression;
+    }
+    /**
+     * Get the action list associated with this task.
+     */
+    public function actionList()
+    {
+        return $this->belongsTo(\App\Models\ActionList::class, 'action_list_id');
     }
 }

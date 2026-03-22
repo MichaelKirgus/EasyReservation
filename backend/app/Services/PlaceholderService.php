@@ -315,6 +315,53 @@ class PlaceholderService
      * @param Survey $survey The survey object
      * @param string|null $token Optional token for the response link
      */
+    /**
+     * Set event placeholders for the current request/trigger.
+     *
+     * @param Event $event The event object
+     */
+    public function setEvent(\App\Models\Event $event): self
+    {
+        $this->contextPlaceholders['event_title'] = $event->title ?? '';
+        $this->contextPlaceholders['event_start_at'] = $event->start_at?->toIso8601String() ?? '';
+        $this->contextPlaceholders['event_end_at'] = $event->end_at?->toIso8601String() ?? '';
+        $this->contextPlaceholders['event_location_id'] = $event->location_id ?? '';
+        
+        if ($event->location) {
+            $this->contextPlaceholders['event_location_name'] = $event->location->name ?? '';
+            $this->contextPlaceholders['event_location_address'] = $event->location->address ?? '';
+        }
+        
+        return $this;
+    }
+  
+    /**
+     * Set reservation placeholders for the current request/trigger.
+     *
+     * @param Reservation $reservation The reservation object
+     */
+    public function setReservation(\App\Models\Reservation $reservation): self
+    {
+        $this->contextPlaceholders['reservation_name'] = $reservation->display_name ?? '';
+        $this->contextPlaceholders['reservation_email'] = $reservation->email ?? '';
+        $this->contextPlaceholders['reservation_created_at'] = $reservation->created_at?->toIso8601String() ?? '';
+        
+        return $this;
+    }
+  
+    /**
+     * Set user placeholders for the current request/trigger.
+     *
+     * @param User $user The user object
+     */
+    public function setUser(\App\Models\User $user): self
+    {
+        $this->contextPlaceholders['user_name'] = $user->name ?? '';
+        $this->contextPlaceholders['user_email'] = $user->email ?? '';
+        
+        return $this;
+    }
+  
     public function setSurveyLink(Survey $survey, ?string $token = null): self
     {
         $linkBuilder = app(LinkBuildingService::class);

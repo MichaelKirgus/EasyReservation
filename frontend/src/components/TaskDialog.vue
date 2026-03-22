@@ -2,20 +2,17 @@
   <div class="task-dialog">
     <h3>{{ task && task.id ? tr('scheduled_tasks_task_dialog_edit_title') : tr('scheduled_tasks_task_dialog_new_title') }}</h3>
     <form @submit.prevent="submit">
+      <!-- Action List Reference -->
       <div>
-        <label>{{ tr('scheduled_tasks_column_type') }}:
-          <span class="help-inline">{{ tr('scheduled_tasks_help_inline_absolute') }}</span>
-        </label>
-        <select v-model="form.type" required>
+        <label>{{ tr('scheduled_tasks_label_action_list') }}:</label>
+        <select v-model="form.action_list_id" required>
           <option value="">{{ tr('scheduled_tasks_select_placeholder') }}</option>
-          <option value="attendees_email_broadcast">{{ tr('scheduled_tasks_type_attendees_email_broadcast') }}</option>
-          <option value="waitlist_email_broadcast">{{ tr('scheduled_tasks_type_waitlist_email_broadcast') }}</option>
-          <option value="custom_email_broadcast">{{ tr('scheduled_tasks_type_custom_email_broadcast') }}</option>
-          <option value="change_setting">{{ tr('scheduled_tasks_type_change_setting') }}</option>
-          <option value="webhook">{{ tr('scheduled_tasks_type_webhook') }}</option>
-          <option value="survey_sendout">{{ tr('scheduled_tasks_type_survey_sendout') }}</option>
+          <option v-for="list in actionLists" :key="list.id" :value="list.id">
+            {{ list.name }}
+          </option>
         </select>
       </div>
+
       <!-- Scheduling Mode Selection -->
       <div>
         <label>{{ tr('scheduled_tasks_scheduling_mode_absolute') }}:</label>
@@ -70,7 +67,7 @@
         <label>{{ tr('scheduled_tasks_label_cron_expression') }}:</label>
         <input v-model="form.cron_expression" type="text" placeholder="* * * * *" />
         <span class="help-inline">{{ tr('scheduled_tasks_help_inline_cron_syntax') }}</span>
-        
+
         <!-- Cron Examples Dropdown -->
         <div style="margin-top:0.5em;">
           <label>{{ tr('scheduled_tasks_label_cron_examples') }}:</label>
@@ -81,7 +78,7 @@
             </option>
           </select>
         </div>
-        
+
         <div v-if="form.cron_expression" style="margin-top:0.5em;">
           <label>{{ tr('scheduled_tasks_label_next_run') }}:</label>
           <input :value="nextCronRunAt" type="text" readonly />
@@ -89,104 +86,37 @@
         </div>
       </div>
 
-      <div v-if="form.type === 'change_setting'">
-        <label>{{ tr('admin_settings_key') }}:</label>
-        <select v-model="selectedSettingKey" required>
-          <option value="">{{ tr('scheduled_tasks_select_placeholder') }}</option>
-          <option v-for="key in settingKeys" :key="key" :value="key">{{ key }}</option>
-        </select>
-        <label>{{ tr('new_value') }}:</label>
-        <template v-if="currentSettingField.type === 'boolean'">
-          <input v-model="settingValue" type="checkbox" :true-value="true" :false-value="false" />
-        </template>
-        <template v-else-if="currentSettingField.type === 'number'">
-          <input v-model.number="settingValue" type="number" required />
-        </template>
-        <template v-else-if="currentSettingField.type === 'color'">
-          <input v-model="settingValue" type="color" required />
-        </template>
-        <template v-else-if="currentSettingField.type === 'date'">
-          <input v-model="settingValue" type="date" required />
-        </template>
-        <template v-else-if="currentSettingField.type === 'datetime-local'">
-          <input v-model="settingValue" type="datetime-local" required />
-        </template>
-        <template v-else-if="currentSettingField.component === 'textarea'">
-          <textarea v-model="settingValue" required></textarea>
-        </template>
-        <template v-else>
-          <input v-model="settingValue" type="text" required />
-        </template>
-      </div>
-      <div v-if="form.type === 'attendees_email_broadcast' || form.type === 'waitlist_email_broadcast' || form.type === 'custom_email_broadcast'">
-        <label>{{ tr('email_template_name') }}:</label>
-        <select v-model.number="selectedTemplateId" required>
-          <option value="">{{ tr('scheduled_tasks_select_placeholder') }}</option>
-          <option v-for="tpl in emailTemplates" :key="tpl.id" :value="tpl.id">
-            {{ tpl.name || tpl.subject || (tr('email_template_name') + ' #' + tpl.id) }} (ID: {{ tpl.id }})
-          </option>
-        </select>
-      </div>
-      <div v-if="form.type === 'custom_email_broadcast'">
-        <label>{{ tr('scheduled_tasks_label_reference_object') }} (eine Adresse pro Zeile, optional mit Name):</label>
-        <textarea v-model="customEmails" placeholder="max@example.com\nAnna <anna@example.com>\n..."></textarea>
-      </div>
-      <div v-if="form.type === 'webhook'">
-        <label>{{ tr('admin_webhook_templates_title') }}:</label>
-        <select v-model.number="selectedWebhookTemplateId" required>
-          <option value="">{{ tr('scheduled_tasks_select_placeholder') }}</option>
-          <option v-for="tpl in webhookTemplates" :key="tpl.id" :value="tpl.id">
-            {{ tpl.name || (tr('admin_webhook_templates_title') + ' #' + tpl.id) }} (ID: {{ tpl.id }})
-          </option>
-        </select>
-      </div>
-      <div v-if="form.type === 'survey_sendout'">
-        <label>{{ tr('surveys') }}:</label>
-        <select v-model.number="selectedSurveyId" required>
-          <option value="">{{ tr('scheduled_tasks_select_placeholder') }}</option>
-          <option v-for="s in surveys" :key="s.id" :value="s.id">
-            {{ s.title || (tr('surveys') + ' #' + s.id) }} (ID: {{ s.id }})
-          </option>
-        </select>
-        
-        <label style="margin-top:0.5em;">{{ tr('email_template_name') }}:</label>
-        <select v-model.number="selectedTemplateId" required>
-          <option value="">{{ tr('scheduled_tasks_select_placeholder') }}</option>
-          <option v-for="tpl in emailTemplates" :key="tpl.id" :value="tpl.id">
-            {{ tpl.name || tpl.subject || (tr('email_template_name') + ' #' + tpl.id) }} (ID: {{ tpl.id }})
-          </option>
-        </select>
-      </div>
-      <div>
-        <label>{{ tr('scheduled_tasks_label_executed') }}:</label>
-        <input v-model="form.executed" type="checkbox" />
-      </div>
-      <div>
-        <label>{{ tr('scheduled_tasks_label_run_once') }}:
-          <span class="help-inline">{{ tr('scheduled_tasks_help_inline_run_once') }}</span>
+      <!-- Task Options -->
+      <div style="margin-top:1em;">
+        <label style="display:flex;align-items:center;">
+          <input v-model="form.active" type="checkbox" />
+          {{ tr('scheduled_tasks_field_active') }}
         </label>
-        <input v-model="form.run_once" type="checkbox" />
-      </div>
-      <div>
-        <label>{{ tr('scheduled_tasks_label_skip_if_overdue') }}:
-          <span class="help-inline">{{ tr('scheduled_tasks_help_inline_skip_if_overdue') }}</span>
+
+        <label style="display:flex;align-items:center;">
+          <input v-model="form.run_once" type="checkbox" />
+          {{ tr('scheduled_tasks_field_run_once') }}
         </label>
-        <input v-model="form.skip_if_overdue" type="checkbox" />
+
+        <label style="display:flex;align-items:center;">
+          <input v-model="form.skip_if_overdue" type="checkbox" />
+          {{ tr('scheduled_tasks_field_skip_if_overdue') }}
+        </label>
       </div>
-      <div style="margin-top:1em; display:flex; gap:0.5em; justify-content:flex-end;">
-        <IconButton icon="check" :label="tr('admin_setting_submit_button_text')" type="submit" />
-        <IconButton icon="close" :label="tr('cancel')" variant="danger" type="button" @click="$emit('close')" />
+
+      <!-- Submit Buttons -->
+      <div style="display:flex;gap:0.5em;margin-top:1em;">
+        <button type="button" class="primary success" @click="submit">{{ tr('scheduled_tasks_button_save') }}</button>
+        <button type="button" class="ghost" @click="close">{{ tr('scheduled_tasks_button_cancel') }}</button>
       </div>
     </form>
   </div>
 </template>
 
-
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
 import IconButton from './IconButton.vue'
 import axios from 'axios'
-import { settingsFields } from './settingsFields.js'
 import { buildAdminHeaders } from '../utils/adminApi'
 import { useTranslation } from '../composables/useTranslation'
 
@@ -222,30 +152,20 @@ const cronExamples = computed(() => [
 ])
 
 const form = ref({
-  type: '',
+  action_list_id: null,
   run_at: '',
   cron_expression: '',
   reference_type: 'fixed',
   reference_id: null,
   relative_to: '',
   relative_offset_minutes: null,
-  options: {},
-  executed: false,
+  active: true,
   run_once: false,
   skip_if_overdue: false,
 })
 
+const actionLists = ref([])
 const referenceObjects = ref([])
-const emailTemplates = ref([])
-const customEmails = ref('');
-const selectedTemplateId = ref('')
-const webhookTemplates = ref([])
-const selectedWebhookTemplateId = ref('')
-const surveys = ref([])
-const selectedSurveyId = ref('')
-const settingKeys = ref([])
-const selectedSettingKey = ref('')
-const settingValue = ref('')
 
 // Computed: aktuelles Setting-Field (Typ etc.)
 const currentSettingField = computed(() => {
@@ -341,6 +261,11 @@ function objDisplay(obj) {
 }
 
 onMounted(async () => {
+  try {
+    const listsRes = await axios.get('/api/admin/action-lists', apiConfig())
+    actionLists.value = listsRes.data.action_lists || []
+  } catch {}
+  
   // Initial: Events laden, falls Standardtyp
   if (form.value.reference_type === 'event') {
     try {
@@ -348,25 +273,7 @@ onMounted(async () => {
       referenceObjects.value = res.data
     } catch {}
   }
-  try {
-    const tplRes = await axios.get('/api/admin/email-templates', apiConfig())
-    emailTemplates.value = tplRes.data
-  } catch {}
-  try {
-    const whRes = await axios.get('/api/admin/webhook-templates', apiConfig())
-    webhookTemplates.value = whRes.data
-  } catch {}
-  try {
-    const keysRes = await axios.get('/api/admin/settings-keys', apiConfig())
-    settingKeys.value = keysRes.data
-  } catch {}
-  try {
-    const surveysRes = await axios.get('/api/admin/surveys', apiConfig())
-    surveys.value = surveysRes.data.surveys || []
-  } catch {}
 })
-
-
 
 let loadedFromTask = false
 
@@ -381,13 +288,13 @@ function determineSchedulingMode(task) {
 watch(() => props.task, (task) => {
   if (task) {
     // Erstelle ein Plain-Object, um Vue-Proxy-Probleme zu vermeiden
-    const taskData = JSON.parse(JSON.stringify({ ...task, options: task.options || {} }))
+    const taskData = JSON.parse(JSON.stringify({ ...task }))
     
     // Setze Scheduling Mode basierend auf den Daten
     schedulingMode.value = determineSchedulingMode(task)
     
     // FÃ¼r Cron-basierte Aufgaben: reference_type auf 'cron' setzen, bevor wir die Daten laden
-    let finalTaskData = { ...taskData, options: task.options || {} }
+    let finalTaskData = { ...taskData }
     if (schedulingMode.value === 'cron') {
       finalTaskData.reference_type = 'cron'
     } else if (!finalTaskData.reference_type) {
@@ -402,94 +309,24 @@ watch(() => props.task, (task) => {
       form.value.run_at = toDatetimeLocal(task.run_at || '')
     }
     
-    if (
-      form.value.type === 'attendees_email_broadcast' ||
-      form.value.type === 'waitlist_email_broadcast' ||
-      form.value.type === 'custom_email_broadcast'
-    ) {
-      selectedTemplateId.value = form.value.options?.template_id || ''
-    } else {
-      selectedTemplateId.value = ''
-    }
-    
-    if (form.value.type === 'custom_email_broadcast') {
-      // custom_recipients als Zeilen-String
-      customEmails.value = (form.value.options?.custom_recipients || [])
-        .map(r => r.name ? `${r.name} <${r.email}>` : r.email)
-        .join('\n')
-    } else {
-      customEmails.value = ''
-    }
-    
-    if (form.value.type === 'webhook') {
-      selectedWebhookTemplateId.value = form.value.options?.webhook_template_id || ''
-    } else {
-      selectedWebhookTemplateId.value = ''
-    }
-    
-    if (form.value.type === 'change_setting') {
-      selectedSettingKey.value = form.value.options?.key || ''
-      settingValue.value = form.value.options?.value ?? ''
-      loadedFromTask = true
-    } else {
-      selectedSettingKey.value = ''
-      settingValue.value = ''
-      loadedFromTask = false
-    }
+    loadedFromTask = true
   } else {
     schedulingMode.value = 'absolute'
     form.value = {
-      type: '',
+      action_list_id: null,
       run_at: '',
       cron_expression: '',
       reference_type: 'fixed',
       reference_id: null,
       relative_to: '',
       relative_offset_minutes: null,
-      options: {},
-      executed: false,
+      active: true,
       run_once: false,
       skip_if_overdue: false,
     }
-    selectedTemplateId.value = ''
-    selectedWebhookTemplateId.value = ''
-    selectedSettingKey.value = ''
-    settingValue.value = ''
-    customEmails.value = ''
     loadedFromTask = false
   }
 }, { immediate: true })
-
-// Lade aktuellen Wert aus DB, wenn SchlÃ¼ssel gewÃ¤hlt wird (nur beim Anlegen oder wenn Wert leer)
-watch(selectedSettingKey, async (key) => {
-  if (!key) return;
-  // Nur laden, wenn kein Wert aus Task Ã¼bernommen wurde oder Wert leer
-  if (loadedFromTask && settingValue.value !== '') return;
-  try {
-    const res = await axios.get(`/api/admin/settings/${encodeURIComponent(key)}`, apiConfig())
-    // Wert aus DB Ã¼bernehmen, aber Typ beachten
-    let val = res.data?.value
-    val = convertSettingValue(val, currentSettingField.value.type)
-    settingValue.value = val
-  } catch {
-    // Fehler ignorieren, Wert bleibt leer
-  }
-})
-
-function parseCustomEmails(str) {
-  // Zeilenweise, Format: Name <mail@x.de> oder nur mail@x.de
-  return str.split(/\r?\n/)
-    .map(line => line.trim())
-    .filter(line => line.length > 0)
-    .map(line => {
-      const match = line.match(/^(.*?)\s*<([^>]+)>$/)
-      if (match) {
-        return { name: match[1].trim(), email: match[2].trim() }
-      } else {
-        return { email: line }
-      }
-    })
-}
 
 function toUtcIsoString(localDateTimeStr) {
   if (!localDateTimeStr) return null;
@@ -500,7 +337,6 @@ function toUtcIsoString(localDateTimeStr) {
 }
 
 function submit() {
-  // Dynamisch options bauen je nach Typ
   const payload = { ...form.value };
   
   // Enforce reference_type based on scheduling mode
@@ -529,35 +365,11 @@ function submit() {
     payload.run_at = null
   }
   
-  if ([
-    'attendees_email_broadcast',
-    'waitlist_email_broadcast',
-    'custom_email_broadcast'
-  ].includes(form.value.type)) {
-    payload.options = { ...payload.options, template_id: selectedTemplateId.value };
-  }
-  if (form.value.type === 'custom_email_broadcast') {
-    payload.options = { ...payload.options, custom_recipients: parseCustomEmails(customEmails.value) };
-  }
-  if (form.value.type === 'webhook') {
-    payload.options = { ...payload.options, webhook_template_id: selectedWebhookTemplateId.value };
-  } else if (form.value.type === 'survey_sendout') {
-    payload.options = {
-      ...payload.options,
-      survey_id: selectedSurveyId.value,
-      template_id: selectedTemplateId.value
-    };
-  } else if (form.value.type === 'change_setting') {
-    let value = settingValue.value;
-    // Typkonvertierung fÃ¼r Boolean/Number
-    if (currentSettingField.value.type === 'boolean') {
-      value = value ? '1' : '0'; // String statt Boolean!
-    } else if (currentSettingField.value.type === 'number') {
-      value = value === '' ? null : Number(value);
-    }
-    payload.options = { key: selectedSettingKey.value, value };
-  }
   emit('save', payload);
+}
+
+function close() {
+  emit('close');
 }
 </script>
 

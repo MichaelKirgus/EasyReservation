@@ -2,46 +2,26 @@
   <div>
     <h2 style="display:flex;align-items:center;justify-content:space-between;">
       <span>{{ tr('admin_event_triggers_title') }}</span>
-      <IconButton icon="plus" :label="tr('admin_event_triggers_button_new_trigger')" class="primary" variant="success" @click="createTrigger" />
+      <IconButton icon="plus" :label="tr('admin_event_triggers_button_new')" class="primary" variant="success" @click="createTrigger" />
     </h2>
     <AdminDataTable
       :columns="columns"
       :rows="triggers"
       :loading="loading"
     >
-      <template #cell-event_type="{ value }">
-        <span>{{ eventTypeLabel(value) }}</span>
-      </template>
-      <template #cell-action_type="{ value }">
-        <span>{{ value === 'email' ? tr('trigger_dialog_option_email') : tr('trigger_dialog_option_webhook') }}</span>
-      </template>
-      <template #cell-template_id="{ value }">
-        <span>{{ templateName(value) }}</span>
-      </template>
-      <template #cell-webhook_url="{ value, row }">
-        <span v-if="row.action_type === 'webhook'">{{ value }}</span>
-        <span v-else>–</span>
-      </template>
-      <template #cell-delay_seconds="{ value }">
-        <span>{{ value ?? 0 }}</span>
-      </template>
-      <template #cell-cooldown_seconds="{ value }">
-        <span>{{ value ?? 0 }}</span>
-      </template>
       <template #cell-active="{ row }">
         <input type="checkbox" :checked="row.active" @change="toggleActive(row)" :disabled="loading" />
       </template>
       <template #row-actions="{ row }">
-        <IconButton :icon="'play'" :label="tr('admin_event_triggers_button_simulate')" class="ghost" @click.stop="simulate(row)" :disabled="loading || !row.active" />
-        <IconButton :icon="'pencil'" :label="tr('admin_event_triggers_button_edit')" class="ghost" @click.stop="editTrigger(row)" :disabled="loading" />
-        <IconButton :icon="'trash'" :label="tr('admin_event_triggers_button_delete')" class="ghost" variant="danger" @click.stop="deleteTrigger(row)" :disabled="loading" />
+        <IconButton icon="play" :label="tr('admin_event_triggers_button_simulate')" class="ghost" @click.stop="simulate(row)" :disabled="loading" />
+        <IconButton icon="pencil" :label="tr('admin_event_triggers_button_edit')" class="ghost" @click.stop="editTrigger(row)" :disabled="loading" />
+        <IconButton icon="trash" :label="tr('admin_event_triggers_button_delete')" class="ghost" variant="danger" @click.stop="deleteTrigger(row)" :disabled="loading" />
       </template>
     </AdminDataTable>
     <TriggerDialog
       v-if="showDialog"
       :trigger="selectedTrigger"
-      :emailTemplates="emailTemplates"
-      :webhookTemplates="webhookTemplates"
+      :action-lists="actionLists"
       @close="closeDialog"
       @save="saveTrigger"
     />
@@ -64,46 +44,7 @@ const loading = ref(false)
 const showDialog = ref(false)
 const selectedTrigger = ref(null)
 
-const emailTemplates = ref([])
-const webhookTemplates = ref([])
-
-function templateName(id) {
-  if (!id) return '–';
-  const tpl = emailTemplates.value.find(t => t.id == id);
-  return tpl ? tpl.name : id;
-}
-
-// Columns - defined as computed to ensure translations are loaded
-const columns = computed(() => [
-  { key: 'id', label: tr('admin_event_triggers_column_id') },
-  { key: 'event_type', label: tr('admin_event_triggers_column_event_type') },
-  { key: 'action_type', label: tr('admin_event_triggers_column_action_type') },
-  { key: 'template_id', label: tr('admin_event_triggers_column_template_id') },
-  { key: 'webhook_url', label: tr('admin_event_triggers_column_webhook_url') },
-  { key: 'delay_seconds', label: tr('admin_event_triggers_column_delay_seconds') },
-  { key: 'cooldown_seconds', label: tr('admin_event_triggers_column_cooldown_seconds') },
-  { key: 'active', label: tr('admin_event_triggers_column_active') }
-])
-
-// Event types - defined as computed to ensure translations are loaded
-const eventTypes = computed(() => [
-  { value: 'reservation_full', label: tr('event_type_reservation_full') },
-  { value: 'reservation_disabled', label: tr('event_type_reservation_disabled') },
-  { value: 'reservation_enabled', label: tr('event_type_reservation_enabled') },
-  { value: 'reservation_added', label: tr('event_type_reservation_added') },
-  { value: 'reservation_removed', label: tr('event_type_reservation_removed') },
-  { value: 'reservation_canceled', label: tr('event_type_reservation_canceled') },
-  { value: 'waitlist_enabled', label: tr('event_type_waitlist_enabled') },
-  { value: 'waitlist_disabled', label: tr('event_type_waitlist_disabled') },
-  { value: 'waitlist_entry_added', label: tr('event_type_waitlist_entry_added') },
-  { value: 'waitlist_entry_removed', label: tr('event_type_waitlist_entry_removed') },
-  { value: 'application_error', label: tr('event_type_application_error') }
-])
-
-function eventTypeLabel(val) {
-  const found = eventTypes.value.find(e => e.value === val)
-  return found ? found.label : val
-}
+const actionLists = ref([])
 
 function apiConfig() {
   return { headers: buildAdminHeaders() };
@@ -116,15 +57,9 @@ function fetchTriggers() {
     .finally(() => { loading.value = false })
 }
 
-
-function fetchEmailTemplates() {
-  axios.get('/api/admin/email-templates', apiConfig())
-    .then(res => { emailTemplates.value = res.data })
-}
-
-function fetchWebhookTemplates() {
-  axios.get('/api/admin/webhook-templates', apiConfig())
-    .then(res => { webhookTemplates.value = res.data })
+function fetchActionLists() {
+  axios.get('/api/admin/action-lists', apiConfig())
+    .then(res => { actionLists.value = res.data.action_lists || [] })
 }
 
 function createTrigger() {
@@ -156,24 +91,74 @@ function deleteTrigger(trigger) {
     .finally(() => { loading.value = false })
 }
 
-function simulate(trigger) {
+function toggleActive(trigger) {
   loading.value = true
-  axios.post(`/api/admin/event-triggers/${trigger.id}/simulate`, {}, apiConfig())
+  axios.patch(`/api/admin/event-triggers/${trigger.id}/toggle-active`, {}, apiConfig())
+    .then(fetchTriggers)
     .finally(() => { loading.value = false })
 }
 
-function toggleActive(trigger) {
-  // Komplettes Trigger-Objekt übergeben, nur active ändern
-  saveTrigger({ ...trigger, active: !trigger.active })
+function simulate(trigger) {
+  loading.value = true
+  axios.post(`/api/admin/event-triggers/${trigger.id}/simulate`, {}, apiConfig())
+    .then(res => {
+      if (res.data.simulated) {
+        alert(tr('admin_event_triggers_simulate_success'))
+      } else {
+        alert(tr('admin_event_triggers_simulate_error') + ': ' + res.data.error)
+      }
+    })
+    .finally(() => { loading.value = false })
 }
 
 function closeDialog() {
   showDialog.value = false
 }
 
+// Columns - defined as computed to ensure translations are loaded
+const columns = computed(() => [
+  { key: 'id', label: tr('admin_event_triggers_column_id') },
+  { key: 'event_type', label: tr('admin_event_triggers_column_event_type') },
+  { key: 'action_list_id', label: tr('admin_event_triggers_column_action_list') },
+  { key: 'delay_seconds', label: tr('admin_event_triggers_column_delay_seconds') },
+  { key: 'cooldown_seconds', label: tr('admin_event_triggers_column_cooldown_seconds') },
+  { key: 'active', label: tr('admin_event_triggers_column_active') }
+])
+
+// Event types - defined as computed to ensure translations are loaded
+const eventTypes = computed(() => [
+  { value: 'reservation_full', label: tr('event_type_reservation_full') },
+  { value: 'reservation_disabled', label: tr('event_type_reservation_disabled') },
+  { value: 'reservation_enabled', label: tr('event_type_reservation_enabled') },
+  { value: 'reservation_added', label: tr('event_type_reservation_added') },
+  { value: 'reservation_removed', label: tr('event_type_reservation_removed') },
+  { value: 'reservation_canceled', label: tr('event_type_reservation_canceled') },
+  { value: 'waitlist_enabled', label: tr('event_type_waitlist_enabled') },
+  { value: 'waitlist_disabled', label: tr('event_type_waitlist_disabled') },
+  { value: 'waitlist_entry_added', label: tr('event_type_waitlist_entry_added') },
+  { value: 'waitlist_entry_removed', label: tr('event_type_waitlist_entry_removed') },
+  { value: 'application_error', label: tr('event_type_application_error') }
+])
+
+function eventTypeLabel(val) {
+  const found = eventTypes.value.find(e => e.value === val)
+  return found ? found.label : val
+}
+
 onMounted(() => {
   fetchTriggers()
-  fetchEmailTemplates()
-  fetchWebhookTemplates()
+  fetchActionLists()
 })
 </script>
+
+<style scoped>
+.admin-event-triggers {
+  background: var(--app-card-bg, var(--surface));
+  color: var(--text);
+  border-radius: 12px;
+  padding: 1.5em;
+  margin: 1.5em 0;
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 12px 30px var(--shadow);
+}
+</style>
