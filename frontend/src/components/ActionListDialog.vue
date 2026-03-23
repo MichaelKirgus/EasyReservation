@@ -11,6 +11,11 @@
       <input v-model="form.active" type="checkbox" />
       {{ tr('admin_action_lists_field_active') }}
     </label>
+    
+    <label style="display:flex;align-items:center;">
+      <input v-model="form.moderation_selectable" type="checkbox" />
+      {{ tr('admin_action_lists_field_moderation_selectable') }}
+    </label>
 
     <!-- Actions Section -->
     <h3 style="margin-top:1em;">{{ tr('admin_action_lists_section_actions') }}</h3>

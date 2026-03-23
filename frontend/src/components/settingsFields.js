@@ -142,4 +142,6 @@ export const settingsFields = [
     { key: 'maintenance_message', type: 'text', component: 'textarea', group: 'general', labelKey: 'maintenance_message', hintKey: 'admin_setting_markdown_hint', placeholders: true },
     // Site token invalid message
     { key: 'site_token_invalid_message', type: 'text', component: 'textarea', group: 'general', labelKey: 'site_token_invalid_message', hintKey: 'admin_setting_markdown_hint', placeholders: true },
+    // Post-login redirect URL
+    { key: 'post_login_redirect_url', type: 'text', group: 'security', labelKey: 'post_login_redirect_url', hintKey: 'admin_setting_post_login_redirect_url_hint', default: '/moderation/dashboard' },
 ];

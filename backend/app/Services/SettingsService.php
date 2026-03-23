@@ -61,6 +61,15 @@ class SettingsService
         return max(0, (int) $this->get('session_lifetime_minutes', 43200));
     }
 
+    /**
+     * Post-login redirect URL.
+     * Default: '/moderation/dashboard'.
+     */
+    public function postLoginRedirectUrl(): string
+    {
+        return (string) $this->get('post_login_redirect_url', '/moderation/dashboard');
+    }
+
     public function upcomingEvents(): array
     {
         $raw = (string) ($this->get('reservation_upcoming_events', '') ?? '');

@@ -131,6 +131,7 @@ const navGroups = computed(() => {
       id: 'moderation',
       label: tr('nav_moderation_label', 'Moderation'),
       tabs: [
+        { to: '/moderation/dashboard', label: tr('nav_tab_dashboard', 'Dashboard'), show: !!(currentUser && currentUser.role) },
         { to: '/moderation/reservations', label: tr('nav_tab_reservations', 'Reservations'), show: !!(currentUser && currentUser.role) },
         { to: '/moderation/templates', label: tr('nav_tab_templates', 'Templates'), show: !!(currentUser && currentUser.role) },
         { to: '/moderation/faq', label: tr('nav_tab_faq', 'FAQ'), show: !!(currentUser && currentUser.role) },
@@ -363,6 +364,14 @@ async function login() {
     loginForm.otp = ''
     showLogin.value = false
     showOtp.value = false
+    
+    // Redirect to post-login URL based on appSettings
+    try {
+      const redirectUrl = (appSettings.settings || appSettings)?.post_login_redirect_url || '/moderation/dashboard'
+      if (redirectUrl && redirectUrl !== '/') {
+        router.push(redirectUrl)
+      }
+    } catch (_) {}
   } catch (e) {
     setAuthError(`Login fehlgeschlagen: ${e}`)
   } finally {

@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\AttachmentUploadController;
 use App\Http\Controllers\Api\IcalTemplateController;
 use App\Http\Controllers\Api\ValidationRuleController;
 use App\Http\Controllers\Api\ActionListController;
+use App\Http\Controllers\Api\ModerationDashboardController;
 use App\Http\Controllers\Api\ActionListActionController;
 use Illuminate\Support\Facades\Route;
 
@@ -176,6 +177,13 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/scheduled-tasks/{id}/run-now', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'runNow']);
     Route::post('/admin/cron/next-run', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'getNextCronRun']);
     Route::get('/admin/diagnostics', [DiagnosticsController::class, 'show']);
+    
+    // Moderation Dashboard routes (for moderator, admin, and superadmin roles)
+    Route::middleware(['role:moderator,admin,superadmin'])->group(function () {
+        Route::get('/admin/moderation-dashboard/stats', [\App\Http\Controllers\Api\ModerationDashboardController::class, 'stats']);
+        Route::get('/admin/moderation-dashboard/public-url', [\App\Http\Controllers\Api\ModerationDashboardController::class, 'publicUrl']);
+        Route::post('/admin/moderation-dashboard/action-list/{id}/execute', [\App\Http\Controllers\Api\ModerationDashboardController::class, 'executeActionList']);
+    });
 
     Route::post('/admin/diagnostics/flush-state', [DiagnosticsController::class, 'flushState']);
 

@@ -181,6 +181,7 @@ const tabFieldMap = {
     'archive_store_emails_by_default',
     'archive_moderator_access_enabled',
     'job_log_retention_days',
+    'post_login_redirect_url',
   ]),
   email: new Set([
     'email_validation_enabled',

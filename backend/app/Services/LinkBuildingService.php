@@ -107,6 +107,23 @@ class LinkBuildingService
     }
 
     /**
+     * Build public reservation link with valid site token.
+     * The public reservation page is at the root path (/) and uses 't' query parameter for the site token.
+     */
+    public function buildPublicReservationLink(): string
+    {
+        $base = trim((string) ($this->settings->get('email_validation_base_url', config('app.url'))));
+        if ($base === '') {
+            $base = rtrim(config('app.url'), '/');
+        }
+
+        $siteToken = $this->siteTokens->getValidSiteToken();
+        $params = ['t' => (string) $siteToken];
+
+        return $this->appendQuery($base, $params);
+    }
+
+    /**
      * Append query parameters to URL
      */
     public function appendQuery(string $base, array $params): string

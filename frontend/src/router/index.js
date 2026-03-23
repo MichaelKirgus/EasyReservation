@@ -15,6 +15,7 @@ import AdminCustomPlaceholders from '../components/AdminCustomPlaceholders.vue'
 import AdminArchives from '../components/AdminArchives.vue'
 import AdminPlaceholderValues from '../components/AdminPlaceholderValues.vue'
 import AdminSurveys from '../components/AdminSurveys.vue'
+import ModerationDashboard from '../components/ModerationDashboard.vue'
 import SurveyQuestionManager from '../components/SurveyQuestionManager.vue'
 import AdminAuditLog from '../components/AdminAuditLog.vue'
 import TwoFactorSettings from '../components/TwoFactorSettings.vue'
@@ -42,6 +43,7 @@ const routes = [
   },
   { path: '/moderation/faq', name: 'moderation-faq', component: AdminFaq },
   { path: '/moderation/events', name: 'moderation-events', component: AdminEvents },
+  { path: '/moderation/dashboard', name: 'moderation-dashboard', component: ModerationDashboard },
   { path: '/moderation/surveys', name: 'moderation-surveys', component: AdminSurveys },
   { path: '/moderation/placeholders', name: 'moderation-placeholders', component: AdminPlaceholderValues },
   // Administration

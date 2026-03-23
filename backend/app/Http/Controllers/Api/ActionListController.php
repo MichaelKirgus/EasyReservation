@@ -29,6 +29,7 @@ class ActionListController extends Controller
                     'name' => $list->name,
                     'description' => $list->description,
                     'active' => $list->active,
+                    'moderation_selectable' => $list->moderation_selectable,
                     'created_at' => $list->created_at?->toIso8601String(),
                     'actions' => $list->actions->map(function($action) {
                         return [
@@ -52,6 +53,7 @@ class ActionListController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'active' => 'boolean',
+            'moderation_selectable' => 'boolean',
             'actions' => 'array',
         ]);
 
@@ -59,6 +61,7 @@ class ActionListController extends Controller
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'active' => $validated['active'] ?? true,
+            'moderation_selectable' => $validated['moderation_selectable'] ?? true,
         ]);
 
         // Process actions
@@ -92,6 +95,7 @@ class ActionListController extends Controller
             'name' => $actionList->name,
             'description' => $actionList->description,
             'active' => $actionList->active,
+            'moderation_selectable' => $actionList->moderation_selectable,
             'created_at' => $actionList->created_at?->toIso8601String(),
             'actions' => $actionList->actions->map(function($action) {
                 return [
@@ -119,6 +123,7 @@ class ActionListController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'active' => 'boolean',
+            'moderation_selectable' => 'boolean',
             'actions' => 'array',
         ]);
 
@@ -126,6 +131,7 @@ class ActionListController extends Controller
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'active' => $validated['active'] ?? true,
+            'moderation_selectable' => $validated['moderation_selectable'] ?? true,
         ]);
 
         // Process actions - delete existing and create new

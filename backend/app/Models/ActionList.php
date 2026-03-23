@@ -14,10 +14,12 @@ class ActionList extends Model
         'name',
         'description',
         'active',
+        'moderation_selectable',
     ];
 
     protected $casts = [
         'active' => 'boolean',
+        'moderation_selectable' => 'boolean',
     ];
 
     /**
