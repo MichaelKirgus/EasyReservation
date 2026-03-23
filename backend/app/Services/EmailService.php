@@ -169,9 +169,13 @@ class EmailService
                 $cc = $this->mergeEmailAddresses($templateCc, $globalCc);
                 $bcc = $this->mergeEmailAddresses($templateBcc, $globalBcc);
         
+                // Get ical_template_id from email template if not explicitly provided
+                $icalTemplateId = $template['ical_template_id'] ?? null;
+                
                 $attachments = $this->attachmentsForTemplate([
                     'subject' => $template['subject'] ?? null,
                     'body' => $template['body'] ?? null,
+                    'ical_template_id' => $icalTemplateId,
                 ]);
         
                 Log::info('EmailService: Dispatching validation email', [
@@ -269,9 +273,13 @@ class EmailService
         $cc = $this->mergeEmailAddresses($templateCc, $globalCc);
         $bcc = $this->mergeEmailAddresses($templateBcc, $globalBcc);
 
+        // Get ical_template_id from email template if not explicitly provided
+        $icalTemplateId = $template['ical_template_id'] ?? null;
+        
         $attachments = $this->attachmentsForTemplate([
             'subject' => $template['subject'] ?? null,
             'body' => $template['body'] ?? null,
+            'ical_template_id' => $icalTemplateId,
         ]);
 
         if (!$transportGroupId) {
@@ -373,9 +381,13 @@ class EmailService
         $cc = $templateCc ?: $globalCc;
         $bcc = $templateBcc ?: $globalBcc;
 
+        // Get ical_template_id from email template if not explicitly provided
+        $icalTemplateId = $template['ical_template_id'] ?? null;
+        
         $attachments = $this->attachmentsForTemplate([
             'subject' => $template['subject'],
             'body' => $template['body'],
+            'ical_template_id' => $icalTemplateId,
         ]);
 
         if (!$transportGroupId) {
@@ -614,9 +626,13 @@ class EmailService
                 $cc = $templateCc ?: $globalCc;
                 $bcc = $templateBcc ?: $globalBcc;
         
+                // Get ical_template_id from email template if not explicitly provided
+                $icalTemplateId = $template->ical_template_id ?? null;
+                
                 $attachments = $this->attachmentsForTemplate([
                     'subject' => $template->subject,
                     'body' => $template->body,
+                    'ical_template_id' => $icalTemplateId,
                 ]);
         
                 SendMailJob::dispatch(
@@ -854,6 +870,15 @@ class EmailService
                 $toName = $recipientName;
         
                 $tg = $this->lastTransportGroupInfo ?? [];
+                // Get ical_template_id from email template if not explicitly provided
+                $icalTemplateId = $template->ical_template_id ?? null;
+                
+                $attachments = $this->attachmentsForTemplate([
+                    'subject' => $template->subject,
+                    'body' => $template->body,
+                    'ical_template_id' => $icalTemplateId,
+                ]);
+                
                 SendMailJob::dispatch(
                     $mailerConfig,
                     $toEmail,
@@ -862,7 +887,7 @@ class EmailService
             $body,
             $fromAddress,
             $fromName,
-            [],
+            $attachments,
             $cc,
             $bcc,
             $tg['transport_group_id'] ?? null,
