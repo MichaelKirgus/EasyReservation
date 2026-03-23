@@ -18,16 +18,16 @@
         <input type="checkbox" :checked="value" disabled />
       </template>
       <template #cell-executed_at="{ value }">
-        <span>{{ value ? formatDateTime(value) : 'â€“' }}</span>
+        <span>{{ value ? formatDateTime(value) : '–' }}</span>
       </template>
       <template #cell-planned_run_at="{ value }">
-        <span>{{ value ? formatDateTime(value) : 'â€“' }}</span>
+        <span>{{ value ? formatDateTime(value) : '–' }}</span>
       </template>
       <template #cell-next_run_at="{ value }">
-        <span>{{ value ? formatDateTime(value) : 'â€“' }}</span>
+        <span>{{ value ? formatDateTime(value) : '–' }}</span>
       </template>
       <template #cell-last_run_at="{ value }">
-        <span>{{ value ? formatDateTime(value) : 'â€“' }}</span>
+        <span>{{ value ? formatDateTime(value) : '–' }}</span>
       </template>
       <template #cell-active="{ row }">
         <input type="checkbox" :checked="row.active" @change="toggleActive(row)" :disabled="loading" />
