@@ -45,6 +45,7 @@
     "no_questions_available",
     "survey_not_found",
     "thank_you_for_response",
+    "survey_submitted",
     "survey_submission_failed",
     "two_factor_settings_invalid_code_message",
     "two_factor_required",

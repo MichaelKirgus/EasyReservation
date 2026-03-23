@@ -89,7 +89,10 @@ class LinkBuildingService
             $base = rtrim(config('app.url'), '/');
         }
 
-        $params = ['survey_id' => (string) $surveyId];
+        // Use path-based survey link format: /surveys/{id} (plural to match frontend router)
+        $path = '/surveys/' . $surveyId;
+
+        $params = [];
 
         if ($token) {
             $params['token'] = $token;
@@ -103,7 +106,7 @@ class LinkBuildingService
             $params['t'] = $siteToken;
         }
 
-        return $this->appendQuery($base, $params);
+        return $this->appendQuery($base . $path, $params);
     }
 
     /**

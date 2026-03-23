@@ -5,9 +5,7 @@
       <h1>{{ survey.title }}</h1>
       <p v-if="survey.description" class="description">{{ survey.description }}</p>
       
-      <div v-if="statusMessage" :class="['status-message', statusType]">
-        {{ statusMessage }}
-      </div>
+      <!-- Status message only shown when user cannot respond -->
     </div>
 
     <!-- Survey Form -->
@@ -125,14 +123,21 @@ async function loadSurvey() {
     })
     
     canRespond.value = statusResponse.data.can_respond || false
-    statusMessage.value = statusResponse.data.message || ''
-    statusType.value = canRespond.value ? 'info' : (statusResponse.data.already_responded ? 'success' : 'error')
+    // Only show status message when user cannot respond or has already responded
+    if (!canRespond.value) {
+      statusMessage.value = statusResponse.data.message || ''
+      statusType.value = statusResponse.data.already_responded ? 'success' : 'error'
+    } else {
+      statusMessage.value = ''
+      statusType.value = 'info'
+    }
 
     // Load survey details if we can respond or it's completed
     if (canRespond.value || statusResponse.data.already_responded) {
       const surveyResponse = await api.get(`/surveys/${surveyId}`)
       survey.value = surveyResponse.data.survey
       questions.value = surveyResponse.data.questions || []
+      console.log('Questions loaded:', questions.value)
       
       // Initialize responses with existing values if any
       questions.value.forEach(q => {
@@ -183,7 +188,8 @@ async function submitSurvey() {
 
     await api.post(`/surveys/${surveyId}/submit`, submitData)
     
-    statusMessage.value = tr('thank_you_for_response')
+    // After submission, no status message needed - user already responded
+    statusMessage.value = ''
     statusType.value = 'success'
     canRespond.value = false
   } catch (error) {

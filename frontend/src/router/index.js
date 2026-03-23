@@ -24,6 +24,7 @@ import AdminMailTransports from '../components/AdminMailTransports.vue'
 import AdminValidationRules from '../components/AdminValidationRules.vue'
 
 const routes = [
+  { path: '/survey', name: 'public-survey-query', component: PublicSurvey, props: route => ({ id: route.query.survey_id }) },
   { path: '/', name: 'reservation', component: PublicReservation },
   { path: '/privacy', name: 'privacy', component: PublicPrivacy },
   { path: '/faq', name: 'faq', component: PublicFaq },
@@ -62,7 +63,7 @@ const routes = [
   // User settings
   { path: '/user/2fa', name: 'user-2fa', component: TwoFactorSettings },
   // Public survey (accessible via link)
-  { path: '/survey/:id', name: 'public-survey', component: PublicSurvey, props: true },
+  { path: '/surveys/:id', name: 'public-survey', component: PublicSurvey, props: true },
 ]
 
 const router = createRouter({

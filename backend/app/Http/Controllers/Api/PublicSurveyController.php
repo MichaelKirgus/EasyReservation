@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Survey;
+use App\Models\GlobalQuestion;
 use App\Models\SurveyQuestion;
 use App\Models\SurveyResponse;
+use App\Services\PlaceholderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -20,28 +22,57 @@ class PublicSurveyController extends Controller
         }
 
         $placeholderService = app(\App\Services\PlaceholderService::class);
-        
+
+        // Get survey questions, or create them from global questions if none exist
         $questions = SurveyQuestion::where('survey_id', $survey->id)
             ->with(['globalQuestion' => function ($query) {
                 $query->select('id', 'question_text', 'field_type', 'is_required', 'display_order', 'options');
             }])
             ->orderBy('display_order')
-            ->get()
-            ->map(function ($q) use ($placeholderService) {
-                // Use global question text if available
-                if ($q->globalQuestion && $q->question_text === null) {
-                    $q->question_text = $q->globalQuestion->question_text;
-                }
-                // Replace placeholders in question text
-                $q->question_text = $placeholderService->replaceString($q->question_text);
-                
-                // Also replace placeholders in options for multiple choice questions
-                if ($q->options && is_array($q->options)) {
-                    $q->options = array_map(fn($opt) => $placeholderService->replaceString($opt), $q->options);
-                }
-                
-                return $q;
-            });
+            ->get();
+
+        // If no survey questions exist, create them from global questions
+        if ($questions->isEmpty()) {
+            $globalQuestions = GlobalQuestion::orderBy('display_order')->get();
+            
+            foreach ($globalQuestions as $globalQuestion) {
+                SurveyQuestion::create([
+                    'survey_id' => $survey->id,
+                    'global_question_id' => $globalQuestion->id,
+                    'question_text' => $globalQuestion->question_text,
+                    'field_type' => $globalQuestion->field_type,
+                    'is_required' => $globalQuestion->is_required,
+                    'display_order' => $globalQuestion->display_order,
+                    'options' => $globalQuestion->options,
+                    'active' => true,
+                ]);
+            }
+
+            // Reload questions with global question relationship
+            $questions = SurveyQuestion::where('survey_id', $survey->id)
+                ->with(['globalQuestion' => function ($query) {
+                    $query->select('id', 'question_text', 'field_type', 'is_required', 'display_order', 'options');
+                }])
+                ->orderBy('display_order')
+                ->get();
+        }
+
+        // Apply placeholder replacement to questions
+        $questions = $questions->map(function ($q) use ($placeholderService) {
+            // Use global question text if available and survey question text is null
+            if ($q->globalQuestion && $q->question_text === null) {
+                $q->question_text = $q->globalQuestion->question_text;
+            }
+            // Replace placeholders in question text
+            $q->question_text = $placeholderService->replaceString($q->question_text);
+            
+            // Also replace placeholders in options for multiple choice questions
+            if ($q->options && is_array($q->options)) {
+                $q->options = array_map(fn($opt) => $placeholderService->replaceString($opt), $q->options);
+            }
+            
+            return $q;
+        });
 
         return response()->json([
             'survey' => [
@@ -91,6 +122,12 @@ class PublicSurveyController extends Controller
                 // Validate required fields
                 $question = SurveyQuestion::find($response['question_id']);
                 
+                if (!$question || $question->survey_id !== $survey->id) {
+                    return response()->json([
+                        'message' => __('question_not_found'),
+                    ], 422);
+                }
+
                 if ($question->is_required && 
                     empty($response['response_text']) && 
                     empty($response['response_score'])) {
