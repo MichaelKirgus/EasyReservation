@@ -170,6 +170,8 @@ class ActionListController extends Controller
      */
     public function execute(int $id): JsonResponse
     {
+        \Log::info('ActionListController: execute called for action list ID ' . $id);
+
         $actionList = ActionList::find($id);
 
         if (!$actionList) {
@@ -177,10 +179,22 @@ class ActionListController extends Controller
         }
 
         try {
-            $this->actionListService->executeActionList($id, []);
-            return response()->json(['message' => 'Action list executed successfully']);
+            // Dispatch job to queue instead of synchronous execution
+            \Log::info('ActionListController: Dispatching ExecuteActionListJob for action list ' . $id);
+            dispatch(new \App\Jobs\ExecuteActionListJob($id, []));
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Action list execution started (queued)',
+                'action_list' => $actionList
+            ]);
         } catch (\Throwable $e) {
-            return response()->json(['message' => 'Execution failed: ' . $e->getMessage()], 500);
+            \Log::error('ActionListController: Error dispatching action list ' . $id . ': ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
         }
     }
 

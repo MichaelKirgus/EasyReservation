@@ -45,6 +45,9 @@ class DiagnosticsService
                 'next_run_at' => $nextRun?->run_at?->toIso8601String(),
                 'active' => $schedulerActive,
             ],
+            'action_lists' => [
+                'recent_executions' => $this->getActionListExecutions($jobLimit),
+            ],
         ];
     }
 
@@ -187,5 +190,36 @@ class DiagnosticsService
             ];
         }
         return $result;
+    }
+
+    /**
+     * Get recent ActionList execution logs from JobLog.
+     */
+    private function getActionListExecutions(int $jobLimit = 25): array
+    {
+        try {
+            return \App\Models\JobLog::query()
+                ->where('job', 'like', '%ExecuteActionList%')
+                ->latest('finished_at')
+                ->latest('id')
+                ->limit($jobLimit)
+                ->get(['id', 'job', 'queue', 'worker_name', 'status', 'runtime_ms', 'message', 'started_at', 'finished_at'])
+                ->map(function (\App\Models\JobLog $log) {
+                    return [
+                        'id' => $log->id,
+                        'job' => $log->job,
+                        'queue' => $log->queue,
+                        'worker_name' => $log->worker_name,
+                        'status' => $log->status,
+                        'runtime_ms' => $log->runtime_ms,
+                        'message' => $log->message,
+                        'started_at' => optional($log->started_at)->toIso8601String(),
+                        'finished_at' => optional($log->finished_at)->toIso8601String(),
+                    ];
+                })
+                ->all();
+        } catch (\Throwable $e) {
+            return ['error' => $e->getMessage()];
+        }
     }
 }

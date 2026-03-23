@@ -28,15 +28,17 @@ class ActionListService
      */
     public function executeActionList(int $actionListId, array $context = []): void
     {
+        \Log::info('ActionListService: Starting execution for action list ID ' . $actionListId);
+
         $actionList = ActionList::find($actionListId);
         
         if (!$actionList) {
-            Log::warning('Action list not found: ' . $actionListId);
+            \Log::error('ActionListService: Action list with ID ' . $actionListId . ' not found');
             throw new \InvalidArgumentException('Action list with ID ' . $actionListId . ' not found');
         }
 
         if (!$actionList->active) {
-            Log::info('Action list is inactive: ' . $actionListId);
+            \Log::warning('ActionListService: Action list is inactive: ' . $actionListId);
             return;
         }
 
@@ -47,15 +49,17 @@ class ActionListService
 
         foreach ($actions as $action) {
             try {
+                \Log::info('ActionListService: Executing action ' . $action->type . ' (ID: ' . $action->id . ')');
                 $this->executeAction($action, $context);
-                Log::info('Action executed successfully: ' . $action->type . ' (ID: ' . $action->id . ')');
+                \Log::info('ActionListService: Action executed successfully: ' . $action->type . ' (ID: ' . $action->id . ')');
             } catch (\Throwable $e) {
-                Log::error('Action execution failed: ' . $action->type . ' (ID: ' . $action->id . '): ' . $e->getMessage());
+                \Log::error('ActionListService: Action execution failed: ' . $action->type . ' (ID: ' . $action->id . '): ' . $e->getMessage());
+                \Log::error('Stack trace:', ['trace' => $e->getTraceAsString()]);
                 // Continue with next action even if one fails
             }
         }
 
-        Log::info('Action list execution completed: ' . $actionListId);
+        \Log::info('ActionListService: Action list execution completed: ' . $actionListId);
     }
 
     /**
