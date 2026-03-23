@@ -212,9 +212,16 @@ class ActionListService
             ];
         }
 
-        // Resolve placeholders in URL
+        // Resolve placeholders in URL and payload
         $replacements = $this->placeholderService->replacements();
         $url = strtr($template->url ?? '', $replacements);
+
+        // If payload is a string, resolve placeholders; if array, JSON encode then decode after replacement
+        if (is_string($payload)) {
+            $payload = json_decode(strtr($payload, $replacements), true) ?: [];
+        } elseif (is_array($payload)) {
+            $payload = json_decode(strtr(json_encode($payload), $replacements), true) ?: $payload;
+        }
 
         // Send webhook
         $this->webhookService->send($url, $payload);
