@@ -182,8 +182,9 @@ class ActionListService
             throw new \RuntimeException('Webhook template with ID ' . $webhookTemplateId . ' not found');
         }
 
-        // Build payload
-        $payload = $config['payload_override'] ?? [];
+        // Build payload - use template's payload_template if no override is set
+        $templatePayload = json_decode($template->payload_template ?? '{}', true) ?: [];
+        $payload = !empty($config['payload_override']) ? $config['payload_override'] : $templatePayload;
         
         // Add context data to payload if not already present
         if (isset($context['event']) && !isset($payload['event'])) {
