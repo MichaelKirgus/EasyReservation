@@ -212,9 +212,13 @@ class ActionListService
             ];
         }
 
+        // Resolve placeholders in URL
+        $replacements = $this->placeholderService->replacements();
+        $url = strtr($template->url ?? '', $replacements);
+
         // Send webhook
-        $this->webhookService->send($template->url, $payload);
-        Log::info('Webhook action sent to: ' . $template->url);
+        $this->webhookService->send($url, $payload);
+        Log::info('Webhook action sent to: ' . $url);
     }
 
     /**
