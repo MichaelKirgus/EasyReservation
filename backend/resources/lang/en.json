@@ -936,7 +936,7 @@
     "admin_action_lists_field_name": "Name",
     "admin_action_lists_field_description": "Description",
     "admin_action_lists_field_active": "Active",
-    "admin_action_lists_field_moderation_selectable": "Moderation Selectable",
+    "admin_action_lists_field_moderation_selectable": "Allow execution for moderators",
     "admin_action_lists_section_actions": "Actions",
     "admin_action_lists_action_number": "Action {{ number }}",
     "admin_action_lists_field_type": "Type",
