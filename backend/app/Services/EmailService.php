@@ -707,7 +707,15 @@ class EmailService
 
         $template = EmailTemplate::query()->find($templateId);
         if ($template) {
-            return ['subject' => $template->subject, 'body' => $template->body, 'to' => $template->to, 'cc' => $template->cc, 'bcc' => $template->bcc];
+            return [
+                'subject' => $template->subject,
+                'body' => $template->body,
+                'to' => $template->to,
+                'cc' => $template->cc,
+                'bcc' => $template->bcc,
+                'ical_template_id' => $template->ical_template_id,
+                'attachment_template_id' => $template->attachment_template_id,
+            ];
         }
 
         \Illuminate\Support\Facades\Log::error('EmailService: Template not found for ID ' . $templateId);
@@ -733,7 +741,15 @@ class EmailService
             return null;
         }
 
-        return ['subject' => $template->subject, 'body' => $template->body, 'to' => $template->to, 'cc' => $template->cc, 'bcc' => $template->bcc];
+        return [
+            'subject' => $template->subject,
+            'body' => $template->body,
+            'to' => $template->to,
+            'cc' => $template->cc,
+            'bcc' => $template->bcc,
+            'ical_template_id' => $template->ical_template_id,
+            'attachment_template_id' => $template->attachment_template_id,
+        ];
     }
 
     /**
