@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\ActionList;
 use App\Models\Reservation;
 use App\Models\WaitlistEntry;
-use App\Models\ValidationRule;
 use App\Services\LinkBuildingService;
 use App\Services\RateLimitCacheService;
 use Illuminate\Http\JsonResponse;
@@ -14,7 +13,10 @@ use Illuminate\Support\Facades\DB;
 
 class ModerationDashboardController extends Controller
 {
-    public function __construct(private LinkBuildingService $linkBuildingService) {}
+    public function __construct(
+        private LinkBuildingService $linkBuildingService,
+        private RateLimitCacheService $rateLimitCache
+    ) {}
 
     /**
      * Get dashboard statistics for moderators.
@@ -38,6 +40,11 @@ class ModerationDashboardController extends Controller
         // Daily trends - last 7 days reservation counts
         $dailyTrends = $this->getDailyReservationTrends(7);
 
+        // Moderation insights
+        $waitlistConversion = $this->getWaitlistConversionStats();
+        $pendingValidationAges = $this->getPendingValidationAgeBuckets();
+        $reservationFunnel = $this->getReservationFunnelStats();
+
         // Get the public URL with valid token using LinkBuildingService
         $publicUrl = $this->linkBuildingService->buildPublicReservationLink();
 
@@ -47,6 +54,9 @@ class ModerationDashboardController extends Controller
             'mail_validation_pending' => $mailValidationPending,
             'rate_limit_entries' => $rateLimitEntries,
             'daily_trends' => $dailyTrends,
+            'waitlist_conversion' => $waitlistConversion,
+            'pending_validation_ages' => $pendingValidationAges,
+            'reservation_funnel' => $reservationFunnel,
             'public_url' => $publicUrl,
         ]);
     }
@@ -124,6 +134,110 @@ class ModerationDashboardController extends Controller
             return $trends;
         } catch (\Throwable $e) {
             return [];
+        }
+    }
+
+    /**
+     * Waitlist conversion summary.
+     */
+    private function getWaitlistConversionStats(): array
+    {
+        try {
+            $total = WaitlistEntry::count();
+            $promoted = WaitlistEntry::query()
+                ->whereNotNull('promoted_at')
+                ->orWhereNotNull('reservation_id')
+                ->orWhere('status', 'promoted')
+                ->count();
+
+            $rate = $total > 0 ? round(($promoted / $total) * 100, 1) : 0.0;
+
+            return [
+                'total' => $total,
+                'promoted' => $promoted,
+                'rate' => $rate,
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'total' => 0,
+                'promoted' => 0,
+                'rate' => 0.0,
+            ];
+        }
+    }
+
+    /**
+     * Pending validation buckets by age in hours.
+     */
+    private function getPendingValidationAgeBuckets(): array
+    {
+        try {
+            $underOneHour = DB::table('email_validations')
+                ->where('status', 'pending')
+                ->where('created_at', '>=', now()->subHour())
+                ->count();
+
+            $betweenOneAndTwentyFour = DB::table('email_validations')
+                ->where('status', 'pending')
+                ->where('created_at', '<', now()->subHour())
+                ->where('created_at', '>=', now()->subDay())
+                ->count();
+
+            $overTwentyFour = DB::table('email_validations')
+                ->where('status', 'pending')
+                ->where('created_at', '<', now()->subDay())
+                ->count();
+
+            return [
+                'under_1h' => $underOneHour,
+                'between_1h_24h' => $betweenOneAndTwentyFour,
+                'over_24h' => $overTwentyFour,
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'under_1h' => 0,
+                'between_1h_24h' => 0,
+                'over_24h' => 0,
+            ];
+        }
+    }
+
+    /**
+     * Reservation funnel counters for moderation context.
+     */
+    private function getReservationFunnelStats(): array
+    {
+        try {
+            $attempts = DB::table('email_validations')
+                ->where('type', 'reservation')
+                ->count();
+
+            if ($attempts === 0) {
+                $attempts = Reservation::count() + WaitlistEntry::count();
+            }
+
+            $completed = Reservation::count();
+
+            $movedToWaitlist = WaitlistEntry::count();
+
+            $pendingVerification = DB::table('email_validations')
+                ->where('type', 'reservation')
+                ->where('status', 'pending')
+                ->count();
+
+            return [
+                'attempts' => $attempts,
+                'pending_verification' => $pendingVerification,
+                'completed' => $completed,
+                'moved_to_waitlist' => $movedToWaitlist,
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'attempts' => 0,
+                'pending_verification' => 0,
+                'completed' => 0,
+                'moved_to_waitlist' => 0,
+            ];
         }
     }
 

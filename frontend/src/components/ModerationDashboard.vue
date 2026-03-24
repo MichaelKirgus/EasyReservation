@@ -32,6 +32,44 @@
         <div class="stat-card-label">{{ tr('dashboard_stat_rate_limit_entries') }}</div>
         <div class="stat-card-value">{{ stats?.rate_limit_entries || 0 }}</div>
       </div>
+      <div class="stat-card conversion-rate">
+        <div class="stat-card-label">{{ tr('dashboard_stat_waitlist_conversion_rate') }}</div>
+        <div class="stat-card-value">{{ waitlistConversionRate.toFixed(1) }}%</div>
+        <div class="stat-card-subtext">{{ waitlistConversionPromoted }} / {{ waitlistConversionTotal }}</div>
+      </div>
+    </div>
+
+    <div class="moderator-insights-grid">
+      <section class="insight-card">
+        <h3>{{ tr('dashboard_pending_validation_age_title') }}</h3>
+        <div class="bucket-grid">
+          <div class="bucket-item">
+            <span class="bucket-label">{{ tr('dashboard_pending_validation_under_1h') }}</span>
+            <strong class="bucket-value">{{ pendingValidationBuckets.under_1h }}</strong>
+          </div>
+          <div class="bucket-item">
+            <span class="bucket-label">{{ tr('dashboard_pending_validation_1h_24h') }}</span>
+            <strong class="bucket-value">{{ pendingValidationBuckets.between_1h_24h }}</strong>
+          </div>
+          <div class="bucket-item stale">
+            <span class="bucket-label">{{ tr('dashboard_pending_validation_over_24h') }}</span>
+            <strong class="bucket-value">{{ pendingValidationBuckets.over_24h }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="insight-card">
+        <h3>{{ tr('dashboard_reservation_funnel_title') }}</h3>
+        <div class="funnel-list">
+          <div v-for="step in reservationFunnelSteps" :key="step.key" class="funnel-row">
+            <span class="funnel-label">{{ step.label }}</span>
+            <div class="funnel-track">
+              <div class="funnel-fill" :style="{ width: funnelBarWidth(step.value) }"></div>
+            </div>
+            <strong class="funnel-value">{{ step.value }}</strong>
+          </div>
+        </div>
+      </section>
     </div>
 
     <!-- Charts -->
@@ -39,32 +77,40 @@
       <!-- Pie Chart: Reservation vs Waitlist -->
       <div class="chart-section">
         <h3>{{ tr('dashboard_chart_reservation_vs_waitlist') }}</h3>
-        <canvas id="reservation-waitlist-pie" style="width:100%;height:auto;"></canvas>
+        <div class="chart-canvas-wrap pie-wrap">
+          <canvas ref="reservationWaitlistCanvas"></canvas>
+        </div>
       </div>
 
       <!-- Line/Bar Chart: Daily Trends -->
       <div class="chart-section">
         <h3>{{ tr('dashboard_chart_daily_trends') }}</h3>
-        <canvas id="daily-trends-chart" style="width:100%;height:auto;"></canvas>
+        <div class="chart-canvas-wrap bar-wrap">
+          <canvas ref="dailyTrendsCanvas"></canvas>
+        </div>
       </div>
     </div>
 
     <!-- Action List Selector -->
     <div class="action-list-selector">
       <h3>{{ tr('dashboard_action_list_select') }}</h3>
-      <select v-model="selectedActionListId" :disabled="loading || !actionLists.length">
-        <option value="" disabled>{{ tr('dashboard_action_list_select_placeholder') }}</option>
-        <option v-for="list in actionLists" :key="list.id" :value="list.id">
-          {{ list.name }}
-        </option>
-      </select>
-      <button 
-        @click="executeSelected" 
-        :disabled="!selectedActionListId || loading"
-        class="primary"
-      >
-        {{ tr('dashboard_action_list_execute') }}
-      </button>
+      <div class="action-list-controls">
+        <select v-model="selectedActionListId" :disabled="loading || !actionLists.length">
+          <option value="" disabled>{{ tr('dashboard_action_list_select_placeholder') }}</option>
+          <option v-for="list in actionLists" :key="list.id" :value="list.id">
+            {{ list.name }}
+          </option>
+        </select>
+        <IconButton
+          icon="play"
+          size="lg"
+          variant="success"
+          :label="tr('dashboard_action_list_execute')"
+          :title="tr('dashboard_action_list_execute')"
+          :disabled="!selectedActionListId || loading"
+          @click="executeSelected"
+        />
+      </div>
     </div>
 
     <!-- Loading and Error States -->
@@ -77,9 +123,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { adminFetch } from '../utils/adminApi'
 import { useTranslation } from '../composables/useTranslation'
+import IconButton from './IconButton.vue'
 import { Chart, PieController, BarController, CategoryScale, LinearScale, Tooltip, Legend, ArcElement, BarElement, LineElement, PointElement } from 'chart.js'
 
 // Register Chart.js components
@@ -94,6 +141,38 @@ const loading = ref(false)
 const error = ref('')
 const publicUrl = ref(null)
 const copySuccess = ref(false)
+const reservationWaitlistCanvas = ref(null)
+const dailyTrendsCanvas = ref(null)
+
+const waitlistConversionRate = computed(() => Number(stats.value?.waitlist_conversion?.rate || 0))
+const waitlistConversionPromoted = computed(() => Number(stats.value?.waitlist_conversion?.promoted || 0))
+const waitlistConversionTotal = computed(() => Number(stats.value?.waitlist_conversion?.total || 0))
+
+const pendingValidationBuckets = computed(() => ({
+  under_1h: Number(stats.value?.pending_validation_ages?.under_1h || 0),
+  between_1h_24h: Number(stats.value?.pending_validation_ages?.between_1h_24h || 0),
+  over_24h: Number(stats.value?.pending_validation_ages?.over_24h || 0),
+}))
+
+const reservationFunnelSteps = computed(() => {
+  const funnel = stats.value?.reservation_funnel || {}
+  return [
+    { key: 'attempts', label: tr('dashboard_funnel_attempts'), value: Number(funnel.attempts || 0) },
+    { key: 'pending_verification', label: tr('dashboard_funnel_pending_verification'), value: Number(funnel.pending_verification || 0) },
+    { key: 'completed', label: tr('dashboard_funnel_completed'), value: Number(funnel.completed || 0) },
+    { key: 'moved_to_waitlist', label: tr('dashboard_funnel_waitlist'), value: Number(funnel.moved_to_waitlist || 0) },
+  ]
+})
+
+const reservationFunnelMax = computed(() => {
+  const values = reservationFunnelSteps.value.map(step => step.value)
+  const max = Math.max(...values, 0)
+  return max > 0 ? max : 1
+})
+
+function funnelBarWidth(value) {
+  return `${Math.max(8, Math.round((Number(value || 0) / reservationFunnelMax.value) * 100))}%`
+}
 
 let pieChart = null
 let barChart = null
@@ -184,9 +263,12 @@ function updateCharts() {
   const successBg = getCssVariable('--success-bg')
   const errorBg = getCssVariable('--error-bg')
   const successBorder = getCssVariable('--success-border')
+  const textColor = getCssVariable('--text')
+  const mutedTextColor = getCssVariable('--text-muted')
+  const borderColor = getCssVariable('--border')
 
   // Create Pie Chart: Reservation vs Waitlist
-  const pieCtx = document.getElementById('reservation-waitlist-pie')?.getContext('2d')
+  const pieCtx = reservationWaitlistCanvas.value?.getContext('2d')
   if (pieCtx && stats.value.reservation_count !== undefined && stats.value.waitlist_count !== undefined) {
     pieChart = new Chart(pieCtx, {
       type: 'pie',
@@ -195,20 +277,31 @@ function updateCharts() {
         datasets: [{
           data: [stats.value.reservation_count, stats.value.waitlist_count],
           backgroundColor: [successBg, errorBg],
-          borderWidth: 1
+          borderWidth: 2,
+          borderColor: borderColor,
+          hoverOffset: 8,
+          radius: '96%'
         }]
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
-        aspectRatio: 1.5,
+        maintainAspectRatio: false,
+        layout: {
+          padding: 4
+        },
         animation: {
-          duration: 0
+          duration: 350
         },
         plugins: {
           legend: {
             position: 'bottom',
-            color: getComputedStyle(document.documentElement).getPropertyValue('--text').trim()
+            labels: {
+              color: textColor,
+              usePointStyle: true,
+              pointStyle: 'circle',
+              padding: 16,
+              boxWidth: 8
+            }
           }
         }
       }
@@ -216,7 +309,7 @@ function updateCharts() {
   }
 
   // Create Bar Chart: Daily Trends
-  const barCtx = document.getElementById('daily-trends-chart')?.getContext('2d')
+  const barCtx = dailyTrendsCanvas.value?.getContext('2d')
   if (barCtx && stats.value.daily_trends && stats.value.daily_trends.length > 0) {
     barChart = new Chart(barCtx, {
       type: 'bar',
@@ -227,20 +320,49 @@ function updateCharts() {
           data: stats.value.daily_trends.map(t => t.count),
           backgroundColor: successBg,
           borderColor: successBorder,
-          borderWidth: 1
+          borderWidth: 1,
+          borderRadius: 8,
+          maxBarThickness: 44,
+          categoryPercentage: 0.8,
+          barPercentage: 0.9
         }]
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
-        aspectRatio: 2,
+        maintainAspectRatio: false,
+        layout: {
+          padding: {
+            top: 8,
+            right: 8,
+            bottom: 0,
+            left: 0
+          }
+        },
         animation: {
-          duration: 0
+          duration: 350
         },
         scales: {
+          x: {
+            ticks: {
+              color: mutedTextColor,
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 7
+            },
+            grid: {
+              display: false
+            }
+          },
           y: {
             beginAtZero: true,
-            ticks: { stepSize: 1 }
+            ticks: {
+              color: mutedTextColor,
+              stepSize: 1,
+              precision: 0
+            },
+            grid: {
+              color: borderColor
+            }
           }
         },
         plugins: {
@@ -322,27 +444,136 @@ watch(stats, () => {
 .waitlist-count .stat-card-value { color: var(--error-text); }
 .mail-validation-pending .stat-card-value { color: var(--primary); }
 .rate-limit-entries .stat-card-value { color: var(--focus); }
+.conversion-rate .stat-card-value { color: var(--success-text); }
+
+.stat-card-subtext {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.moderator-insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.insight-card {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px var(--shadow);
+}
+
+.insight-card h3 {
+  margin: 0 0 0.85rem;
+  color: var(--text);
+}
+
+.bucket-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.bucket-item {
+  background: var(--surface-muted);
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.bucket-item.stale {
+  border: 1px solid var(--error-border);
+}
+
+.bucket-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.bucket-value {
+  font-size: 1.2rem;
+  color: var(--text);
+}
+
+.funnel-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.funnel-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) 2fr auto;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.funnel-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.funnel-track {
+  background: var(--surface-muted);
+  border-radius: 999px;
+  height: 11px;
+  overflow: hidden;
+}
+
+.funnel-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--success-bg), var(--success-border));
+}
+
+.funnel-value {
+  min-width: 2ch;
+  color: var(--text);
+  font-size: 0.85rem;
+  text-align: right;
+}
 
 .charts-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
   margin-bottom: 2rem;
 }
 
 .chart-section {
   background: var(--surface);
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 1rem;
   box-shadow: 0 1px 3px var(--shadow);
   width: 100%;
-  max-width: 450px;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
 }
 
 .chart-section h3 {
   margin-top: 0;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   color: var(--text);
+}
+
+.chart-canvas-wrap {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.pie-wrap {
+  height: clamp(220px, 34vh, 360px);
+}
+
+.bar-wrap {
+  height: clamp(240px, 36vh, 390px);
 }
 
 .action-list-selector {
@@ -364,7 +595,14 @@ select {
   border-radius: 4px;
   border: 1px solid var(--border);
   background: var(--surface);
-  margin-bottom: 1rem;
+  margin-bottom: 0;
+}
+
+.action-list-controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 button {
@@ -458,5 +696,38 @@ button:disabled {
 .copy-success {
   color: var(--success-text);
   font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+  .charts-container {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-section {
+    min-height: 280px;
+  }
+
+  .action-list-controls {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .bucket-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .funnel-row {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .funnel-value {
+    text-align: left;
+  }
+
+  .action-list-controls :deep(.icon-btn) {
+    width: 44px;
+    height: 44px;
+  }
 }
 </style>

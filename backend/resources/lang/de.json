@@ -1688,6 +1688,7 @@
     "dashboard_stat_waitlist_count": "Wartelistenzahl",
     "dashboard_stat_mail_validation_pending": "E-Mail-Validierung ausstehend",
     "dashboard_stat_rate_limit_entries": "Rate Limit Einträge",
+    "dashboard_stat_waitlist_conversion_rate": "Wartelisten-Konversionsrate",
     "dashboard_chart_reservation_vs_waitlist": "Reservierungen vs Warteliste",
     "dashboard_chart_daily_trends": "Tägliche Reservierungstrends",
     "dashboard_chart_reservation": "Reservierungen",
@@ -1702,5 +1703,14 @@
     "action_list_execution_failed": "Aktionliste Ausführung fehlgeschlagen",
     "dashboard_public_url_title": "Öffentliche Reservierungs-URL",
     "dashboard_public_url_copy": "In Zwischenablage kopieren",
-    "dashboard_public_url_copied": "Kopiert!"
+    "dashboard_public_url_copied": "Kopiert!",
+    "dashboard_pending_validation_age_title": "Alter ausstehender Validierungen",
+    "dashboard_pending_validation_under_1h": "Unter 1h",
+    "dashboard_pending_validation_1h_24h": "1h - 24h",
+    "dashboard_pending_validation_over_24h": "Über 24h",
+    "dashboard_reservation_funnel_title": "Reservierungs-Funnel",
+    "dashboard_funnel_attempts": "Versuche",
+    "dashboard_funnel_pending_verification": "Ausstehende Verifizierung",
+    "dashboard_funnel_completed": "Abgeschlossen",
+    "dashboard_funnel_waitlist": "Zur Warteliste verschoben"
 }
