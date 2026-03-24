@@ -7,12 +7,12 @@
     <label>{{ tr('admin_action_lists_field_description') }}</label>
     <textarea v-model="form.description" rows="3"></textarea>
     
-    <label style="display:flex;align-items:center;">
+    <label class="checkbox-row">
       <input v-model="form.active" type="checkbox" />
       {{ tr('admin_action_lists_field_active') }}
     </label>
     
-    <label style="display:flex;align-items:center;">
+    <label class="checkbox-row">
       <input v-model="form.moderation_selectable" type="checkbox" />
       {{ tr('admin_action_lists_field_moderation_selectable') }}
     </label>
@@ -26,6 +26,14 @@
           <IconButton icon="arrowUp" :label="tr('admin_action_lists_button_move_up')" variant="ghost" @click="moveActionUp(index)" :disabled="index === 0" />
           <IconButton icon="arrowDown" :label="tr('admin_action_lists_button_move_down')" variant="ghost" @click="moveActionDown(index)" :disabled="index === form.actions.length - 1" />
           <span style="font-weight:bold;">{{ tr('admin_action_lists_action_number', '', { number: index + 1 }) }}</span>
+          <IconButton
+            icon="play"
+            :label="tr('admin_action_lists_button_test_action')"
+            class="ghost"
+            style="margin-left:auto;"
+            @click="executeSingleAction(action)"
+            :disabled="loading || actionExecutionLoading[action.id] || !form.id || !action.id"
+          />
         </div>
 
         <label>{{ tr('admin_action_lists_field_type') }}</label>
@@ -162,6 +170,8 @@ const form = ref({
 const emailTemplates = ref([])
 const webhookTemplates = ref([])
 const settingKeys = ref([])
+const loading = ref(false)
+const actionExecutionLoading = ref({})
 
 onMounted(async () => {
   try {
@@ -252,6 +262,32 @@ function moveActionDown(index) {
   }
 }
 
+function executeSingleAction(action) {
+  if (!form.value.id || !action?.id) {
+    return
+  }
+
+  actionExecutionLoading.value = {
+    ...actionExecutionLoading.value,
+    [action.id]: true,
+  }
+
+  axios.post(
+    `/api/admin/action-lists/${form.value.id}/execute`,
+    { action_ids: [action.id] },
+    apiConfig()
+  )
+    .then(() => {
+      alert(tr('admin_action_lists_single_action_test_started'))
+    })
+    .finally(() => {
+      actionExecutionLoading.value = {
+        ...actionExecutionLoading.value,
+        [action.id]: false,
+      }
+    })
+}
+
 function submit() {
   if (!form.value.name) {
     alert(tr('admin_action_lists_name_required'))
@@ -284,6 +320,19 @@ function close() {
 }
 .action-list-dialog input, .action-list-dialog textarea, .action-list-dialog select {
   width: 100%;
+}
+.action-list-dialog input[type='checkbox'] {
+  width: auto;
+  margin: 0;
+  flex: 0 0 auto;
+}
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.65em;
+  cursor: pointer;
+  width: fit-content;
 }
 .actions-list {
   margin-top: 1em;

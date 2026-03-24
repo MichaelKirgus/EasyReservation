@@ -18,10 +18,13 @@ class ExecuteActionListJob implements ShouldQueue
 
     public array $context;
 
-    public function __construct(int $actionListId, array $context = [])
+    public ?array $actionIds;
+
+    public function __construct(int $actionListId, array $context = [], ?array $actionIds = null)
     {
         $this->actionListId = $actionListId;
         $this->context = $context;
+        $this->actionIds = $actionIds;
     }
 
     public function handle(ActionListService $service): void
@@ -38,8 +41,8 @@ class ExecuteActionListJob implements ShouldQueue
 
             \Log::info('ExecuteActionListJob: Found action list ' . $actionList->id . ', executing via ActionListService');
 
-            // Execute the action list
-            $service->executeActionList($this->actionListId, $this->context);
+            // Execute the action list, optionally filtered to selected actions
+            $service->executeActionList($this->actionListId, $this->context, $this->actionIds);
 
             \Log::info('ExecuteActionListJob: Action list ' . $this->actionListId . ' completed successfully');
         } catch (\Throwable $e) {

@@ -25,7 +25,7 @@ class ActionListService
     /**
      * Execute an action list with the given context.
      */
-    public function executeActionList(int $actionListId, array $context = []): void
+    public function executeActionList(int $actionListId, array $context = [], ?array $actionIds = null): void
     {
         \Log::info('ActionListService: Starting execution for action list ID ' . $actionListId);
 
@@ -45,6 +45,28 @@ class ActionListService
         $this->applyContextPlaceholders($context);
 
         $actions = $actionList->actions;
+
+        if (is_array($actionIds) && count($actionIds) > 0) {
+            $selectedActionIds = array_map('intval', $actionIds);
+            $actions = $actions
+                ->whereIn('id', $selectedActionIds)
+                ->sortBy('sort_order')
+                ->values();
+
+            \Log::info('ActionListService: Executing selected actions only', [
+                'action_list_id' => $actionListId,
+                'action_ids' => $selectedActionIds,
+                'selected_count' => $actions->count(),
+            ]);
+        }
+
+        if ($actions->isEmpty()) {
+            \Log::warning('ActionListService: No actions available for execution', [
+                'action_list_id' => $actionListId,
+                'requested_action_ids' => $actionIds,
+            ]);
+            return;
+        }
 
         foreach ($actions as $action) {
             try {

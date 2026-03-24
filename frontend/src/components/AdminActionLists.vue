@@ -118,6 +118,7 @@ const columns = computed(() => [
   { key: 'id', label: tr('admin_action_lists_column_id') },
   { key: 'name', label: tr('admin_action_lists_column_name') },
   { key: 'description', label: tr('admin_action_lists_column_description') },
+  { key: 'actions_count', label: tr('admin_action_lists_column_actions_count') },
   { key: 'active', label: tr('admin_action_lists_column_active') },
   { key: 'created_at', label: tr('admin_action_lists_column_created_at') }
 ])

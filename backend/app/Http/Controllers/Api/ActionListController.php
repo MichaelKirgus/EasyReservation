@@ -30,6 +30,7 @@ class ActionListController extends Controller
                     'description' => $list->description,
                     'active' => $list->active,
                     'moderation_selectable' => $list->moderation_selectable,
+                    'actions_count' => $list->actions->count(),
                     'created_at' => $list->created_at?->toIso8601String(),
                     'actions' => $list->actions->map(function($action) {
                         return [
@@ -96,6 +97,7 @@ class ActionListController extends Controller
             'description' => $actionList->description,
             'active' => $actionList->active,
             'moderation_selectable' => $actionList->moderation_selectable,
+            'actions_count' => $actionList->actions->count(),
             'created_at' => $actionList->created_at?->toIso8601String(),
             'actions' => $actionList->actions->map(function($action) {
                 return [
@@ -174,9 +176,16 @@ class ActionListController extends Controller
     /**
      * Execute the specified action list immediately.
      */
-    public function execute(int $id): JsonResponse
+    public function execute(Request $request, int $id): JsonResponse
     {
         \Log::info('ActionListController: execute called for action list ID ' . $id);
+
+        $validated = $request->validate([
+            'action_ids' => 'nullable|array',
+            'action_ids.*' => 'integer',
+        ]);
+
+        $actionIds = $validated['action_ids'] ?? null;
 
         $actionList = ActionList::find($id);
 
@@ -187,11 +196,15 @@ class ActionListController extends Controller
         try {
             // Dispatch job to queue instead of synchronous execution
             \Log::info('ActionListController: Dispatching ExecuteActionListJob for action list ' . $id);
-            dispatch(new \App\Jobs\ExecuteActionListJob($id, []));
+            dispatch(new \App\Jobs\ExecuteActionListJob($id, [], $actionIds));
+
+            $message = is_array($actionIds) && count($actionIds) > 0
+                ? 'Selected action execution started (queued)'
+                : 'Action list execution started (queued)';
             
             return response()->json([
                 'success' => true,
-                'message' => 'Action list execution started (queued)',
+                'message' => $message,
                 'action_list' => $actionList
             ]);
         } catch (\Throwable $e) {
