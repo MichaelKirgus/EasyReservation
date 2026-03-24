@@ -11,9 +11,13 @@
     </div>
     <AdminDataTable
       :columns="columns"
-      :rows="tasks"
+      :rows="displayTasks"
       :loading="loading"
+      :initial-hidden-columns="['run_once', 'skip_if_overdue']"
     >
+      <template #cell-action_list_name="{ value }">
+        <span>{{ value || '–' }}</span>
+      </template>
       <template #cell-executed="{ value }">
         <input type="checkbox" :checked="value" disabled />
       </template>
@@ -92,10 +96,21 @@ function formatDateTime(val) {
 }
 
 const tasks = ref([])
+const actionLists = ref([])
 const nextRunAt = ref(null)
 const loading = ref(false)
 const showDialog = ref(false)
 const selectedTask = ref(null)
+
+const actionListNameById = computed(() => {
+  const entries = actionLists.value.map((actionList) => [actionList.id, actionList.name])
+  return new Map(entries)
+})
+
+const displayTasks = computed(() => tasks.value.map((task) => ({
+  ...task,
+  action_list_name: actionListNameById.value.get(task.action_list_id || task.options?.action_list_id) || '',
+})))
 
 // Columns - defined as computed to ensure translations are loaded
 const columns = computed(() => [
@@ -113,6 +128,7 @@ const columns = computed(() => [
     }
   },
   { key: 'planned_run_at', label: tr('scheduled_tasks_column_planned_run_at') },
+  { key: 'action_list_name', label: tr('scheduled_tasks_label_action_list') },
   { key: 'reference_type', label: tr('scheduled_tasks_column_reference_type'),
     formatter: (type) => {
       if (type === 'cron') return tr('scheduled_tasks_reference_type_cron');
@@ -147,6 +163,13 @@ function fetchTasks() {
     })
     .finally(() => {
       loading.value = false
+    })
+}
+
+function fetchActionLists() {
+  axios.get('/api/admin/action-lists', apiConfig())
+    .then((res) => {
+      actionLists.value = res.data.action_lists || []
     })
 }
 
@@ -205,5 +228,8 @@ function toggleSkipIfOverdue(task) {
   saveTask({ ...task, skip_if_overdue: !task.skip_if_overdue })
 }
 
-onMounted(fetchTasks)
+onMounted(() => {
+  fetchTasks()
+  fetchActionLists()
+})
 </script>
