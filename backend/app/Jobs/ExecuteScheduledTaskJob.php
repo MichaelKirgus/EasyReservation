@@ -14,10 +14,12 @@ class ExecuteScheduledTaskJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $taskId;
+    public bool $manualRun;
 
-    public function __construct($taskId)
+    public function __construct($taskId, bool $manualRun = false)
     {
         $this->taskId = $taskId;
+        $this->manualRun = $manualRun;
     }
 
     public function handle()
@@ -32,11 +34,14 @@ class ExecuteScheduledTaskJob implements ShouldQueue
                 return;
             }
             
-            \Log::info('ExecuteScheduledTaskJob: Found task ' . $task->id . ', executing via ScheduledTaskService');
+            \Log::info('ExecuteScheduledTaskJob: Found task ' . $task->id . ', executing via ScheduledTaskService (manualRun=' . ($this->manualRun ? 'true' : 'false') . ')');
             
             // Die Ausführung erfolgt wie im Service
             $service = app(ScheduledTaskService::class);
-            $service->executeTask($task);
+
+            // Manual "Run now" should not consume a scheduled run, unless run_once is enabled.
+            $finalizeExecution = !$this->manualRun || (bool) $task->run_once;
+            $service->executeTask($task, $finalizeExecution);
             
             \Log::info('ExecuteScheduledTaskJob: Task ' . $this->taskId . ' completed successfully');
         } catch (\Throwable $e) {

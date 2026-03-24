@@ -145,7 +145,7 @@ class ScheduledTaskService
     /**
      * Führt eine einzelne geplante Aufgabe aus (Logik wie im Command)
      */
-    public function executeTask(ScheduledTask $task): void
+    public function executeTask(ScheduledTask $task, bool $finalizeExecution = true): void
     {
         \Log::info('ScheduledTaskService: Starting execution of task ' . $task->id . ' (type: ' . $task->type . ')');
         
@@ -405,12 +405,14 @@ class ScheduledTaskService
                     throw new \InvalidArgumentException('Unknown task type: ' . $task->type);
             }
             
-            // Cron tasks are recurring — don't mark them as permanently executed
-            if (empty($task->cron_expression)) {
+            // Cron tasks are recurring — don't mark them as permanently executed.
+            // For non-cron tasks, manual "Run now" may execute without finalizing scheduling state
+            // so the task can still run automatically at its configured time.
+            if (empty($task->cron_expression) && $finalizeExecution) {
                 $task->executed = true;
                 $task->executed_at = now();
                 $task->save();
-                
+
                 // If run_once is enabled, deactivate the task after execution
                 if ($task->run_once) {
                     $task->active = false;
@@ -429,11 +431,11 @@ class ScheduledTaskService
     /**
      * Stellt die Ausführung einer geplanten Aufgabe in die Queue (für manuelle Ausführung)
      */
-    public function queueTaskExecution(ScheduledTask $task): void
+    public function queueTaskExecution(ScheduledTask $task, bool $manualRun = false): void
     {
         // Die eigentliche Ausführung erfolgt asynchron als Job, damit sie im Protokoll sichtbar ist
-        \Log::info('ScheduledTaskService: queueTaskExecution für Task ' . $task->id);
-        ExecuteScheduledTaskJob::dispatch($task->id);
+        \Log::info('ScheduledTaskService: queueTaskExecution für Task ' . $task->id . ' (manualRun=' . ($manualRun ? 'true' : 'false') . ')');
+        ExecuteScheduledTaskJob::dispatch($task->id, $manualRun);
     }
 
     /**

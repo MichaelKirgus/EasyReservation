@@ -73,6 +73,7 @@ class ScheduledTaskController extends Controller
     public function update(Request $request, $id)
     {
         $task = ScheduledTask::findOrFail($id);
+        $original = $task->replicate();
         $data = $request->validate([
             'type' => 'nullable|string',
             'run_at' => 'nullable|date',
@@ -106,6 +107,31 @@ class ScheduledTaskController extends Controller
             $tempTask = new ScheduledTask();
             $tempTask->fill($data);
             $data['next_run_at'] = $tempTask->next_run_at;
+        }
+
+        // If scheduling parameters changed, make the task runnable again.
+        $incomingRunAt = array_key_exists('run_at', $data) && !empty($data['run_at'])
+            ? Carbon::parse($data['run_at'])->utc()->toIso8601String()
+            : null;
+        $originalRunAt = $original->run_at ? $original->run_at->copy()->utc()->toIso8601String() : null;
+
+        $rescheduled = (
+            array_key_exists('run_at', $data) && ($incomingRunAt !== $originalRunAt)
+        ) || (
+            array_key_exists('cron_expression', $data) && (($data['cron_expression'] ?? null) !== $original->cron_expression)
+        ) || (
+            array_key_exists('reference_type', $data) && (($data['reference_type'] ?? null) !== $original->reference_type)
+        ) || (
+            array_key_exists('reference_id', $data) && (($data['reference_id'] ?? null) != $original->reference_id)
+        ) || (
+            array_key_exists('relative_to', $data) && (($data['relative_to'] ?? null) !== $original->relative_to)
+        ) || (
+            array_key_exists('relative_offset_minutes', $data) && (($data['relative_offset_minutes'] ?? null) != $original->relative_offset_minutes)
+        );
+
+        if ($rescheduled) {
+            $data['executed'] = false;
+            $data['executed_at'] = null;
         }
         
         $task->update($data);
@@ -141,8 +167,8 @@ class ScheduledTaskController extends Controller
             // Unabhängig vom Status: Job für die Ausführung erzeugen und in die Queue stellen
             $service = app(ScheduledTaskService::class);
             
-            \Log::info('ScheduledTaskController: Dispatching ExecuteScheduledTaskJob for task ' . $task->id);
-            $service->queueTaskExecution($task);
+            \Log::info('ScheduledTaskController: Dispatching ExecuteScheduledTaskJob for task ' . $task->id . ' (manual run)');
+            $service->queueTaskExecution($task, true);
             
             return response()->json([
                 'success' => true,

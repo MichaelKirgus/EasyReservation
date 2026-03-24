@@ -10,12 +10,8 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         \Log::info('Registering scheduled tasks...');
-        
-        // Run the command-based scheduler every minute
-        $schedule->command('scheduled-tasks:run')->everyMinute()->withoutOverlapping();
-        \Log::info('Registered scheduled-tasks:run command');
-        
-        // Run the job-based scheduler every minute (alternative approach)
+
+        // Run scheduled task checks via one single path to avoid divergent behavior.
         $schedule->job(new \App\Jobs\CheckScheduledTasksJob)->everyMinute()->withoutOverlapping();
         \Log::info('Registered CheckScheduledTasksJob');
         

@@ -312,6 +312,13 @@ function toUtcIsoString(localDateTimeStr) {
 
 function submit() {
   const payload = { ...form.value };
+
+  // Do not send backend-managed execution/timestamp metadata back on save.
+  delete payload.executed;
+  delete payload.executed_at;
+  delete payload.created_at;
+  delete payload.updated_at;
+  delete payload.planned_run_at;
   if (!payload.action_list_id) {
     alert(tr('scheduled_tasks_label_action_list'))
     return
