@@ -224,6 +224,10 @@ class ScheduledTaskService
                         $setting = \App\Models\Setting::firstOrNew(['name' => $key]);
                         $setting->value = $value;
                         $setting->save();
+
+                        // Ensure cached settings are refreshed after direct model updates.
+                        app(\App\Services\SettingsService::class)->refresh();
+
                         \Log::info('Setting updated successfully: ' . $key);
                     } else {
                         \Log::warning('change_setting called without setting_key for task ' . $task->id);

@@ -299,6 +299,9 @@ class ActionListService
         $setting->value = $value;
         $setting->save();
 
+        // Ensure subsequent reads via SettingsService do not return stale cached values.
+        app(\App\Services\SettingsService::class)->refresh();
+
         Log::info('Setting updated: ' . $key . ' = ' . $value);
     }
 
