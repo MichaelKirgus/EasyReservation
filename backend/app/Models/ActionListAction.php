@@ -14,11 +14,13 @@ class ActionListAction extends Model
         'action_list_id',
         'type',
         'config',
+        'enabled',
         'sort_order',
     ];
 
     protected $casts = [
         'config' => 'array',
+        'enabled' => 'boolean',
         'sort_order' => 'integer',
     ];
 

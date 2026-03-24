@@ -60,6 +60,10 @@ class ActionListService
             ]);
         }
 
+        $actions = $actions
+            ->filter(fn (ActionListAction $action) => (bool) $action->enabled)
+            ->values();
+
         if ($actions->isEmpty()) {
             \Log::warning('ActionListService: No actions available for execution', [
                 'action_list_id' => $actionListId,

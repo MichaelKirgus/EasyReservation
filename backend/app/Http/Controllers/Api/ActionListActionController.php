@@ -27,6 +27,7 @@ class ActionListActionController extends Controller
         $validated = $request->validate([
             'type' => 'required|string|in:email,webhook,change_setting,remove_attendees_from_reservation_list,remove_attendees_from_waitlist,remove_mail_validation_ip_rate_limits',
             'config' => 'nullable|array',
+            'enabled' => 'boolean',
             'sort_order' => 'nullable|integer',
         ]);
 
@@ -34,6 +35,7 @@ class ActionListActionController extends Controller
             'action_list_id' => $actionListId,
             'type' => $validated['type'],
             'config' => $validated['config'] ?? [],
+            'enabled' => $validated['enabled'] ?? true,
             'sort_order' => $validated['sort_order'] ?? 0,
         ]);
 
@@ -54,12 +56,14 @@ class ActionListActionController extends Controller
         $validated = $request->validate([
             'type' => 'required|string|in:email,webhook,change_setting,remove_attendees_from_reservation_list,remove_attendees_from_waitlist,remove_mail_validation_ip_rate_limits',
             'config' => 'nullable|array',
+            'enabled' => 'boolean',
             'sort_order' => 'required|integer',
         ]);
 
         $action->update([
             'type' => $validated['type'],
             'config' => $validated['config'] ?? [],
+            'enabled' => $validated['enabled'] ?? true,
             'sort_order' => $validated['sort_order'],
         ]);
 

@@ -46,6 +46,11 @@
           <option value="remove_mail_validation_ip_rate_limits">{{ tr('admin_action_lists_option_remove_mail_validation_ip_rate_limits') }}</option>
         </select>
 
+        <label class="checkbox-row">
+          <input v-model="action.enabled" type="checkbox" />
+          {{ tr('admin_action_lists_field_action_enabled') }}
+        </label>
+
         <!-- Email Action Config -->
         <div v-if="action.type === 'email'">
           <label>{{ tr('admin_action_lists_field_email_template') }}</label>
@@ -192,9 +197,14 @@ onMounted(async () => {
 
 watch(() => props.actionList, (actionList) => {
   if (actionList) {
+    const normalizedActions = (actionList.actions || []).map((action) => ({
+      ...action,
+      enabled: action.enabled !== false,
+    }))
+
     form.value = JSON.parse(JSON.stringify({
       ...actionList,
-      actions: actionList.actions || []
+      actions: normalizedActions
     }))
   } else {
     form.value = {
@@ -209,6 +219,7 @@ watch(() => props.actionList, (actionList) => {
 function addNewAction() {
   form.value.actions.push({
     type: 'email',
+    enabled: true,
     config: {
       template_id: '',
       recipients: {

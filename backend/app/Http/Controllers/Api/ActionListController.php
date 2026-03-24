@@ -37,6 +37,7 @@ class ActionListController extends Controller
                             'id' => $action->id,
                             'type' => $action->type,
                             'config' => $action->config,
+                            'enabled' => $action->enabled,
                             'sort_order' => $action->sort_order,
                         ];
                     })->toArray(),
@@ -72,6 +73,7 @@ class ActionListController extends Controller
                     'action_list_id' => $actionList->id,
                     'type' => $actionData['type'] ?? 'email',
                     'config' => $actionData['config'] ?? [],
+                    'enabled' => $actionData['enabled'] ?? true,
                     'sort_order' => $index,
                 ]);
             }
@@ -104,6 +106,7 @@ class ActionListController extends Controller
                     'id' => $action->id,
                     'type' => $action->type,
                     'config' => $action->config,
+                    'enabled' => $action->enabled,
                     'sort_order' => $action->sort_order,
                 ];
             })->toArray(),
@@ -146,6 +149,7 @@ class ActionListController extends Controller
                     'action_list_id' => $id,
                     'type' => $actionData['type'] ?? 'email',
                     'config' => $actionData['config'] ?? [],
+                    'enabled' => $actionData['enabled'] ?? true,
                     'sort_order' => $index,
                 ]);
             }

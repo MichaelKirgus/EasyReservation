@@ -1019,6 +1019,7 @@
     "admin_action_lists_field_setting_key": "Einstellungsschlüssel",
     "admin_action_lists_select_setting": "Einstellung auswählen",
     "admin_action_lists_field_setting_value": "Einstellungswert",
+    "admin_action_lists_field_action_enabled": "Aktiv",
     "admin_action_lists_option_remove_attendees_send_notification": "Benachrichtigung an entfernte Teilnehmer senden",
     "admin_action_lists_option_remove_waitlist_send_notification": "Benachrichtigung an entfernte Wartelisteneinträge senden",
     "admin_action_lists_single_action_test_started": "Ausführung der ausgewählten Aktion wurde in die Queue gestellt.",

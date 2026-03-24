@@ -960,6 +960,7 @@
     "admin_action_lists_field_setting_key": "Setting Key",
     "admin_action_lists_select_setting": "Select setting",
     "admin_action_lists_field_setting_value": "Setting Value",
+    "admin_action_lists_field_action_enabled": "Enabled",
     "admin_action_lists_option_remove_attendees_send_notification": "Send notification to removed attendees",
     "admin_action_lists_option_remove_waitlist_send_notification": "Send notification to removed waitlist entries",
     "admin_action_lists_single_action_test_started": "Selected action execution was queued.",
