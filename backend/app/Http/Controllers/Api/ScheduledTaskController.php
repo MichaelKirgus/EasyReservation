@@ -28,7 +28,7 @@ class ScheduledTaskController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'type' => 'required|string',
+            'type' => 'nullable|string',
             'run_at' => 'nullable|date',
             'cron_expression' => 'nullable|string|min:5|max:30',
             'options' => 'nullable|array',
@@ -39,7 +39,13 @@ class ScheduledTaskController extends Controller
             'active' => 'boolean',
             'run_once' => 'boolean',
             'skip_if_overdue' => 'boolean',
-            'action_list_id' => 'nullable|integer',
+            'action_list_id' => 'required|integer|exists:action_lists,id',
+        ]);
+
+        // Scheduled tasks execute action lists only.
+        $data['type'] = 'action_list';
+        $data['options'] = array_merge($data['options'] ?? [], [
+            'action_list_id' => $data['action_list_id'],
         ]);
         
         // Validation: Either run_at, cron_expression, or (relative_to + relative_offset_minutes) must be set
@@ -68,7 +74,7 @@ class ScheduledTaskController extends Controller
     {
         $task = ScheduledTask::findOrFail($id);
         $data = $request->validate([
-            'type' => 'required|string',
+            'type' => 'nullable|string',
             'run_at' => 'nullable|date',
             'cron_expression' => 'nullable|string|regex:/^(\*|[0-9*,\/\-]+)\s+(\*|[0-9*,\/\-]+)\s+(\*|[0-9*,\/\-]+)\s+(\*|[0-9*,\/\-]+)\s+(\*|[0-9*,\/\-]+)$/',
             'options' => 'nullable|array',
@@ -81,7 +87,13 @@ class ScheduledTaskController extends Controller
             'reference_id' => 'nullable|integer',
             'relative_to' => 'nullable|string',
             'relative_offset_minutes' => 'nullable|integer',
-            'action_list_id' => 'nullable|integer',
+            'action_list_id' => 'required|integer|exists:action_lists,id',
+        ]);
+
+        // Scheduled tasks execute action lists only.
+        $data['type'] = 'action_list';
+        $data['options'] = array_merge($data['options'] ?? [], [
+            'action_list_id' => $data['action_list_id'],
         ]);
         
         // Validate cron expression if provided

@@ -1,3 +1,41 @@
+<template>
+  <div class="trigger-form">
+    <h3>{{ form.id ? tr('admin_event_triggers_button_edit') : tr('admin_event_triggers_button_new') }}</h3>
+
+    <label>{{ tr('admin_event_triggers_column_event_type') }}</label>
+    <select v-model="form.event_type" required>
+      <option value="" disabled>-- {{ tr('scheduled_tasks_select_placeholder') }} --</option>
+      <option v-for="eventType in eventTypes" :key="eventType.value" :value="eventType.value">
+        {{ eventType.label }}
+      </option>
+    </select>
+
+    <label>{{ tr('admin_event_triggers_column_action_list') }}</label>
+    <select v-model.number="form.action_list_id" required>
+      <option value="" disabled>-- {{ tr('scheduled_tasks_select_placeholder') }} --</option>
+      <option v-for="list in actionLists" :key="list.id" :value="list.id">
+        {{ list.name }}
+      </option>
+    </select>
+
+    <label>{{ tr('admin_event_triggers_column_delay_seconds') }}</label>
+    <input v-model.number="form.delay_seconds" type="number" min="0" />
+
+    <label>{{ tr('admin_event_triggers_column_cooldown_seconds') }}</label>
+    <input v-model.number="form.cooldown_seconds" type="number" min="0" />
+
+    <label style="display:flex;align-items:center;gap:0.5em;">
+      <input v-model="form.active" type="checkbox" />
+      {{ tr('admin_event_triggers_column_active') }}
+    </label>
+
+    <div style="display:flex;justify-content:flex-end;gap:0.5em;margin-top:1em;">
+      <IconButton icon="save" :label="tr('admin_action_lists_button_save')" class="primary" variant="success" @click="onSave" />
+      <IconButton icon="close" :label="tr('admin_action_lists_button_cancel')" class="ghost" @click="emit('close')" />
+    </div>
+  </div>
+</template>
+
 <script setup>
 import { ref, watch, computed } from 'vue'
 import IconButton from './IconButton.vue'
@@ -50,6 +88,10 @@ watch(() => props.trigger, (val) => {
 }, { immediate: true })
 
 function onSave() {
+  if (!form.value.event_type || !form.value.action_list_id) {
+    return
+  }
+
   emit('save', { ...form.value })
 }
 </script>

@@ -115,7 +115,6 @@
 
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
-import IconButton from './IconButton.vue'
 import axios from 'axios'
 import { buildAdminHeaders } from '../utils/adminApi'
 import { useTranslation } from '../composables/useTranslation'
@@ -166,36 +165,6 @@ const form = ref({
 
 const actionLists = ref([])
 const referenceObjects = ref([])
-
-// Computed: aktuelles Setting-Field (Typ etc.)
-const currentSettingField = computed(() => {
-  return settingsFields.find(f => f.key === selectedSettingKey.value) || { type: 'text' }
-})
-
-// Hilfsfunktion: Wert fÃ¼r Input je nach Typ konvertieren
-function convertSettingValue(val, type) {
-  if (type === 'boolean') {
-    return val === true || val === '1' || val === 1 || val === 'true';
-  } else if (type === 'number') {
-    return val === null || val === '' ? null : Number(val);
-  } else if (type === 'color') {
-    // Hex-Farben sicherstellen
-    if (typeof val === 'string' && val.startsWith('#')) return val;
-    return '#000000';
-  } else if (type === 'date') {
-    // Nur Datumsteil
-    if (!val) return '';
-    return String(val).slice(0, 10);
-  } else if (type === 'datetime-local') {
-    // ISO-String ohne Sekunden und Zeitzone
-    if (!val) return '';
-    const d = new Date(val);
-    if (isNaN(d)) return '';
-    const pad = n => n.toString().padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }
-  return val ?? '';
-}
 
 // Hilfsfunktion fÃ¼r das richtige Datumsformat im Input
 function toDatetimeLocal(val) {
@@ -303,6 +272,11 @@ watch(() => props.task, (task) => {
     }
     
     form.value = finalTaskData
+
+    // Backward compatibility: populate action_list_id from legacy options if needed.
+    if (!form.value.action_list_id && form.value.options?.action_list_id) {
+      form.value.action_list_id = form.value.options.action_list_id
+    }
     
     // Korrigiere das Datumsformat fÃ¼r das Input-Feld
     if (schedulingMode.value === 'absolute') {
@@ -338,6 +312,17 @@ function toUtcIsoString(localDateTimeStr) {
 
 function submit() {
   const payload = { ...form.value };
+  if (!payload.action_list_id) {
+    alert(tr('scheduled_tasks_label_action_list'))
+    return
+  }
+
+  // Scheduled tasks now use action-list execution only.
+  payload.type = 'action_list'
+  payload.options = {
+    ...(payload.options || {}),
+    action_list_id: payload.action_list_id,
+  }
   
   // Enforce reference_type based on scheduling mode
   if (schedulingMode.value === 'absolute') {

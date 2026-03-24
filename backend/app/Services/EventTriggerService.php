@@ -3,17 +3,13 @@ namespace App\Services;
 
 use App\Models\EventTrigger;
 use App\Models\Reservation;
-use App\Models\WaitlistEntry;
 use App\Services\SettingsService;
 use App\Services\PlaceholderService;
 use App\Jobs\SendEventTriggerJob;
-use Illuminate\Support\Carbon;
 
 class EventTriggerService
 {
     public function __construct(
-        private readonly EmailBroadcastService $emailBroadcast,
-        private readonly WebhookService $webhookService,
         private readonly SettingsService $settings,
         private readonly PlaceholderService $placeholderService,
     ) {}
@@ -27,7 +23,8 @@ class EventTriggerService
     public function handle(string $eventType, array $context = [])
     {
         $now = now();
-        $triggers = EventTrigger::where('event_type', $eventType)
+        /** @var \Illuminate\Database\Eloquent\Collection<int, EventTrigger> $triggers */
+        $triggers = EventTrigger::query()->where('event_type', $eventType)
             ->where('active', true)
             ->get();
 
@@ -105,19 +102,13 @@ class EventTriggerService
 
     public function executeAction(EventTrigger $trigger, array $context)
     {
-        if ($trigger->action_type === 'email') {
-            $this->sendEmailForTrigger($trigger, $context);
-        } elseif ($trigger->action_type === 'webhook') {
-            $this->sendWebhookForTrigger($trigger, $context);
-        } elseif ($trigger->action_type === 'action_list') {
-            $this->executeActionListForTrigger($trigger, $context);
-        }
+        // Event triggers execute action lists only.
+        $this->executeActionListForTrigger($trigger, $context);
     }
 
     private function executeActionListForTrigger(EventTrigger $trigger, array $context)
     {
-        // Check both template_id (legacy) and action_list_id
-        $actionListId = $trigger->template_id ?? $trigger->action_list_id;
+        $actionListId = $trigger->action_list_id;
         if (!$actionListId) return;
 
         // Apply context placeholders
@@ -131,54 +122,6 @@ class EventTriggerService
         } catch (\Throwable $e) {
             \Log::error('EventTriggerService: Action list execution failed for trigger ' . $trigger->id . ': ' . $e->getMessage());
             throw $e;
-        }
-    }
-
-    private function sendEmailForTrigger(EventTrigger $trigger, array $context)
-    {
-        $templateId = $trigger->template_id;
-        if (!$templateId) return;
-
-        // Empfänger bestimmen
-        $recipients = [];
-        if ($trigger->recipient_attendees) {
-            $recipients = array_merge($recipients, Reservation::query()->get()->map(fn($r) => ['name' => $r->display_name, 'email' => $r->email, 'payload' => $r->payload ?? []])->toArray());
-        }
-        if ($trigger->recipient_waitlist) {
-            $recipients = array_merge($recipients, WaitlistEntry::query()->get()->map(fn($r) => ['name' => $r->display_name, 'email' => $r->email, 'payload' => $r->payload ?? []])->toArray());
-        }
-        if ($trigger->recipient_admins) {
-            $adminRecipients = \App\Models\User::where('role', 'admin')->orWhere('role', 'superadmin')->pluck('email', 'name')->map(fn($email, $name) => ['name' => $name, 'email' => $email])->toArray();
-            $recipients = array_merge($recipients, $adminRecipients);
-        }
-        if ($trigger->recipient_moderators) {
-            $moderatorRecipients = \App\Models\User::where('role', 'moderator')->pluck('email', 'name')->map(fn($email, $name) => ['name' => $name, 'email' => $email])->toArray();
-            $recipients = array_merge($recipients, $moderatorRecipients);
-        }
-        if (!empty($trigger->custom_recipients)) {
-            $customs = preg_split('/[\n,]+/', $trigger->custom_recipients);
-            foreach ($customs as $email) {
-                $email = trim($email);
-                if ($email !== '') {
-                    $recipients[] = ['name' => $email, 'email' => $email];
-                }
-            }
-        }
-        // Deduplicate
-        $recipients = collect($recipients)->filter(fn($r) => !empty($r['email']))->unique('email')->values()->toArray();
-        if (count($recipients) === 0) return;
-
-        // Sende E-Mail an alle Empfänger
-        foreach ($recipients as $recipient) {
-            $this->emailBroadcast->queueBroadcast(
-                $templateId,
-                'custom',
-                false,
-                [],
-                [],
-                [$recipient],
-                true
-            );
         }
     }
 
@@ -217,54 +160,4 @@ class EventTriggerService
         }
     }
   
-    private function sendWebhookForTrigger(EventTrigger $trigger, array $context)
-    {
-        // Prefer webhook_template_id if set, fallback to direct webhook_url
-        if ($trigger->webhook_template_id) {
-            // Use the template's own payload_template (with placeholders resolved).
-            // Do NOT override the payload — the template defines the format the endpoint expects.
-            $template = \App\Models\WebhookTemplate::find($trigger->webhook_template_id);
-            if ($template) {
-                $headers = [];
-                if ($template->headers_template) {
-                    try {
-                        $headers = json_decode($template->headers_template, true) ?: [];
-                    } catch (\Throwable $e) {
-                        $headers = [];
-                    }
-                }
-                $payload = json_decode($template->payload_template, true) ?: [];
-                \App\Jobs\SendWebhookJob::dispatch(
-                    $template->url,
-                    $payload,
-                    $headers,
-                    $trigger->id,
-                    $trigger->event_type
-                );
-            }
-            return;
-        }
-
-        if (!$trigger->webhook_url) return;
-
-        // Serialize Eloquent models to arrays for clean JSON encoding
-        $serializedContext = array_map(
-            fn ($v) => $v instanceof \Illuminate\Database\Eloquent\Model ? $v->toArray() : $v,
-            $context,
-        );
-
-        $payload = [
-            'event' => $trigger->event_type,
-            'context' => $serializedContext,
-            'trigger_id' => $trigger->id,
-            'fired_at' => now()->toIso8601String(),
-        ];
-        \App\Jobs\SendWebhookJob::dispatch(
-            $trigger->webhook_url,
-            $payload,
-            [],
-            $trigger->id,
-            $trigger->event_type
-        );
-    }
 }

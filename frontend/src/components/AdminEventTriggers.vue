@@ -119,7 +119,7 @@ function closeDialog() {
 const columns = computed(() => [
   { key: 'id', label: tr('admin_event_triggers_column_id') },
   { key: 'event_type', label: tr('admin_event_triggers_column_event_type') },
-  { key: 'action_list_id', label: tr('admin_event_triggers_column_action_list') },
+  { key: 'action_list_name', label: tr('admin_event_triggers_column_action_list') },
   { key: 'delay_seconds', label: tr('admin_event_triggers_column_delay_seconds') },
   { key: 'cooldown_seconds', label: tr('admin_event_triggers_column_cooldown_seconds') },
   { key: 'active', label: tr('admin_event_triggers_column_active') }
