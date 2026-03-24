@@ -5,13 +5,12 @@ namespace App\Services;
 use App\Models\ActionList;
 use App\Models\ActionListAction;
 use App\Models\Reservation;
-use App\Models\WaitlistEntry;
 use App\Models\User;
 use App\Models\Setting;
 use App\Models\WebhookTemplate;
 
 use App\Services\WebhookService;
-use App\Services\MailTransportService;
+use App\Services\EmailBroadcastService;
 use App\Services\PlaceholderService;
 use Illuminate\Support\Facades\Log;
 
@@ -19,7 +18,7 @@ class ActionListService
 {
     public function __construct(
         private readonly WebhookService $webhookService,
-        private readonly MailTransportService $mailTransportService,
+        private readonly EmailBroadcastService $emailBroadcastService,
         private readonly PlaceholderService $placeholderService,
     ) {}
 
@@ -102,63 +101,80 @@ class ActionListService
     private function executeEmailAction(ActionListAction $action, array $context): void
     {
         $config = $action->config;
-        // Use webhook_template_id for email actions (same as EventTrigger)
-        $templateId = $config['webhook_template_id'] ?? null;
+        // Prefer template_id (UI/admin), but keep webhook_template_id as legacy fallback.
+        $templateId = $config['template_id'] ?? $config['webhook_template_id'] ?? null;
       
 
         if (!$templateId) {
-            Log::warning('Email action without template_id');
+            Log::warning('Email action without template_id/webhook_template_id', [
+                'action_id' => $action->id,
+                'config_keys' => array_keys($config),
+            ]);
             return;
         }
 
-        // Collect recipients
-        $recipients = [];
+        $sendToAttendees = (bool) ($config['recipients']['attendees'] ?? false);
+        $sendToWaitlist = (bool) ($config['recipients']['waitlist'] ?? false);
+        $sendToAdmins = (bool) ($config['recipients']['admins'] ?? false);
+        $sendToModerators = (bool) ($config['recipients']['moderators'] ?? false);
 
-        if ($config['recipients']['attendees'] ?? false) {
-            $recipients = array_merge($recipients, Reservation::query()->get()
-                ->map(fn($r) => ['name' => $r->display_name, 'email' => $r->email, 'payload' => $r->payload ?? []])
-                ->toArray());
+        // Build recipient scope for EmailBroadcastService.
+        $scope = 'selection';
+        if ($sendToAttendees && $sendToWaitlist) {
+            $scope = 'both';
+        } elseif ($sendToAttendees) {
+            $scope = 'reservations';
+        } elseif ($sendToWaitlist) {
+            $scope = 'waitlist';
         }
 
-        if ($config['recipients']['waitlist'] ?? false) {
-            $recipients = array_merge($recipients, WaitlistEntry::query()->get()
-                ->map(fn($w) => ['name' => $w->display_name, 'email' => $w->email, 'payload' => $w->payload ?? []])
-                ->toArray());
+        $userRoles = [];
+        if ($sendToAdmins) {
+            $userRoles[] = 'admin';
+        }
+        if ($sendToModerators) {
+            $userRoles[] = 'moderator';
         }
 
-        if ($config['recipients']['admins'] ?? false) {
-            $adminRecipients = User::where('role', 'admin')->orWhere('role', 'superadmin')
-                ->pluck('email', 'name')
-                ->map(fn($email, $name) => ['name' => $name, 'email' => $email])
-                ->toArray();
-            $recipients = array_merge($recipients, $adminRecipients);
-        }
-
-        if ($config['recipients']['moderators'] ?? false) {
-            $moderatorRecipients = User::where('role', 'moderator')
-                ->pluck('email', 'name')
-                ->map(fn($email, $name) => ['name' => $name, 'email' => $email])
-                ->toArray();
-            $recipients = array_merge($recipients, $moderatorRecipients);
-        }
-
-        // Add custom recipients
-        if ($config['recipients']['custom'] ?? '') {
-            $customEmails = array_filter(array_map('trim', explode(',', $config['recipients']['custom'])));
+        $customRecipients = [];
+        if (!empty($config['recipients']['custom'])) {
+            $customEmails = array_filter(array_map('trim', explode(',', (string) $config['recipients']['custom'])));
             foreach ($customEmails as $email) {
                 if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                    $recipients[] = ['name' => '', 'email' => $email];
+                    $customRecipients[] = ['email' => $email];
                 }
             }
         }
 
-        // Send emails
-        if (!empty($recipients)) {
-            $this->mailTransportService->sendTemplateToReservationList(null, $templateId, $recipients);
-            Log::info('Email action sent to ' . count($recipients) . ' recipients');
-        } else {
-            Log::warning('Email action has no recipients');
+        if (
+            !$sendToAttendees
+            && !$sendToWaitlist
+            && !$sendToAdmins
+            && !$sendToModerators
+            && empty($customRecipients)
+        ) {
+            Log::warning('Email action has no recipients configured', ['action_id' => $action->id]);
+            return;
         }
+
+        $result = $this->emailBroadcastService->queueBroadcast(
+            (int) $templateId,
+            $scope,
+            true,
+            [],
+            [],
+            $customRecipients,
+            true,
+            $userRoles
+        );
+
+        Log::info('Email action queued', [
+            'action_id' => $action->id,
+            'template_id' => (int) $templateId,
+            'queued' => $result['queued'] ?? 0,
+            'skipped_no_email' => $result['skipped_no_email'] ?? 0,
+            'duplicates_removed' => $result['duplicates_removed'] ?? 0,
+        ]);
     }
 
     /**

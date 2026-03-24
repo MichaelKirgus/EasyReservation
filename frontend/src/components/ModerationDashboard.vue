@@ -143,6 +143,7 @@ const publicUrl = ref(null)
 const copySuccess = ref(false)
 const reservationWaitlistCanvas = ref(null)
 const dailyTrendsCanvas = ref(null)
+const routePrefix = ref('admin')
 
 const waitlistConversionRate = computed(() => Number(stats.value?.waitlist_conversion?.rate || 0))
 const waitlistConversionPromoted = computed(() => Number(stats.value?.waitlist_conversion?.promoted || 0))
@@ -185,7 +186,7 @@ onMounted(() => {
 
 async function loadPublicUrl() {
   try {
-    const res = await adminFetch('moderation-dashboard/public-url')
+    const res = await adminFetch('moderation-dashboard/public-url', {}, { routePrefixRef: routePrefix })
     if (!res.ok) throw new Error(await res.text())
     const data = await res.json()
     publicUrl.value = data.public_url
@@ -208,7 +209,7 @@ async function loadStats() {
   if (barChart) barChart.destroy()
   
   try {
-    const res = await adminFetch('moderation-dashboard/stats')
+    const res = await adminFetch('moderation-dashboard/stats', {}, { routePrefixRef: routePrefix })
     if (!res.ok) throw new Error(await res.text())
     stats.value = await res.json()
     publicUrl.value = stats.value.public_url
@@ -225,7 +226,7 @@ async function loadStats() {
 
 async function loadActionLists() {
   try {
-    const res = await adminFetch('action-lists')
+    const res = await adminFetch('action-lists', {}, { routePrefixRef: routePrefix })
     if (!res.ok) throw new Error(await res.text())
     const data = await res.json()
     
@@ -380,7 +381,11 @@ async function executeSelected() {
   error.value = ''
   
   try {
-    const res = await adminFetch(`moderation-dashboard/action-list/${selectedActionListId.value}/execute`, { method: 'POST' })
+    const res = await adminFetch(
+      `moderation-dashboard/action-list/${selectedActionListId.value}/execute`,
+      { method: 'POST' },
+      { routePrefixRef: routePrefix }
+    )
     
     if (!res.ok) {
       const text = await res.text()
