@@ -75,12 +75,12 @@ function apiConfig() {
 }
 
 function formatDateTime(val) {
-  if (!val) return 'â€“';
+  if (!val) return '-';
   // If it's a unix timestamp (number), convert directly
   if (typeof val === 'number') {
     const d = new Date(val * 1000);
     if (isNaN(d)) return String(val);
-    return d.toLocaleString(navigator.language, {
+    return d.toLocaleString(undefined, {
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit', second: '2-digit'
     });
@@ -90,7 +90,7 @@ function formatDateTime(val) {
   if (!/Z|[+-]\d{2}(:\d{2})?$/.test(iso)) iso += 'Z';
   const d = new Date(iso);
   if (isNaN(d)) return val;
-  return d.toLocaleString(navigator.language, {
+  return d.toLocaleString(undefined, {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit', second: '2-digit'
   });
