@@ -178,6 +178,35 @@ class ActionListController extends Controller
     }
 
     /**
+     * Clone an existing action list with all its actions.
+     */
+    public function clone(Request $request, int $id): JsonResponse
+    {
+        $source = ActionList::with('actions')->find($id);
+
+        if (!$source) {
+            return response()->json(['message' => 'Action list not found'], 404);
+        }
+
+        $data = $request->validate([
+            'name' => 'nullable|string|max:255',
+        ]);
+
+        // Create clone of action list
+        $cloned = $source->replicate();
+        $cloned->save();
+
+        // Clone all associated actions
+        foreach ($source->actions as $action) {
+            $clonedAction = $action->replicate();
+            $clonedAction->action_list_id = $cloned->id;
+            $clonedAction->save();
+        }
+
+        return response()->json($cloned, 201);
+    }
+
+    /**
      * Execute the specified action list immediately.
      */
     public function execute(Request $request, int $id): JsonResponse

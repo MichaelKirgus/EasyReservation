@@ -404,6 +404,17 @@ async function removeEvent(id) {
   } catch (e) { setError(e.message || String(e)) } finally { loading.value = false }
 }
 
+async function cloneEvent(event) {
+  if (!apiKey.value) { setError(tr('api_key_missing')); return }
+  loading.value = true
+  try {
+    const res = await adminFetch(`events/${event.id}/clone`, { method: 'POST' }, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
+    const text = await res.text(); if (!res.ok) throw new Error(text)
+    setMessage(tr('event_cloned'))
+    await loadEvents()
+  } catch (e) { setError(e.message || String(e)) } finally { loading.value = false }
+}
+
 async function bulkRemoveEvents() {
   if (!selectedEvents.value.length) return
   if (!confirm(tr('bulk_delete_events_confirm', { count: selectedEvents.value.length }))) return
@@ -523,6 +534,17 @@ async function removeLocation(id) {
   } catch (e) { setError(e.message || String(e)) } finally { loading.value = false }
 }
 
+async function cloneLocation(location) {
+  if (!apiKey.value) { setError(tr('api_key_missing')); return }
+  loading.value = true
+  try {
+    const res = await adminFetch(`locations/${location.id}/clone`, { method: 'POST' }, { apiKeyRef: apiKey, routePrefixRef: routePrefix })
+    const text = await res.text(); if (!res.ok) throw new Error(text)
+    setMessage(tr('location_cloned'))
+    await loadLocations()
+  } catch (e) { setError(e.message || String(e)) } finally { loading.value = false }
+}
+
 async function bulkRemoveLocations() {
   if (!selectedLocations.value.length) return
   if (!confirm(tr('bulk_delete_locations_confirm', { count: selectedLocations.value.length }))) return
@@ -634,6 +656,7 @@ onMounted(() => {
         <template #cell-active="{ value }">{{ value ? tr('admin_events_yes_text') : tr('admin_events_no_text') }}</template>
         <template #row-actions="{ row }">
           <IconButton icon="pencil" :label="tr('admin_events_edit_button')" variant="ghost" @click="editEvent(row); showAddEventForm = true" />
+          <IconButton icon="copy" :label="tr('icon_buttons_clone')" variant="ghost" @click="cloneEvent(row)" />
           <IconButton icon="trash" :label="tr('admin_events_delete_button')" variant="danger" @click="removeEvent(row.id)" />
         </template>
       </AdminDataTable>
@@ -739,6 +762,7 @@ onMounted(() => {
         <template #cell-active="{ value }">{{ value ? tr('admin_events_yes_text') : tr('admin_events_no_text') }}</template>
         <template #row-actions="{ row }">
           <IconButton icon="pencil" :label="tr('admin_events_edit_button')" variant="ghost" @click="editLocation(row); showAddLocationForm = true" />
+          <IconButton icon="copy" :label="tr('icon_buttons_clone')" variant="ghost" @click="cloneLocation(row)" />
           <IconButton icon="trash" :label="tr('admin_events_delete_button')" variant="danger" @click="removeLocation(row.id)" />
         </template>
       </AdminDataTable>

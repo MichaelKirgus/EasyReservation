@@ -193,6 +193,23 @@ class ScheduledTaskController extends Controller
         return response()->noContent();
     }
 
+    // POST /admin/scheduled-tasks/{id}/clone
+    public function clone(Request $request, $id)
+    {
+        $source = ScheduledTask::findOrFail($id);
+
+        $data = $request->validate([
+            'name' => 'nullable|string|max:255',
+        ]);
+
+        $cloned = $source->replicate();
+        $cloned->executed = false;
+        $cloned->executed_at = null;
+        $cloned->save();
+
+        return response()->json($cloned, 201);
+    }
+
     // POST /admin/cron/next-run
     public function getNextCronRun(Request $request)
     {

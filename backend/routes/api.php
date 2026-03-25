@@ -130,6 +130,7 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/email-templates', [EmailTemplateController::class, 'store']);
     Route::patch('/admin/email-templates/{emailTemplate}', [EmailTemplateController::class, 'update']);
     Route::delete('/admin/email-templates/{emailTemplate}', [EmailTemplateController::class, 'destroy']);
+    Route::post('/admin/email-templates/{emailTemplate}/clone', [EmailTemplateController::class, 'clone']);
     Route::get('/admin/email-templates/{emailTemplate}/preview', [EmailTemplateController::class, 'preview']);
     Route::post('/admin/email-broadcast', [EmailBroadcastController::class, 'send']);
     Route::get('/admin/placeholders', [PlaceholderController::class, 'index']);
@@ -139,6 +140,7 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/event-triggers', [\App\Http\Controllers\Api\EventTriggerController::class, 'store']);
     Route::put('/admin/event-triggers/{id}', [\App\Http\Controllers\Api\EventTriggerController::class, 'update']);
     Route::delete('/admin/event-triggers/{id}', [\App\Http\Controllers\Api\EventTriggerController::class, 'destroy']);
+    Route::post('/admin/event-triggers/{id}/clone', [\App\Http\Controllers\Api\EventTriggerController::class, 'clone']);
     Route::patch('/admin/event-triggers/{id}/toggle-active', [\App\Http\Controllers\Api\EventTriggerController::class, 'toggleActive']);
     Route::post('/admin/event-triggers/{id}/simulate', [\App\Http\Controllers\Api\EventTriggerController::class, 'simulate']);
 
@@ -162,12 +164,16 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::delete('/admin/global-questions/{question}', [SurveyController::class, 'deleteGlobalQuestion']);
 
     Route::apiResource('/admin/events', EventController::class)->except(['create', 'edit', 'show']);
+    Route::post('/admin/events/{event}/clone', [EventController::class, 'clone']);
     Route::apiResource('/admin/locations', LocationController::class);
+    Route::post('/admin/locations/{location}/clone', [LocationController::class, 'clone']);
     Route::apiResource('/admin/scheduled-tasks', \App\Http\Controllers\Api\ScheduledTaskController::class)->except(['create', 'edit', 'show']);
+    Route::post('/admin/scheduled-tasks/{id}/clone', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'clone']);
     Route::patch('/admin/scheduled-tasks/{id}/activate', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'activate']);
 
     // Action Lists routes
     Route::apiResource('/admin/action-lists', ActionListController::class)->except(['create', 'edit', 'show']);
+    Route::post('/admin/action-lists/{id}/clone', [ActionListController::class, 'clone']);
     Route::get('/admin/action-lists/{id}/actions', [ActionListActionController::class, 'index']);
     Route::post('/admin/action-lists/{id}/actions', [ActionListActionController::class, 'store']);
     Route::put('/admin/action-lists/{id}/actions/{actionId}', [ActionListActionController::class, 'update']);
@@ -243,6 +249,7 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
    Route::apiResource('/admin/email-blacklist-domains', EmailBlacklistDomainController::class);
 
    Route::apiResource('/admin/ical-templates', IcalTemplateController::class)->except(['create', 'edit', 'show']);
+   Route::post('/admin/ical-templates/{icalTemplate}/clone', [IcalTemplateController::class, 'clone']);
 
    // Attachment templates (custom routes must come before apiResource to avoid conflicts)
    Route::get('/admin/attachment-templates/{attachmentTemplate}/attachments', [AttachmentTemplateController::class, 'attachments']);

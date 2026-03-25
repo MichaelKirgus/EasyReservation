@@ -53,6 +53,21 @@ class IcalTemplateController extends Controller
         return response()->json(['message' => __('ical_template_deleted')]);
     }
 
+    public function clone(Request $request, IcalTemplate $icalTemplate): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $cloned = $icalTemplate->replicate();
+        if (!empty($data['name'])) {
+            $cloned->name = $data['name'];
+        }
+        $cloned->save();
+
+        return response()->json($cloned, 201);
+    }
+
     public function preview(Request $request, IcalTemplate $icalTemplate): JsonResponse
     {
         $data = $request->validate([

@@ -68,6 +68,24 @@ class EventTriggerController extends Controller
         return response()->json(['success' => true]);
     }
 
+    // Clone trigger
+    public function clone(Request $request, $id)
+    {
+        $source = EventTrigger::findOrFail($id);
+
+        $data = $request->validate([
+            'event_type' => 'nullable|string|max:255',
+        ]);
+
+        $cloned = $source->replicate();
+        if (!empty($data['event_type'])) {
+            $cloned->event_type = $data['event_type'];
+        }
+        $cloned->save();
+
+        return response()->json($cloned, 201);
+    }
+
     // Toggle active status
     public function toggleActive($id)
     {

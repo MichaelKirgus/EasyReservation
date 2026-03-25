@@ -132,6 +132,23 @@ async function confirmDelete() {
   }
 }
 
+async function cloneTemplate(template) {
+  try {
+    await adminFetch(`ical-templates/${template.id}/clone`, 
+      { 
+        method: 'POST',
+        body: JSON.stringify({ name: template.name + ' (Copy)' })
+      }, 
+      { apiKeyRef: apiKey, routePrefixRef: routePrefix }
+    );
+    fetchTemplates();
+    setMessage(tr('template_cloned'));
+  } catch (error) {
+    console.error('Failed to clone template:', error);
+    setError(tr('cloning_failed') + ': ' + error)
+  }
+}
+
 function openPreview(template) {
   previewTemplate.value = template
   showPreviewDialog.value = true
@@ -219,6 +236,7 @@ const hiddenColumns = ref(new Set(['id']))
         <template #row-actions="{ row }">
           <IconButton icon="pencil" :label="tr('icon_buttons_edit')" @click="openEditDialog(row)" />
           <IconButton icon="eye" :label="tr('preview')" variant="primary" @click="openPreview(row)" />
+          <IconButton icon="copy" :label="tr('icon_buttons_clone')" variant="secondary" @click="cloneTemplate(row)" />
           <IconButton icon="trash" :label="tr('icon_buttons_delete')" variant="danger" @click="deleteTemplate(row)" />
         </template>
       </AdminDataTable>

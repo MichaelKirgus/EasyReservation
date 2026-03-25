@@ -58,4 +58,12 @@ class LocationController extends Controller
         $location->delete();
         return response()->json(['message' => __('location_deleted')]);
     }
+
+    public function clone(Location $location): JsonResponse
+    {
+        $cloned = $location->replicate();
+        $cloned->save();
+
+        return response()->json($cloned, 201);
+    }
 }

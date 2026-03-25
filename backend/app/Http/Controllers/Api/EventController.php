@@ -71,6 +71,14 @@ class EventController extends Controller
         return response()->json(['message' => __('event_deleted')]);
     }
 
+    public function clone(Event $event): JsonResponse
+    {
+        $cloned = $event->replicate();
+        $cloned->save();
+
+        return response()->json($cloned, 201);
+    }
+
     public function upcoming(): JsonResponse
     {
         $list = $this->events->upcoming(10)->map(fn ($e) => [

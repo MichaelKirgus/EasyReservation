@@ -44,6 +44,7 @@
       </template>
       <template #row-actions="{ row }">
         <IconButton icon="play" :label="tr('scheduled_tasks_button_run_now')" class="ghost" @click.stop="runNow(row)" :disabled="loading" />
+        <IconButton icon="copy" :label="tr('icon_buttons_clone')" class="ghost" @click.stop="cloneTask(row)" :disabled="loading" />
         <IconButton icon="pencil" :label="tr('scheduled_tasks_button_edit')" class="ghost" @click.stop="editTask(row)" :disabled="loading" />
         <IconButton icon="trash" :label="tr('scheduled_tasks_button_delete')" class="ghost" variant="danger" @click.stop="deleteTask(row)" :disabled="loading" />
       </template>
@@ -197,6 +198,13 @@ function deleteTask(task) {
   }
   loading.value = true
   axios.delete(`/api/admin/scheduled-tasks/${task.id}`, apiConfig())
+    .then(fetchTasks)
+    .finally(() => { loading.value = false })
+}
+
+function cloneTask(task) {
+  loading.value = true
+  axios.post(`/api/admin/scheduled-tasks/${task.id}/clone`, {}, apiConfig())
     .then(fetchTasks)
     .finally(() => { loading.value = false })
 }

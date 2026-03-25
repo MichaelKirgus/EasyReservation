@@ -16,6 +16,7 @@
       </template>
       <template #row-actions="{ row }">
         <IconButton icon="play" :label="tr('admin_action_lists_button_execute')" class="ghost" @click.stop="execute(row)" :disabled="loading" />
+        <IconButton icon="copy" :label="tr('icon_buttons_clone')" class="ghost" @click.stop="cloneActionList(row)" :disabled="loading" />
         <IconButton icon="pencil" :label="tr('admin_action_lists_button_edit')" class="ghost" @click.stop="editActionList(row)" :disabled="loading" />
         <IconButton icon="trash" :label="tr('admin_action_lists_button_delete')" class="ghost" variant="danger" @click.stop="deleteActionList(row)" :disabled="loading" />
       </template>
@@ -96,6 +97,13 @@ function deleteActionList(actionList) {
   }
   loading.value = true
   axios.delete(`/api/admin/action-lists/${actionList.id}`, apiConfig())
+    .then(fetchActionLists)
+    .finally(() => { loading.value = false })
+}
+
+function cloneActionList(actionList) {
+  loading.value = true
+  axios.post(`/api/admin/action-lists/${actionList.id}/clone`, {}, apiConfig())
     .then(fetchActionLists)
     .finally(() => { loading.value = false })
 }

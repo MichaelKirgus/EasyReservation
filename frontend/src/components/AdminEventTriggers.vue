@@ -14,6 +14,7 @@
       </template>
       <template #row-actions="{ row }">
         <IconButton icon="play" :label="tr('admin_event_triggers_button_simulate')" class="ghost" @click.stop="simulate(row)" :disabled="loading" />
+        <IconButton icon="copy" :label="tr('icon_buttons_clone')" class="ghost" @click.stop="cloneTrigger(row)" :disabled="loading" />
         <IconButton icon="pencil" :label="tr('admin_event_triggers_button_edit')" class="ghost" @click.stop="editTrigger(row)" :disabled="loading" />
         <IconButton icon="trash" :label="tr('admin_event_triggers_button_delete')" class="ghost" variant="danger" @click.stop="deleteTrigger(row)" :disabled="loading" />
       </template>
@@ -87,6 +88,13 @@ function deleteTrigger(trigger) {
   }
   loading.value = true
   axios.delete(`/api/admin/event-triggers/${trigger.id}`, apiConfig())
+    .then(fetchTriggers)
+    .finally(() => { loading.value = false })
+}
+
+function cloneTrigger(trigger) {
+  loading.value = true
+  axios.post(`/api/admin/event-triggers/${trigger.id}/clone`, {}, apiConfig())
     .then(fetchTriggers)
     .finally(() => { loading.value = false })
 }

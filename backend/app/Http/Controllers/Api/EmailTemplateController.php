@@ -109,6 +109,21 @@ class EmailTemplateController extends Controller
         return response()->json(['message' => __('email_template_deleted')]);
     }
 
+    public function clone(Request $request, EmailTemplate $emailTemplate): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $cloned = $emailTemplate->replicate();
+        if (!empty($data['name'])) {
+            $cloned->name = $data['name'];
+        }
+        $cloned->save();
+
+        return response()->json($cloned, 201);
+    }
+
     public function preview(Request $request, EmailTemplate $emailTemplate): JsonResponse
     {
         $data = $request->validate([
