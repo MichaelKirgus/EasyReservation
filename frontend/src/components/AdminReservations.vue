@@ -66,12 +66,13 @@ const rateLimitColumns = computed(() => [
 
 function formatRateLimitHour(val) {
   if (!val || val.length !== 10) return val
-  // val = YYYYMMDDhh (UTC from server)
+  // val = YYYYMMDDhh from the server-side rate-limit bucket key.
+  // Parse as a local wall-clock hour bucket to avoid unintended timezone shifts.
   const y = val.substring(0, 4)
   const m = val.substring(4, 6)
   const d = val.substring(6, 8)
   const h = val.substring(8, 10)
-  const date = new Date(`${y}-${m}-${d}T${h}:00:00Z`)
+  const date = new Date(Number(y), Number(m) - 1, Number(d), Number(h), 0, 0)
   if (Number.isNaN(date.getTime())) return val
   const fmt = (dt) => new Intl.DateTimeFormat(navigator.language, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(dt)
   const fmtTime = (dt) => new Intl.DateTimeFormat(navigator.language, { hour: '2-digit', minute: '2-digit' }).format(dt)
@@ -786,7 +787,7 @@ async function purgeAllData() {
           <IconButton icon="trash2" variant="danger" :label="tr('admin_reservations_delete_all_rate_limits')" @click="clearAllRateLimits" :disabled="rateLimitLoading || !rateLimits.length" />
         </template>
         <template #cell-count="{ value }">
-          <span>{{ value + 1 }}</span>
+          <span>{{ value }}</span>
         </template>
         <template #cell-hour="{ value }">
           <span>{{ formatRateLimitHour(value) }}</span>
