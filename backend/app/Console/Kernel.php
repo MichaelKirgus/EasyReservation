@@ -26,6 +26,10 @@ class Kernel extends ConsoleKernel
         // Schedule CleanUpAuditLogsJob to run hourly
         $schedule->job(new \App\Jobs\CleanUpAuditLogsJob)->hourly();
         \Log::info('Registered CleanUpAuditLogsJob for hourly cleanup');
+
+        // Schedule scheduled task execution history cleanup to run hourly
+        $schedule->job(new \App\Jobs\CleanUpScheduledTaskExecutionsJob)->hourly();
+        \Log::info('Registered CleanUpScheduledTaskExecutionsJob for hourly cleanup');
     }
 
     protected function commands()

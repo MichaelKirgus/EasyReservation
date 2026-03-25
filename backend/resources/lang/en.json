@@ -1726,5 +1726,13 @@
     "dashboard_funnel_attempts": "Attempts",
     "dashboard_funnel_pending_verification": "Pending Verification",
     "dashboard_funnel_completed": "Completed",
-    "dashboard_funnel_waitlist": "Moved to Waitlist"
+    "dashboard_funnel_waitlist": "Moved to Waitlist",
+    "dashboard_upcoming_scheduled_tasks_title": "Upcoming Scheduled Tasks",
+    "dashboard_last_executed_tasks_title": "Last Executed Tasks",
+    "dashboard_scheduled_task_planned_for": "Planned for",
+    "dashboard_scheduled_task_executed_at": "Executed at",
+    "dashboard_scheduled_task_status_success": "Success",
+    "dashboard_scheduled_task_status_failed": "Failed",
+    "dashboard_scheduled_tasks_empty_upcoming": "No upcoming scheduled tasks.",
+    "dashboard_scheduled_tasks_empty_executed": "No scheduled task executions yet."
 }

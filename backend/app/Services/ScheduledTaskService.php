@@ -2,6 +2,7 @@
 namespace App\Services;
 
 use App\Models\ScheduledTask;
+use App\Models\ScheduledTaskExecution;
 use App\Models\Event;
 use Illuminate\Support\Carbon;
 use App\Jobs\ExecuteScheduledTaskJob;
@@ -13,6 +14,7 @@ class ScheduledTaskService
         \Log::info('ScheduledTaskService: Starting runDueTasks');
         
         // 1. Relative Zeiten berechnen (wie in RunScheduledTasks)
+        /** @var \Illuminate\Database\Eloquent\Collection<int, ScheduledTask> $tasks */
         $tasks = ScheduledTask::where('active', true)->where('executed', false)->get();
         \Log::info('ScheduledTaskService: Found ' . $tasks->count() . ' active, unexecuted tasks');
         
@@ -53,7 +55,8 @@ class ScheduledTaskService
         }
 
         // 2. Fällige Tasks ausführen (including cron tasks)
-        $dueTasks = ScheduledTask::where('active', true)
+                /** @var \Illuminate\Database\Eloquent\Collection<int, ScheduledTask> $dueTasks */
+                $dueTasks = ScheduledTask::where('active', true)
           ->where('executed', false)
           ->where(function($outer) {
               $outer->where(function($query) {
@@ -94,7 +97,7 @@ class ScheduledTaskService
 
             \Log::info('ScheduledTaskService: Executing task ' . $task->id);
             try {
-                $this->executeTask($task);
+                $this->executeTask($task, true, 'scheduler');
                 
                 // Update cron task for next run (cron tasks are recurring, so reset executed)
                 if (!empty($task->cron_expression)) {
@@ -130,7 +133,15 @@ class ScheduledTaskService
     private function updateCronRunTime(ScheduledTask $task): void
     {
         try {
-            $nextRunAt = $task->getNextRunAtAttribute();
+            $nextRunAtRaw = $task->getNextRunAtAttribute();
+
+            if (!$nextRunAtRaw) {
+                return;
+            }
+
+            $nextRunAt = $nextRunAtRaw instanceof Carbon
+                ? $nextRunAtRaw
+                : Carbon::instance($nextRunAtRaw);
             
             if ($nextRunAt && (!$task->next_run_at || !$task->next_run_at->eq($nextRunAt))) {
                 $task->next_run_at = $nextRunAt;
@@ -145,9 +156,11 @@ class ScheduledTaskService
     /**
      * Führt eine einzelne geplante Aufgabe aus (Logik wie im Command)
      */
-    public function executeTask(ScheduledTask $task, bool $finalizeExecution = true): void
+    public function executeTask(ScheduledTask $task, bool $finalizeExecution = true, string $triggerSource = 'scheduler'): void
     {
         \Log::info('ScheduledTaskService: Starting execution of task ' . $task->id . ' (type: ' . $task->type . ')');
+
+        $execution = $this->startExecutionHistory($task, $triggerSource);
         
         try {
             // Log task details for debugging
@@ -424,9 +437,17 @@ class ScheduledTaskService
                     \Log::info('ScheduledTaskService: Task ' . $task->id . ' deactivated (run_once)');
                 }
             }
+
+            if (!empty($task->cron_expression)) {
+                $task->executed_at = now();
+                $task->save();
+            }
+
+            $this->completeExecutionHistory($execution, 'success');
             \Log::info('ScheduledTaskService: Task ' . $task->id . ' completed successfully');
             
         } catch (\Throwable $e) {
+            $this->completeExecutionHistory($execution, 'failed', $e->getMessage());
             \Log::error('Fehler beim Ausführen von ScheduledTask ' . $task->id . ': ' . $e->getMessage());
             \Log::error('Stack trace:', ['trace' => $e->getTraceAsString()]);
             throw $e;
@@ -498,5 +519,43 @@ class ScheduledTaskService
         }
 
         return $recipients;
+    }
+
+    private function startExecutionHistory(ScheduledTask $task, string $triggerSource): ScheduledTaskExecution
+    {
+        $actionListId = $task->action_list_id ?? ($task->options['action_list_id'] ?? null);
+        $actionListName = $task->actionList?->name;
+        $plannedFor = null;
+
+        if (!empty($task->cron_expression)) {
+            $plannedFor = $task->next_run_at;
+        } elseif ($task->run_at) {
+            $plannedFor = $task->run_at;
+        } elseif ($task->planned_run_at) {
+            $plannedFor = Carbon::parse($task->planned_run_at);
+        }
+
+        $execution = ScheduledTaskExecution::create([
+            'scheduled_task_id' => $task->id,
+            'action_list_id' => $actionListId,
+            'action_list_name' => $actionListName,
+            'task_type' => $task->type,
+            'trigger_source' => $triggerSource,
+            'status' => 'started',
+            'planned_for' => $plannedFor,
+            'started_at' => now(),
+        ]);
+
+        ScheduledTaskExecution::pruneHistory();
+
+        return $execution;
+    }
+
+    private function completeExecutionHistory(ScheduledTaskExecution $execution, string $status, ?string $errorMessage = null): void
+    {
+        $execution->status = $status;
+        $execution->error_message = $errorMessage;
+        $execution->finished_at = now();
+        $execution->save();
     }
 }

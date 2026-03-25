@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ActionList;
 use App\Models\Reservation;
+use App\Models\ScheduledTask;
+use App\Models\ScheduledTaskExecution;
 use App\Models\WaitlistEntry;
 use App\Services\LinkBuildingService;
 use App\Services\RateLimitCacheService;
@@ -57,6 +59,8 @@ class ModerationDashboardController extends Controller
             'waitlist_conversion' => $waitlistConversion,
             'pending_validation_ages' => $pendingValidationAges,
             'reservation_funnel' => $reservationFunnel,
+            'upcoming_scheduled_tasks' => $this->getUpcomingScheduledTasks(),
+            'last_executed_scheduled_tasks' => $this->getLastExecutedScheduledTasks(),
             'public_url' => $publicUrl,
         ]);
     }
@@ -247,6 +251,66 @@ class ModerationDashboardController extends Controller
     private function getPublicReservationUrl(): ?string
     {
         return $this->linkBuildingService->buildPublicReservationLink();
+    }
+
+    private function getUpcomingScheduledTasks(int $limit = 3): array
+    {
+        try {
+            return ScheduledTask::query()
+                ->with(['actionList:id,name'])
+                ->where('active', true)
+                ->get()
+                ->filter(fn (ScheduledTask $task) => ! $task->executed && ! empty($task->planned_run_at))
+                ->sortBy('planned_run_at')
+                ->take($limit)
+                ->map(function (ScheduledTask $task) {
+                    $actionListId = $task->action_list_id ?? ($task->options['action_list_id'] ?? null);
+
+                    return [
+                        'id' => $task->id,
+                        'type' => $task->type,
+                        'planned_run_at' => $task->planned_run_at,
+                        'action_list_id' => $actionListId,
+                        'action_list_name' => $task->actionList?->name,
+                        'reference_type' => $task->reference_type,
+                    ];
+                })
+                ->values()
+                ->all();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    private function getLastExecutedScheduledTasks(int $limit = 3): array
+    {
+        try {
+            return ScheduledTaskExecution::query()
+                ->with(['scheduledTask:id', 'actionList:id,name'])
+                ->where('trigger_source', 'scheduler')
+                ->whereNotNull('finished_at')
+                ->latest('finished_at')
+                ->latest('id')
+                ->limit($limit)
+                ->get()
+                ->map(function (ScheduledTaskExecution $execution) {
+                    return [
+                        'id' => $execution->id,
+                        'scheduled_task_id' => $execution->scheduled_task_id,
+                        'action_list_id' => $execution->action_list_id,
+                        'action_list_name' => $execution->action_list_name ?: $execution->actionList?->name,
+                        'task_type' => $execution->task_type,
+                        'status' => $execution->status,
+                        'planned_for' => optional($execution->planned_for)?->toIso8601String(),
+                        'started_at' => optional($execution->started_at)?->toIso8601String(),
+                        'finished_at' => optional($execution->finished_at)?->toIso8601String(),
+                        'error_message' => $execution->error_message,
+                    ];
+                })
+                ->all();
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     /**

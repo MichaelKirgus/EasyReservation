@@ -72,6 +72,38 @@
       </section>
     </div>
 
+    <div class="moderator-insights-grid">
+      <section class="insight-card">
+        <h3>{{ tr('dashboard_upcoming_scheduled_tasks_title') }}</h3>
+        <div v-if="upcomingScheduledTasks.length" class="scheduled-task-list">
+          <div v-for="task in upcomingScheduledTasks" :key="`upcoming-${task.id}`" class="scheduled-task-row">
+            <div class="scheduled-task-main">
+              <strong class="scheduled-task-name">{{ scheduledTaskName(task) }}</strong>
+              <span class="scheduled-task-meta">{{ tr('dashboard_scheduled_task_planned_for') }}: {{ formatDateTime(task.planned_run_at) }}</span>
+            </div>
+            <span class="scheduled-task-chip">#{{ task.id }}</span>
+          </div>
+        </div>
+        <p v-else class="empty-state-text">{{ tr('dashboard_scheduled_tasks_empty_upcoming') }}</p>
+      </section>
+
+      <section class="insight-card">
+        <h3>{{ tr('dashboard_last_executed_tasks_title') }}</h3>
+        <div v-if="lastExecutedScheduledTasks.length" class="scheduled-task-list">
+          <div v-for="execution in lastExecutedScheduledTasks" :key="`executed-${execution.id}`" class="scheduled-task-row">
+            <div class="scheduled-task-main">
+              <strong class="scheduled-task-name">{{ scheduledTaskName(execution) }}</strong>
+              <span class="scheduled-task-meta">{{ tr('dashboard_scheduled_task_executed_at') }}: {{ formatDateTime(execution.finished_at) }}</span>
+            </div>
+            <span class="scheduled-task-chip" :class="execution.status === 'failed' ? 'error' : 'success'">
+              {{ execution.status === 'failed' ? tr('dashboard_scheduled_task_status_failed') : tr('dashboard_scheduled_task_status_success') }}
+            </span>
+          </div>
+        </div>
+        <p v-else class="empty-state-text">{{ tr('dashboard_scheduled_tasks_empty_executed') }}</p>
+      </section>
+    </div>
+
     <!-- Charts -->
     <div class="charts-container">
       <!-- Pie Chart: Reservation vs Waitlist -->
@@ -155,6 +187,9 @@ const pendingValidationBuckets = computed(() => ({
   over_24h: Number(stats.value?.pending_validation_ages?.over_24h || 0),
 }))
 
+const upcomingScheduledTasks = computed(() => stats.value?.upcoming_scheduled_tasks || [])
+const lastExecutedScheduledTasks = computed(() => stats.value?.last_executed_scheduled_tasks || [])
+
 const reservationFunnelSteps = computed(() => {
   const funnel = stats.value?.reservation_funnel || {}
   return [
@@ -173,6 +208,10 @@ const reservationFunnelMax = computed(() => {
 
 function funnelBarWidth(value) {
   return `${Math.max(8, Math.round((Number(value || 0) / reservationFunnelMax.value) * 100))}%`
+}
+
+function scheduledTaskName(item) {
+  return item?.action_list_name || `${tr('scheduled_tasks_title')} #${item?.scheduled_task_id || item?.id || ''}`.trim()
 }
 
 let pieChart = null
@@ -540,6 +579,62 @@ watch(stats, () => {
   color: var(--text);
   font-size: 0.85rem;
   text-align: right;
+}
+
+.scheduled-task-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.scheduled-task-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 8px;
+  background: var(--surface-muted);
+}
+
+.scheduled-task-main {
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.scheduled-task-name {
+  color: var(--text);
+}
+
+.scheduled-task-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.scheduled-task-chip {
+  flex-shrink: 0;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  border: 1px solid var(--border);
+}
+
+.scheduled-task-chip.success {
+  color: var(--success-text);
+  border-color: var(--success-border);
+}
+
+.scheduled-task-chip.error {
+  color: var(--error-text);
+  border-color: var(--error-border);
+}
+
+.empty-state-text {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 .charts-container {

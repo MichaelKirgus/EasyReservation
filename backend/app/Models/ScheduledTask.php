@@ -5,6 +5,8 @@ namespace App\Models;
 use Cron\CronExpression;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class ScheduledTask extends Model
 {
@@ -132,7 +134,7 @@ class ScheduledTask extends Model
             // Get the next run time from now (or from last_run_at if available)
             $baseTime = $this->last_run_at ? $this->last_run_at : now();
             
-            return $cron->getNextRunDate($baseTime)->setTimezone(new \DateTimeZone('UTC'));
+            return Carbon::instance($cron->getNextRunDate($baseTime))->setTimezone(new \DateTimeZone('UTC'));
         } catch (\Exception $e) {
             \Log::warning('Invalid cron expression for task ' . $this->id . ': ' . $this->cron_expression);
             return null;
@@ -174,5 +176,10 @@ class ScheduledTask extends Model
     public function actionList()
     {
         return $this->belongsTo(\App\Models\ActionList::class, 'action_list_id');
+    }
+
+    public function executions(): HasMany
+    {
+        return $this->hasMany(\App\Models\ScheduledTaskExecution::class);
     }
 }

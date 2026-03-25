@@ -41,7 +41,7 @@ class ExecuteScheduledTaskJob implements ShouldQueue
 
             // Manual "Run now" should not consume a scheduled run, unless run_once is enabled.
             $finalizeExecution = !$this->manualRun || (bool) $task->run_once;
-            $service->executeTask($task, $finalizeExecution);
+            $service->executeTask($task, $finalizeExecution, $this->manualRun ? 'manual' : 'scheduler');
             
             \Log::info('ExecuteScheduledTaskJob: Task ' . $this->taskId . ' completed successfully');
         } catch (\Throwable $e) {

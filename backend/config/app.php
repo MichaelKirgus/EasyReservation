@@ -8,6 +8,12 @@ return [
     // Number of days to retain job log entries
     'job_log_retention_days' => env('JOB_LOG_RETENTION_DAYS', 30),
 
+    // Number of days to retain scheduled task execution history entries
+    'scheduled_task_execution_retention_days' => env('SCHEDULED_TASK_EXECUTION_RETENTION_DAYS', 30),
+
+    // Maximum number of scheduled task execution history rows to keep
+    'scheduled_task_execution_max_rows' => env('SCHEDULED_TASK_EXECUTION_MAX_ROWS', 5000),
+
     /*
     |--------------------------------------------------------------------------
     | Application Name
