@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Event;
 use App\Models\FormField;
 use App\Models\Reservation;
 use App\Models\WaitlistEntry;
@@ -75,7 +76,7 @@ class ConfigController extends Controller
             : 0;
 
         // Events: only from DB
-        $upcomingEvents = $this->events->upcoming()->map(fn ($e) => $this->events->format($e))->all();
+        $upcomingEvents = $this->events->upcoming()->map(fn (Event $e): string => $this->events->format($e))->all();
         $nextEvent = $this->events->next();
         $nextEventText = $nextEvent ? $this->events->format($nextEvent) : null;
 
@@ -131,6 +132,7 @@ class ConfigController extends Controller
             'form_fields' => $formFields,
             'attendees' => $attendees,
             'waitlist_entries' => $waitlistEntries,
+            'app_version' => env('APP_VERSION', ''),
             'stats' => [
                 'count' => $current,
                 'max' => $max,

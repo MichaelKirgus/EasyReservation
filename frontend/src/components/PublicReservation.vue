@@ -38,7 +38,7 @@ const lang = ref(props.langCode || (navigator.language || 'en').split('-')[0])
 const loading = ref(false)
 const message = ref('')
 const error = ref('')
-const config = reactive({ settings: {}, form_fields: [], attendees: [], waitlist: [], stats: { count: 0, max: 0 } })
+const config = reactive({ settings: {}, form_fields: [], attendees: [], waitlist: [], stats: { count: 0, max: 0 }, app_version: '' })
 const currentUser = ref(null)
 const theme = ref(document.documentElement?.dataset?.theme || 'light')
 let themeObserver = null
@@ -81,6 +81,15 @@ const waitlistFullHtml = computed(() => waitlistFullText.value ? renderMarkdown(
 const waitlistFullAlign = computed(() => config.settings?.waitlist_full_text_align || 'left')
 const reservationLimitAlign = computed(() => config.settings?.reservation_limit_text_align || 'left')
 const reservationLimitHtml = computed(() => renderMarkdown(config.settings.reservation_limit_text) || tr('feedback_reservation_limit', 'Reservation limit reached.'))
+const projectFooterHtml = computed(() => {
+  const base = tr('project_footer_text', 'EasyReservation - Open Source Projekt auf GitHub')
+  const version = String(config.app_version || '').trim()
+  if (!version) return base
+  if (base.includes('EasyReservation')) {
+    return base.replace('EasyReservation', `EasyReservation (${version})`)
+  }
+  return `${base} (${version})`
+})
 
 const publicFields = computed(() => {
   const mapped = (config.form_fields || []).filter(f => f && f.visible_public).map(f => ({ ...f }))
@@ -227,6 +236,7 @@ async function loadConfig() {
     config.attendees = data.attendees || []
     config.waitlist = data.waitlist_entries || []
     config.stats = data.stats || { count: 0, max: 0 }
+    config.app_version = data.app_version || ''
     try {
       const loadingImg = config.settings.reservation_loading_image || ''
       cachedLoadingImage.value = loadingImg
@@ -812,7 +822,7 @@ function goToGDPR() {
         </section>
 
         <footer v-if="Number(config.settings.show_project_footer) === 1" class="project-footer">
-          <span v-html="tr('project_footer_text', 'EasyReservation – Open Source Projekt auf GitHub')"></span>
+          <span v-html="projectFooterHtml"></span>
         </footer>
       </template>
     </div>
