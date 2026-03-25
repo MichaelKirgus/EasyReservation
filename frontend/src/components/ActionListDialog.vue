@@ -65,19 +65,19 @@
           <label>{{ tr('admin_action_lists_field_recipients') }}</label>
           <div style="display:flex;flex-direction:column;gap:0.5em;">
             <label style="display:flex;align-items:center;">
-              <input v-model="action.config.recipients.attendees" type="checkbox" />
+              <input v-model="action.config.recipients.attendees" type="checkbox" style="margin-right:0.5em;" />
               {{ tr('admin_action_lists_recipient_attendees') }}
             </label>
             <label style="display:flex;align-items:center;">
-              <input v-model="action.config.recipients.waitlist" type="checkbox" />
+              <input v-model="action.config.recipients.waitlist" type="checkbox" style="margin-right:0.5em;" />
               {{ tr('admin_action_lists_recipient_waitlist') }}
             </label>
             <label style="display:flex;align-items:center;">
-              <input v-model="action.config.recipients.admins" type="checkbox" />
+              <input v-model="action.config.recipients.admins" type="checkbox" style="margin-right:0.5em;" />
               {{ tr('admin_action_lists_recipient_admins') }}
             </label>
             <label style="display:flex;align-items:center;">
-              <input v-model="action.config.recipients.moderators" type="checkbox" />
+              <input v-model="action.config.recipients.moderators" type="checkbox" style="margin-right:0.5em;" />
               {{ tr('admin_action_lists_recipient_moderators') }}
             </label>
           </div>
