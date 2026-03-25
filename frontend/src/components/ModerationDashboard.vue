@@ -214,6 +214,13 @@ function scheduledTaskName(item) {
   return item?.action_list_name || `${tr('scheduled_tasks_title')} #${item?.scheduled_task_id || item?.id || ''}`.trim()
 }
 
+function formatDateTime(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (isNaN(date.getTime())) return value
+  return date.toLocaleString()
+}
+
 let pieChart = null
 let barChart = null
 
