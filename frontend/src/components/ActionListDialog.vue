@@ -84,6 +84,45 @@
 
           <label>{{ tr('admin_action_lists_field_custom_recipients') }}</label>
           <textarea v-model="action.config.recipients.custom" rows="3" placeholder="user@example.com"></textarea>
+
+          <!-- Survey Configuration -->
+          <label style="margin-top:1em;">{{ tr('admin_action_lists_survey_mode_label') }}</label>
+          <select v-model="action.config.survey_mode">
+            <option value="none">{{ tr('admin_action_lists_survey_mode_none') }}</option>
+            <option value="create">{{ tr('admin_action_lists_survey_mode_create') }}</option>
+            <option value="select">{{ tr('admin_action_lists_survey_mode_select') }}</option>
+          </select>
+
+          <!-- Create New Survey -->
+          <div v-if="action.config.survey_mode === 'create'" style="margin-top:0.8em; padding:0.8em; background:rgba(0,0,0,0.02); border-radius:4px;">
+            <label>{{ tr('admin_action_lists_survey_title_template') }}</label>
+            <input
+              v-model="action.config.survey_title_template"
+              type="text"
+              :placeholder="tr('admin_action_lists_survey_title_template')"
+              required
+            />
+            <small style="display:block;margin-top:0.3em;">{{ tr('admin_action_lists_survey_title_template_help') }}</small>
+
+            <label style="margin-top:0.6em;">{{ tr('admin_action_lists_survey_description_template') }}</label>
+            <textarea
+              v-model="action.config.survey_description_template"
+              rows="2"
+              :placeholder="tr('admin_action_lists_survey_description_template')"
+            ></textarea>
+            <small style="display:block;margin-top:0.3em;">{{ tr('admin_action_lists_survey_description_template_help') }}</small>
+          </div>
+
+          <!-- Select Existing Survey -->
+          <div v-if="action.config.survey_mode === 'select'" style="margin-top:0.8em;">
+            <label>{{ tr('admin_action_lists_survey_selection_label') }}</label>
+            <select v-model.number="action.config.survey_id">
+              <option value="">{{ tr('admin_action_lists_survey_selection_placeholder') }}</option>
+              <option v-for="survey in surveys" :key="survey.id" :value="survey.id">
+                {{ survey.title }} {{ survey.event_id ? `(Event #${survey.event_id})` : '' }}
+              </option>
+            </select>
+          </div>
         </div>
 
         <!-- Webhook Action Config -->
@@ -218,6 +257,7 @@ const form = ref({
 
 const emailTemplates = ref([])
 const webhookTemplates = ref([])
+const surveys = ref([])
 const settingKeys = ref([])
 const loading = ref(false)
 const actionExecutionLoading = ref({})
@@ -231,6 +271,11 @@ onMounted(async () => {
   try {
     const whRes = await axios.get('/api/admin/webhook-templates', apiConfig())
     webhookTemplates.value = whRes.data
+  } catch {}
+
+  try {
+    const surveysRes = await axios.get('/api/admin/surveys', apiConfig())
+    surveys.value = surveysRes.data
   } catch {}
   
   try {
@@ -273,6 +318,10 @@ function addNewAction() {
         moderators: false,
         custom: ''
       },
+      survey_mode: 'none',
+      survey_title_template: '',
+      survey_description_template: '',
+      survey_id: '',
       webhook_template_id: '',
       payload_override: '',
       setting_key: '',

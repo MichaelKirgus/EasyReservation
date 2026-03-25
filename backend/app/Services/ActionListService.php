@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Setting;
 use App\Models\WaitlistEntry;
 use App\Models\WebhookTemplate;
+use App\Models\Survey;
 
 use App\Services\WebhookService;
 use App\Services\EmailBroadcastService;
@@ -189,6 +190,35 @@ class ActionListService
             return;
         }
 
+        // Handle survey creation or selection
+        $surveyId = null;
+        $surveyMode = $config['survey_mode'] ?? 'none';
+        
+        if ($surveyMode === 'create') {
+            try {
+                $survey = $this->createDynamicSurvey($config, $context);
+                if ($survey) {
+                    $surveyId = $survey->id;
+                    Log::info('Survey created dynamically for email action', [
+                        'action_id' => $action->id,
+                        'survey_id' => $surveyId,
+                        'survey_title' => $survey->title,
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                Log::error('Failed to create dynamic survey for email action', [
+                    'action_id' => $action->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        } elseif ($surveyMode === 'select' && !empty($config['survey_id'])) {
+            $surveyId = (int) $config['survey_id'];
+            Log::info('Using existing survey for email action', [
+                'action_id' => $action->id,
+                'survey_id' => $surveyId,
+            ]);
+        }
+
         $result = $this->emailBroadcastService->queueBroadcast(
             (int) $templateId,
             $scope,
@@ -197,12 +227,15 @@ class ActionListService
             [],
             $customRecipients,
             true,
-            $userRoles
+            $userRoles,
+            null,
+            $surveyId
         );
 
         Log::info('Email action queued', [
             'action_id' => $action->id,
             'template_id' => (int) $templateId,
+            'survey_id' => $surveyId,
             'queued' => $result['queued'] ?? 0,
             'skipped_no_email' => $result['skipped_no_email'] ?? 0,
             'duplicates_removed' => $result['duplicates_removed'] ?? 0,
@@ -500,5 +533,55 @@ class ActionListService
         $deletedCount = $rateLimitCache->forgetByPrefix('email_validation_rate:');
         
         Log::info('Removed ' . $deletedCount . ' mail validation IP rate limits');
+    }
+
+    /**
+     * Create a survey dynamically based on config template.
+     * Supports placeholder substitution in title and description.
+     *
+     * @param array $config The action config containing survey_title_template, survey_description_template, etc.
+     * @param array $context The execution context (event, reservation, user, etc.)
+     * @return Survey|null The created survey or null if creation fails
+     */
+    private function createDynamicSurvey(array $config, array $context): ?Survey
+    {
+        $titleTemplate = trim((string) ($config['survey_title_template'] ?? ''));
+        $descriptionTemplate = isset($config['survey_description_template']) 
+            ? trim((string) $config['survey_description_template']) 
+            : '';
+
+        if ($titleTemplate === '') {
+            Log::warning('Survey creation requires survey_title_template');
+            return null;
+        }
+
+        // Replace placeholders in title and description
+        $title = $this->placeholderService->replaceString($titleTemplate);
+        $description = $descriptionTemplate !== ''
+            ? $this->placeholderService->replaceString($descriptionTemplate)
+            : '';
+
+        // Use event_id from context if available
+        $eventId = isset($context['event']) && $context['event'] instanceof \App\Models\Event
+            ? $context['event']->id
+            : null;
+
+        // Create the survey with basic configuration
+        $survey = Survey::create([
+            'title' => $title,
+            'description' => $description,
+            'event_id' => $eventId,
+            'active' => true,
+            'response_token_type' => 'anonymous',
+            'max_responses_per_user' => 1,
+        ]);
+
+        Log::info('Dynamic survey created', [
+            'survey_id' => $survey->id,
+            'survey_title' => $survey->title,
+            'event_id' => $eventId,
+        ]);
+
+        return $survey;
     }
 }
