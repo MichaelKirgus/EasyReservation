@@ -7,6 +7,7 @@ export const JOB_TYPES = [
   'App\\Jobs\\WorkerHeartbeatJob',
   'App\\Jobs\\CheckScheduledTasksJob',
   'App\\Jobs\\CleanUpJobLogsJob',
+  'App\\Jobs\\CleanUpScheduledTaskExecutionsJob',
   'App\\Jobs\\ExecuteScheduledTaskJob',
   // Add more job types as needed
 ];
