@@ -36,6 +36,13 @@ class PlaceholderService
         '{{error_message}}',
     ];
 
+    private const RUNTIME_TOKENS = [
+        '{{random_alnum}}',
+        '{{random_alnum_8}}',
+        '{{random_numeric}}',
+        '{{random_numeric_8}}',
+    ];
+
     /**
      * Context-specific placeholders set externally (e.g. from EventTriggerService).
      */
@@ -218,7 +225,7 @@ class PlaceholderService
     public function tokens(): array
     {
         $tokens = array_keys($this->replacements());
-        $tokens = array_merge($tokens, self::RECIPIENT_TOKENS, self::SITE_TOKENS, self::CONTEXT_TOKENS, ['{{event_location_url_html}}']);
+        $tokens = array_merge($tokens, self::RECIPIENT_TOKENS, self::SITE_TOKENS, self::CONTEXT_TOKENS, self::RUNTIME_TOKENS, ['{{event_location_url_html}}']);
         $tokens = array_values(array_unique($tokens));
         sort($tokens);
 
@@ -251,7 +258,42 @@ class PlaceholderService
             return $value ?? '';
         }
 
-        return strtr($value, $this->replacements());
+        $replaced = strtr($value, $this->replacements());
+
+        return $this->replaceRuntimePlaceholders($replaced);
+    }
+
+    private function replaceRuntimePlaceholders(string $value): string
+    {
+        return (string) preg_replace_callback(
+            '/\{\{random_(?:alnum|numeric)(?:_([1-8])|:(\d{1,2}))?\}\}/',
+            function (array $matches): string {
+                $length = 8;
+
+                if (isset($matches[1]) && $matches[1] !== '') {
+                    $length = (int) $matches[1];
+                } elseif (isset($matches[2]) && $matches[2] !== '') {
+                    $length = (int) $matches[2];
+                }
+
+                return $this->generateRandomLowercaseAlnumToken($length);
+            },
+            $value
+        );
+    }
+
+    private function generateRandomLowercaseAlnumToken(int $length): string
+    {
+        $normalizedLength = max(1, min(8, $length));
+        $alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        $maxIndex = strlen($alphabet) - 1;
+
+        $token = '';
+        for ($i = 0; $i < $normalizedLength; $i++) {
+            $token .= $alphabet[random_int(0, $maxIndex)];
+        }
+
+        return $token;
     }
 
     private function getReservationListItems(): string

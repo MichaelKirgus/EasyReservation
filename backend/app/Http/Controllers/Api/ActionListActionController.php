@@ -25,7 +25,7 @@ class ActionListActionController extends Controller
     public function store(Request $request, int $actionListId): JsonResponse
     {
         $validated = $request->validate([
-            'type' => 'required|string|in:email,webhook,change_setting,remove_attendees_from_reservation_list,remove_attendees_from_waitlist,remove_mail_validation_ip_rate_limits',
+            'type' => 'required|string|in:email,webhook,change_setting,remove_attendees_from_reservation_list,remove_attendees_from_waitlist,remove_mail_validation_ip_rate_limits,archive_reservation_and_waiting_list,wait_n_seconds,change_default_guest_token',
             'config' => 'nullable|array',
             'enabled' => 'boolean',
             'sort_order' => 'nullable|integer',
@@ -54,7 +54,7 @@ class ActionListActionController extends Controller
         }
 
         $validated = $request->validate([
-            'type' => 'required|string|in:email,webhook,change_setting,remove_attendees_from_reservation_list,remove_attendees_from_waitlist,remove_mail_validation_ip_rate_limits',
+            'type' => 'required|string|in:email,webhook,change_setting,remove_attendees_from_reservation_list,remove_attendees_from_waitlist,remove_mail_validation_ip_rate_limits,archive_reservation_and_waiting_list,wait_n_seconds,change_default_guest_token',
             'config' => 'nullable|array',
             'enabled' => 'boolean',
             'sort_order' => 'required|integer',

@@ -44,6 +44,9 @@
           <option value="remove_attendees_from_reservation_list">{{ tr('admin_action_lists_option_remove_attendees_from_reservation_list') }}</option>
           <option value="remove_attendees_from_waitlist">{{ tr('admin_action_lists_option_remove_attendees_from_waitlist') }}</option>
           <option value="remove_mail_validation_ip_rate_limits">{{ tr('admin_action_lists_option_remove_mail_validation_ip_rate_limits') }}</option>
+          <option value="archive_reservation_and_waiting_list">{{ tr('admin_action_lists_option_archive_reservation_and_waiting_list') }}</option>
+          <option value="wait_n_seconds">{{ tr('admin_action_lists_option_wait_n_seconds') }}</option>
+          <option value="change_default_guest_token">{{ tr('admin_action_lists_option_change_default_guest_token') }}</option>
         </select>
 
         <label class="checkbox-row">
@@ -127,6 +130,47 @@
         <div v-if="action.type === 'remove_mail_validation_ip_rate_limits'">
           <p>{{ tr('admin_action_lists_option_remove_mail_validation_ip_rate_limits') }}</p>
           <small>{{ tr('admin_action_lists_field_setting_value') }}</small>
+        </div>
+
+        <!-- Archive Reservation + Waitlist Action Config -->
+        <div v-if="action.type === 'archive_reservation_and_waiting_list'">
+          <label>{{ tr('admin_action_lists_field_archive_name') }}</label>
+          <input
+            v-model="action.config.archive_name"
+            type="text"
+            :placeholder="tr('admin_action_lists_field_archive_name_placeholder')"
+          />
+          <small>{{ tr('admin_action_lists_field_archive_name_help') }}</small>
+
+          <label style="display:flex;align-items:center; margin-top:0.6em;">
+            <input v-model="action.config.store_emails" type="checkbox" />
+            {{ tr('admin_action_lists_field_archive_store_emails') }}
+          </label>
+        </div>
+
+        <!-- Wait N Seconds Action Config -->
+        <div v-if="action.type === 'wait_n_seconds'">
+          <label>{{ tr('admin_action_lists_field_wait_seconds') }}</label>
+          <input v-model.number="action.config.seconds" type="number" min="0" max="3600" step="1" />
+        </div>
+
+        <!-- Change Default Guest Token Action Config -->
+        <div v-if="action.type === 'change_default_guest_token'">
+          <label style="display:flex;align-items:center;">
+            <input v-model="action.config.use_random_token" type="checkbox" />
+            {{ tr('admin_action_lists_field_guest_token_use_random') }}
+          </label>
+
+          <div v-if="action.config.use_random_token">
+            <label>{{ tr('admin_action_lists_field_guest_token_random_length') }}</label>
+            <input v-model.number="action.config.random_length" type="number" min="1" max="8" step="1" />
+          </div>
+
+          <div v-else>
+            <label>{{ tr('admin_action_lists_field_guest_token_value') }}</label>
+            <input v-model="action.config.token_value" type="text" :placeholder="tr('admin_action_lists_field_guest_token_value_placeholder')" />
+            <small>{{ tr('admin_action_lists_field_guest_token_value_help') }}</small>
+          </div>
         </div>
 
         <div style="display:flex;gap:0.5em;margin-top:1em;justify-content:flex-end;">
@@ -232,7 +276,14 @@ function addNewAction() {
       webhook_template_id: '',
       payload_override: '',
       setting_key: '',
-      setting_value: ''
+      setting_value: '',
+      archive_name: '',
+      archive_description: '',
+      store_emails: false,
+      seconds: 0,
+      use_random_token: false,
+      random_length: 8,
+      token_value: ''
     },
     sort_order: form.value.actions.length
   })

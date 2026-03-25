@@ -7,11 +7,13 @@ use App\Models\ActionListAction;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Models\Setting;
+use App\Models\WaitlistEntry;
 use App\Models\WebhookTemplate;
 
 use App\Services\WebhookService;
 use App\Services\EmailBroadcastService;
 use App\Services\PlaceholderService;
+use App\Services\ArchiveService;
 use Illuminate\Support\Facades\Log;
 
 class ActionListService
@@ -20,6 +22,7 @@ class ActionListService
         private readonly WebhookService $webhookService,
         private readonly EmailBroadcastService $emailBroadcastService,
         private readonly PlaceholderService $placeholderService,
+        private readonly ArchiveService $archiveService,
     ) {}
 
     /**
@@ -117,6 +120,9 @@ class ActionListService
             'remove_attendees_from_reservation_list' => $this->executeRemoveAttendeesFromReservationListAction($action, $context),
             'remove_attendees_from_waitlist' => $this->executeRemoveAttendeesFromWaitlistAction($action, $context),
             'remove_mail_validation_ip_rate_limits' => $this->executeRemoveMailValidationIpRateLimitsAction($action, $context),
+            'archive_reservation_and_waiting_list' => $this->executeArchiveReservationAndWaitingListAction($action, $context),
+            'wait_n_seconds' => $this->executeWaitNSecondsAction($action, $context),
+            'change_default_guest_token' => $this->executeChangeDefaultGuestTokenAction($action, $context),
             default => throw new \InvalidArgumentException('Unknown action type: ' . $action->type)
         };
     }
@@ -291,7 +297,7 @@ class ActionListService
         } elseif (is_null($value)) {
             $value = '';
         } else {
-            $value = (string)$value;
+            $value = $this->placeholderService->replaceString((string) $value);
         }
 
         // Use firstOrNew + save to trigger setValueAttribute mutator for encryption
@@ -303,6 +309,138 @@ class ActionListService
         app(\App\Services\SettingsService::class)->refresh();
 
         Log::info('Setting updated: ' . $key . ' = ' . $value);
+    }
+
+    private function executeArchiveReservationAndWaitingListAction(ActionListAction $action, array $context): void
+    {
+        $config = $action->config;
+        $archiveNameTemplate = trim((string) ($config['archive_name'] ?? ''));
+        $archiveDescriptionTemplate = isset($config['archive_description']) ? (string) $config['archive_description'] : null;
+        $storeEmails = array_key_exists('store_emails', $config)
+            ? (bool) $config['store_emails']
+            : null;
+
+        if ($archiveNameTemplate === '') {
+            Log::warning('Archive action without archive_name', ['action_id' => $action->id]);
+            return;
+        }
+
+        $archiveName = trim($this->placeholderService->replaceString($archiveNameTemplate));
+        $archiveDescription = $archiveDescriptionTemplate !== null
+            ? $this->placeholderService->replaceString($archiveDescriptionTemplate)
+            : null;
+
+        if ($archiveName === '') {
+            Log::warning('Archive action resolved to empty archive name', [
+                'action_id' => $action->id,
+                'archive_name_template' => $archiveNameTemplate,
+            ]);
+            return;
+        }
+
+        $archive = $this->archiveService->createArchive($archiveName, $archiveDescription, $storeEmails);
+        $this->archiveService->archiveData($archive, $storeEmails);
+
+        $deletedReservations = Reservation::query()->delete();
+        $deletedWaitlistEntries = WaitlistEntry::query()->delete();
+
+        Log::info('Archived and cleared reservation and waitlist entries', [
+            'action_id' => $action->id,
+            'archive_id' => $archive->id,
+            'archive_name' => $archive->name,
+            'store_emails' => $storeEmails,
+            'deleted_reservations' => $deletedReservations,
+            'deleted_waitlist_entries' => $deletedWaitlistEntries,
+        ]);
+    }
+
+    private function executeWaitNSecondsAction(ActionListAction $action, array $context): void
+    {
+        $seconds = (int) ($action->config['seconds'] ?? 0);
+        $seconds = max(0, min(3600, $seconds));
+
+        if ($seconds === 0) {
+            Log::info('Wait action skipped because seconds is 0', ['action_id' => $action->id]);
+            return;
+        }
+
+        Log::info('Wait action started', ['action_id' => $action->id, 'seconds' => $seconds]);
+        sleep($seconds);
+        Log::info('Wait action completed', ['action_id' => $action->id, 'seconds' => $seconds]);
+    }
+
+    private function executeChangeDefaultGuestTokenAction(ActionListAction $action, array $context): void
+    {
+        $config = $action->config;
+        $useRandomToken = (bool) ($config['use_random_token'] ?? false);
+
+        $token = '';
+        if ($useRandomToken) {
+            $randomLength = (int) ($config['random_length'] ?? 8);
+            $token = $this->generateRandomLowercaseAlnumToken($randomLength);
+        } else {
+            $tokenTemplate = (string) ($config['token_value'] ?? '');
+            $token = trim($this->placeholderService->replaceString($tokenTemplate));
+        }
+
+        if ($token === '') {
+            Log::warning('Change default guest token action resolved to empty token', ['action_id' => $action->id]);
+            return;
+        }
+
+        $targetGuestUser = $this->resolveDefaultGuestUser();
+        if (!$targetGuestUser) {
+            Log::warning('No active guest user available for default guest token update', ['action_id' => $action->id]);
+            return;
+        }
+
+        $targetGuestUser->api_token = $token;
+        $targetGuestUser->api_token_is_hashed = false;
+        $targetGuestUser->save();
+
+        Log::info('Default guest token updated', [
+            'action_id' => $action->id,
+            'guest_user_id' => $targetGuestUser->id,
+            'token_length' => strlen($token),
+            'used_random_token' => $useRandomToken,
+        ]);
+    }
+
+    private function resolveDefaultGuestUser(): ?User
+    {
+        $selectedUserId = app(\App\Services\SettingsService::class)->get('site_guest_user_id');
+
+        if ($selectedUserId) {
+            $selectedUser = User::query()
+                ->where('id', (int) $selectedUserId)
+                ->where('role', 'guest')
+                ->where('active', true)
+                ->first();
+
+            if ($selectedUser) {
+                return $selectedUser;
+            }
+        }
+
+        return User::query()
+            ->where('role', 'guest')
+            ->where('active', true)
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    private function generateRandomLowercaseAlnumToken(int $length): string
+    {
+        $normalizedLength = max(1, min(8, $length));
+        $alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        $maxIndex = strlen($alphabet) - 1;
+
+        $token = '';
+        for ($i = 0; $i < $normalizedLength; $i++) {
+            $token .= $alphabet[random_int(0, $maxIndex)];
+        }
+
+        return $token;
     }
 
     private function executeRemoveAttendeesFromReservationListAction(ActionListAction $action, array $context): void
@@ -340,7 +478,7 @@ class ActionListService
             $event = $context['event'];
             
             // Delete all pending waitlist entries for this event
-            $deletedCount = \App\Models\WaitlistEntry::where('status', 'pending')->delete();
+            $deletedCount = WaitlistEntry::where('status', 'pending')->delete();
             
             Log::info('Removed ' . $deletedCount . ' attendees from waitlist');
             
