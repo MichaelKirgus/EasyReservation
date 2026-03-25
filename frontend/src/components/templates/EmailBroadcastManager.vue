@@ -169,7 +169,8 @@ async function sendBroadcast() {
     const text = await res.text()
     if (!res.ok) throw new Error(text)
     const data = JSON.parse(text)
-    setMessage(data.message || tr('emails_sending'))
+    const messageKey = data?.message_key
+    setMessage(messageKey ? tr(messageKey) : (data.message || tr('emails_sending')))
   } catch (e) {
     setError(tr('sending_failed') + ': ' + e)
   } finally {

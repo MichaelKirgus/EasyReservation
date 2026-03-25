@@ -61,6 +61,7 @@ class EmailBroadcastController extends Controller
         }
 
         return response()->json([
+            'message_key' => 'emails_queued_successfully',
             'message' => __('emails_queued_successfully'),
             'result' => $result,
         ]);
