@@ -32,6 +32,8 @@ services:
       - REDIS_PORT=6379
       - QUEUE_CONNECTION=redis
       - CACHE_STORE=redis
+    volumes:
+      - backend_storage:/var/www/storage/app
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
       interval: 30s
@@ -63,6 +65,8 @@ services:
       - REDIS_PORT=6379
       - QUEUE_CONNECTION=redis
       - CACHE_STORE=redis
+    volumes:
+      - backend_storage:/var/www/storage/app
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/"]
       interval: 30s
@@ -94,6 +98,8 @@ services:
       - REDIS_PORT=6379
       - QUEUE_CONNECTION=redis
       - CACHE_STORE=redis
+    volumes:
+      - backend_storage:/var/www/storage/app
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/"]
       interval: 30s
@@ -135,6 +141,10 @@ services:
 volumes:
   mysql_data:
   redis_data:
+  # Shared storage for data portability backup/upload files.
+  # Mounted in backend, scheduler, and worker so all containers
+  # access the same files and they persist across restarts.
+  backend_storage:
 
 networks:
   app-network:

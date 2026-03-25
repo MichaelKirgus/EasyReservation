@@ -22,6 +22,7 @@ import TwoFactorSettings from '../components/TwoFactorSettings.vue'
 import PublicSurvey from '../components/PublicSurvey.vue'
 import AdminMailTransports from '../components/AdminMailTransports.vue'
 import AdminValidationRules from '../components/AdminValidationRules.vue'
+import AdminDataPortability from '../components/AdminDataPortability.vue'
 
 const routes = [
   { path: '/survey', name: 'public-survey-query', component: PublicSurvey, props: route => ({ id: route.query.survey_id }) },
@@ -57,6 +58,7 @@ const routes = [
   { path: '/admin/custom-placeholders', name: 'admin-custom-placeholders', component: AdminCustomPlaceholders },
   { path: '/admin/surveys', name: 'admin-surveys', component: AdminSurveys },
   { path: '/admin/mail-transports', name: 'admin-mail-transports', component: AdminMailTransports },
+  { path: '/admin/data-portability', name: 'admin-data-portability', component: AdminDataPortability },
   { path: '/admin/validation-rules', name: 'admin-validation-rules', component: AdminValidationRules },
   { path: '/moderation/surveys/:id/questions', name: 'survey-questions', component: SurveyQuestionManager, props: true },
   { path: '/admin/auditlog', name: 'superadmin-auditlog', component: AdminAuditLog },

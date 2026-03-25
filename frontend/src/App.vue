@@ -146,6 +146,7 @@ const navGroups = computed(() => {
       tabs: [
         { to: '/admin/diagnostics', label: tr('nav_tab_diagnostics', 'Diagnostics'), show: !!(currentUser && currentUser.role) },
         { to: '/admin/settings', label: tr('nav_tab_settings', 'Settings'), show: !!(currentUser && currentUser.role) },
+        { to: '/admin/data-portability', label: tr('nav_tab_data_portability', 'Data Portability'), show: currentUser && ['admin', 'superadmin'].includes(currentUser.role) },
         { to: '/admin/mail-transports', label: tr('nav_tab_mail_transports', 'Email Transport'), show: !!(currentUser && currentUser.role) },
         { to: '/admin/scheduled-tasks', label: tr('nav_tab_scheduled_tasks', 'Scheduled Tasks'), show: !!(currentUser && currentUser.role) },
         { to: '/admin/custom-placeholders', label: tr('nav_tab_placeholders', 'Placeholders'), show: !!(currentUser && currentUser.role) },

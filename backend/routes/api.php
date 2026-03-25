@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\AttachmentUploadController;
 use App\Http\Controllers\Api\IcalTemplateController;
 use App\Http\Controllers\Api\ValidationRuleController;
 use App\Http\Controllers\Api\ActionListController;
+use App\Http\Controllers\Api\DataPortabilityController;
 use App\Http\Controllers\Api\ModerationDashboardController;
 use App\Http\Controllers\Api\ActionListActionController;
 use Illuminate\Support\Facades\Route;
@@ -103,6 +104,22 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/settings/import', [SettingsController::class, 'import']);
     Route::get('/admin/settings/{key}', [SettingsController::class, 'show']);
     Route::get('/admin/media/images', [MediaController::class, 'images']);
+
+    Route::get('/admin/data-portability/tables', [DataPortabilityController::class, 'tables']);
+    Route::get('/admin/data-portability/files', [DataPortabilityController::class, 'files']);
+    Route::post('/admin/data-portability/files/upload', [DataPortabilityController::class, 'uploadFile']);
+    Route::get('/admin/data-portability/files/{file}/download', [DataPortabilityController::class, 'downloadFile'])->where('file', '[A-Za-z0-9._-]+');
+    Route::get('/admin/data-portability/operations', [DataPortabilityController::class, 'index']);
+    Route::get('/admin/data-portability/operations/{operation}', [DataPortabilityController::class, 'show']);
+    Route::post('/admin/data-portability/backup', [DataPortabilityController::class, 'createBackup']);
+    Route::post('/admin/data-portability/restore', [DataPortabilityController::class, 'createRestore']);
+    Route::post('/admin/data-portability/transport', [DataPortabilityController::class, 'createTransport']);
+    Route::post('/admin/data-portability/preflight-transport', [DataPortabilityController::class, 'preflightTransport']);
+    Route::post('/admin/data-portability/receive-transport', [DataPortabilityController::class, 'receiveTransport']);
+    Route::get('/admin/data-portability/transport-profiles', [DataPortabilityController::class, 'listTransportProfiles']);
+    Route::post('/admin/data-portability/transport-profiles', [DataPortabilityController::class, 'createTransportProfile']);
+    Route::put('/admin/data-portability/transport-profiles/{profile}', [DataPortabilityController::class, 'updateTransportProfile']);
+    Route::delete('/admin/data-portability/transport-profiles/{profile}', [DataPortabilityController::class, 'deleteTransportProfile']);
 
     Route::apiResource('/admin/form-fields', FormFieldController::class)->except(['create', 'edit', 'show']);
     Route::apiResource('/admin/faqs', FaqController::class)->except(['create', 'edit', 'show']);

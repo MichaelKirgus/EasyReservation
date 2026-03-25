@@ -4,17 +4,22 @@ namespace App\Services;
 
 use App\Models\ActionList;
 use App\Models\ActionListAction;
+use App\Models\DataPortabilityOperation;
+use App\Models\DataPortabilityTransportProfile;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Models\Setting;
 use App\Models\WaitlistEntry;
 use App\Models\WebhookTemplate;
 use App\Models\Survey;
+use App\Jobs\RunDatabaseBackupJob;
+use App\Jobs\RunDatabaseTransportJob;
 
 use App\Services\WebhookService;
 use App\Services\EmailBroadcastService;
 use App\Services\PlaceholderService;
 use App\Services\ArchiveService;
+use App\Services\DataPortabilityTableService;
 use Illuminate\Support\Facades\Log;
 
 class ActionListService
@@ -24,6 +29,7 @@ class ActionListService
         private readonly EmailBroadcastService $emailBroadcastService,
         private readonly PlaceholderService $placeholderService,
         private readonly ArchiveService $archiveService,
+        private readonly DataPortabilityTableService $dataPortabilityTableService,
     ) {}
 
     /**
@@ -124,8 +130,112 @@ class ActionListService
             'archive_reservation_and_waiting_list' => $this->executeArchiveReservationAndWaitingListAction($action, $context),
             'wait_n_seconds' => $this->executeWaitNSecondsAction($action, $context),
             'change_default_guest_token' => $this->executeChangeDefaultGuestTokenAction($action, $context),
+            'data_portability_backup' => $this->executeDataPortabilityBackupAction($action, $context),
+            'data_portability_transport' => $this->executeDataPortabilityTransportAction($action, $context),
             default => throw new \InvalidArgumentException('Unknown action type: ' . $action->type)
         };
+    }
+
+    private function executeDataPortabilityBackupAction(ActionListAction $action, array $context): void
+    {
+        $config = is_array($action->config) ? $action->config : [];
+        $tables = $this->resolveDataPortabilityTables($config['selected_tables'] ?? null);
+        $filename = trim((string) ($config['filename'] ?? ''));
+
+        $options = [];
+        if ($filename !== '') {
+            $options['custom_filename'] = $filename;
+        }
+
+        $operation = DataPortabilityOperation::create([
+            'type' => 'backup',
+            'status' => 'queued',
+            'requested_by_user_id' => $this->resolveRequestedByUserId($context),
+            'selected_tables' => $tables,
+            'options' => $options,
+        ]);
+
+        RunDatabaseBackupJob::dispatch($operation->id)
+            ->onQueue(config('data-portability.queue'));
+
+        Log::info('Data portability backup action queued', [
+            'action_id' => $action->id,
+            'operation_id' => $operation->id,
+            'selected_tables_count' => count($tables),
+            'custom_filename' => $filename !== '' ? $filename : null,
+        ]);
+    }
+
+    private function executeDataPortabilityTransportAction(ActionListAction $action, array $context): void
+    {
+        $config = is_array($action->config) ? $action->config : [];
+        $transportProfileId = isset($config['transport_profile_id']) ? (int) $config['transport_profile_id'] : 0;
+        $restoreMode = (string) ($config['restore_mode'] ?? config('data-portability.restore.default_mode', 'truncate_insert'));
+
+        if (! in_array($restoreMode, ['truncate_insert', 'upsert'], true)) {
+            $restoreMode = (string) config('data-portability.restore.default_mode', 'truncate_insert');
+        }
+
+        if ($transportProfileId <= 0) {
+            throw new \InvalidArgumentException('Transport profile is required for data portability transport action.');
+        }
+
+        $profileExists = DataPortabilityTransportProfile::query()
+            ->where('id', $transportProfileId)
+            ->where('is_active', true)
+            ->exists();
+
+        if (! $profileExists) {
+            throw new \InvalidArgumentException('Configured transport profile is missing or inactive.');
+        }
+
+        $tables = $this->resolveDataPortabilityTables($config['selected_tables'] ?? null);
+
+        $operation = DataPortabilityOperation::create([
+            'type' => 'transport',
+            'status' => 'queued',
+            'requested_by_user_id' => $this->resolveRequestedByUserId($context),
+            'selected_tables' => $tables,
+            'restore_mode' => $restoreMode,
+            'options' => [
+                'transport_profile_id' => $transportProfileId,
+                'delivery_mode' => 'direct_payload',
+            ],
+        ]);
+
+        RunDatabaseTransportJob::dispatch($operation->id)
+            ->onQueue(config('data-portability.queue'));
+
+        Log::info('Data portability transport action queued', [
+            'action_id' => $action->id,
+            'operation_id' => $operation->id,
+            'transport_profile_id' => $transportProfileId,
+            'selected_tables_count' => count($tables),
+            'restore_mode' => $restoreMode,
+        ]);
+    }
+
+    /**
+     * @param mixed $selectedTables
+     * @return array<int, string>
+     */
+    private function resolveDataPortabilityTables(mixed $selectedTables): array
+    {
+        $selected = null;
+        if (is_array($selectedTables)) {
+            $selected = array_values(array_map('strval', $selectedTables));
+        }
+
+        return $this->dataPortabilityTableService->resolveSelectedTables($selected);
+    }
+
+    private function resolveRequestedByUserId(array $context): ?int
+    {
+        if (isset($context['user']) && $context['user'] instanceof User) {
+            return (int) $context['user']->id;
+        }
+
+        return null;
     }
 
     /**

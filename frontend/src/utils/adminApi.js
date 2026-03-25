@@ -192,3 +192,106 @@ export async function updateAccountPriority(groupId, accountId, priority, config
     body: JSON.stringify({ priority }),
   }, config)
 }
+
+// ============================================================================
+// Data Portability API Functions
+// ============================================================================
+
+export async function getDataPortabilityTransportProfiles(config = {}) {
+  return adminFetchJson('data-portability/transport-profiles', { method: 'GET' }, config)
+}
+
+export async function createDataPortabilityTransportProfile(data, config = {}) {
+  return adminFetchJson('data-portability/transport-profiles', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }, config)
+}
+
+export async function updateDataPortabilityTransportProfile(id, data, config = {}) {
+  return adminFetchJson(`data-portability/transport-profiles/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }, config)
+}
+
+export async function deleteDataPortabilityTransportProfile(id, config = {}) {
+  return adminFetchJson(`data-portability/transport-profiles/${id}`, {
+    method: 'DELETE',
+  }, config)
+}
+
+export async function getDataPortabilityTables(config = {}) {
+  return adminFetchJson('data-portability/tables', { method: 'GET' }, config)
+}
+
+export async function getDataPortabilityFiles(config = {}) {
+  return adminFetchJson('data-portability/files', { method: 'GET' }, config)
+}
+
+export async function uploadDataPortabilityFile(file, config = {}) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return adminFetchJson('data-portability/files/upload', {
+    method: 'POST',
+    body: formData,
+  }, config)
+}
+
+export async function downloadDataPortabilityFile(filename, config = {}) {
+  const response = await adminFetch(`data-portability/files/${encodeURIComponent(filename)}/download`, {
+    method: 'GET',
+  }, config)
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new Error(text || response.statusText)
+  }
+
+  const blob = await response.blob()
+  const objectUrl = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = objectUrl
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(objectUrl)
+}
+
+export async function createDataPortabilityBackupOperation(data = {}, config = {}) {
+  return adminFetchJson('data-portability/backup', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }, config)
+}
+
+export async function createDataPortabilityRestoreOperation(data, config = {}) {
+  return adminFetchJson('data-portability/restore', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }, config)
+}
+
+export async function preflightDataPortabilityTransport(selectedTables, config = {}) {
+  return adminFetchJson('data-portability/preflight-transport', {
+    method: 'POST',
+    body: JSON.stringify({ selected_tables: selectedTables }),
+  }, config)
+}
+
+export async function createDataPortabilityTransportOperation(data, config = {}) {
+  return adminFetchJson('data-portability/transport', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }, config)
+}
+
+export async function getDataPortabilityOperation(id, config = {}) {
+  return adminFetchJson(`data-portability/operations/${id}`, { method: 'GET' }, config)
+}
+
+export async function getDataPortabilityOperations(limit = 25, config = {}) {
+  return adminFetchJson(`data-portability/operations?limit=${encodeURIComponent(limit)}`, { method: 'GET' }, config)
+}

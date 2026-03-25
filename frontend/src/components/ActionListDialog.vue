@@ -47,6 +47,8 @@
           <option value="archive_reservation_and_waiting_list">{{ tr('admin_action_lists_option_archive_reservation_and_waiting_list') }}</option>
           <option value="wait_n_seconds">{{ tr('admin_action_lists_option_wait_n_seconds') }}</option>
           <option value="change_default_guest_token">{{ tr('admin_action_lists_option_change_default_guest_token') }}</option>
+          <option value="data_portability_backup">{{ tr('admin_action_lists_option_data_portability_backup') }}</option>
+          <option value="data_portability_transport">{{ tr('admin_action_lists_option_data_portability_transport') }}</option>
         </select>
 
         <label class="checkbox-row">
@@ -212,6 +214,45 @@
           </div>
         </div>
 
+        <!-- Data Portability Backup Action Config -->
+        <div v-if="action.type === 'data_portability_backup'">
+          <label>{{ tr('admin_action_lists_field_data_portability_backup_filename') }}</label>
+          <input v-model="action.config.filename" type="text" :placeholder="tr('admin_action_lists_field_data_portability_backup_filename_placeholder')" />
+
+          <label>{{ tr('admin_action_lists_field_data_portability_tables_optional') }}</label>
+          <div class="table-options-grid">
+            <label v-for="table in dataPortabilityTables" :key="`backup-${index}-${table}`" class="checkbox-row">
+              <input type="checkbox" :checked="isTableSelected(action, table)" @change="toggleActionTable(action, table)" />
+              <span>{{ table }}</span>
+            </label>
+          </div>
+          <small>{{ tr('admin_action_lists_field_data_portability_tables_optional_hint') }}</small>
+        </div>
+
+        <!-- Data Portability Transport Action Config -->
+        <div v-if="action.type === 'data_portability_transport'">
+          <label>{{ tr('admin_action_lists_field_data_portability_transport_profile') }}</label>
+          <select v-model.number="action.config.transport_profile_id">
+            <option :value="null">-- {{ tr('admin_action_lists_field_data_portability_transport_profile_placeholder') }} --</option>
+            <option v-for="profile in dataPortabilityProfiles" :key="profile.id" :value="profile.id">{{ profile.name }} ({{ profile.target_base_url }})</option>
+          </select>
+
+          <label>{{ tr('admin_action_lists_field_data_portability_restore_mode') }}</label>
+          <select v-model="action.config.restore_mode">
+            <option value="truncate_insert">{{ tr('admin_data_portability_restore_truncate_insert', 'truncate_insert') }}</option>
+            <option value="upsert">{{ tr('admin_data_portability_restore_upsert', 'upsert') }}</option>
+          </select>
+
+          <label>{{ tr('admin_action_lists_field_data_portability_tables_optional') }}</label>
+          <div class="table-options-grid">
+            <label v-for="table in dataPortabilityTables" :key="`transport-${index}-${table}`" class="checkbox-row">
+              <input type="checkbox" :checked="isTableSelected(action, table)" @change="toggleActionTable(action, table)" />
+              <span>{{ table }}</span>
+            </label>
+          </div>
+          <small>{{ tr('admin_action_lists_field_data_portability_tables_optional_hint') }}</small>
+        </div>
+
         <div style="display:flex;gap:0.5em;margin-top:1em;justify-content:flex-end;">
           <IconButton icon="trash" :label="tr('admin_action_lists_button_delete_action')" class="ghost" variant="danger" @click="deleteAction(index)" />
         </div>
@@ -259,6 +300,8 @@ const emailTemplates = ref([])
 const webhookTemplates = ref([])
 const surveys = ref([])
 const settingKeys = ref([])
+const dataPortabilityProfiles = ref([])
+const dataPortabilityTables = ref([])
 const loading = ref(false)
 const actionExecutionLoading = ref({})
 
@@ -282,6 +325,18 @@ onMounted(async () => {
     const keysRes = await axios.get('/api/admin/settings-keys', apiConfig())
     settingKeys.value = keysRes.data
   } catch {}
+
+  try {
+    const profilesRes = await axios.get('/api/admin/data-portability/transport-profiles', apiConfig())
+    dataPortabilityProfiles.value = Array.isArray(profilesRes.data?.profiles)
+      ? profilesRes.data.profiles.filter((profile) => profile.is_active)
+      : []
+  } catch {}
+
+  try {
+    const tablesRes = await axios.get('/api/admin/data-portability/tables', apiConfig())
+    dataPortabilityTables.value = Array.isArray(tablesRes.data?.tables) ? tablesRes.data.tables : []
+  } catch {}
 })
 
 watch(() => props.actionList, (actionList) => {
@@ -289,6 +344,36 @@ watch(() => props.actionList, (actionList) => {
     const normalizedActions = (actionList.actions || []).map((action) => ({
       ...action,
       enabled: action.enabled !== false,
+      config: {
+        template_id: '',
+        recipients: {
+          attendees: false,
+          waitlist: false,
+          admins: false,
+          moderators: false,
+          custom: ''
+        },
+        survey_mode: 'none',
+        survey_title_template: '',
+        survey_description_template: '',
+        survey_id: '',
+        webhook_template_id: '',
+        payload_override: '',
+        setting_key: '',
+        setting_value: '',
+        archive_name: '',
+        archive_description: '',
+        store_emails: false,
+        seconds: 0,
+        use_random_token: false,
+        random_length: 8,
+        token_value: '',
+        filename: '',
+        transport_profile_id: null,
+        selected_tables: [],
+        restore_mode: 'truncate_insert',
+        ...(action.config || {}),
+      },
     }))
 
     form.value = JSON.parse(JSON.stringify({
@@ -332,7 +417,11 @@ function addNewAction() {
       seconds: 0,
       use_random_token: false,
       random_length: 8,
-      token_value: ''
+      token_value: '',
+      filename: '',
+      transport_profile_id: null,
+      selected_tables: [],
+      restore_mode: 'truncate_insert'
     },
     sort_order: form.value.actions.length
   })
@@ -399,6 +488,31 @@ function executeSingleAction(action) {
     })
 }
 
+function isTableSelected(action, table) {
+  if (!Array.isArray(action?.config?.selected_tables)) {
+    return false
+  }
+
+  return action.config.selected_tables.includes(table)
+}
+
+function toggleActionTable(action, table) {
+  if (!action.config || typeof action.config !== 'object') {
+    action.config = {}
+  }
+
+  if (!Array.isArray(action.config.selected_tables)) {
+    action.config.selected_tables = []
+  }
+
+  const idx = action.config.selected_tables.indexOf(table)
+  if (idx >= 0) {
+    action.config.selected_tables.splice(idx, 1)
+  } else {
+    action.config.selected_tables.push(table)
+  }
+}
+
 function submit() {
   if (!form.value.name) {
     alert(tr('admin_action_lists_name_required'))
@@ -455,5 +569,16 @@ function close() {
   padding: 1em;
   margin-bottom: 0.5em;
   border-radius: 8px;
+}
+.table-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.3rem 0.75rem;
+  max-height: 180px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.55rem;
+  margin-top: 0.2rem;
 }
 </style>

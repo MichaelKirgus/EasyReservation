@@ -177,6 +177,31 @@ The docker-compose file includes:
 - Scheduler service for Laravel scheduled tasks
 - Worker service for background job processing
 
+### Persistent Storage — Data Portability
+
+The Data Portability feature (backup, restore, and transport) stores files inside the container at `/var/www/storage/app`. A named Docker volume (`backend_storage`) is mounted at this path in the **backend**, **scheduler**, and **worker** services so that:
+
+- Backup files and uploaded restore files persist across container restarts and rebuilds.
+- All containers share the same filesystem, which is required because backup jobs are dispatched by the backend but executed by the worker.
+
+Default paths inside the container:
+
+| Purpose | Path |
+|---------|------|
+| Backup files | `/var/www/storage/app/data-portability/backups/` |
+| Restore uploads | `/var/www/storage/app/data-portability/uploads/` |
+
+These paths can be customized via environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATA_PORTABILITY_DISK` | `local` | Laravel filesystem disk to use |
+| `DATA_PORTABILITY_BASE_PATH` | `data-portability` | Base directory within the disk |
+| `DATA_PORTABILITY_BACKUP_DIR` | `backups` | Subdirectory for backup files |
+| `DATA_PORTABILITY_UPLOAD_DIR` | `uploads` | Subdirectory for restore uploads |
+| `DATA_PORTABILITY_UPLOAD_MAX_KB` | `51200` | Max upload size in KB (default 50 MB) |
+| `DATA_PORTABILITY_QUEUE` | `data-portability` | Queue name for portability jobs |
+
 ## API Endpoints
 
 The backend exposes a comprehensive RESTful API for all system functionality:
