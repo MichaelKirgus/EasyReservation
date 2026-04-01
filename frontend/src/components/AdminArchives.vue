@@ -69,7 +69,7 @@ function formatDateTime(val) {
   if (!val) return ''
   const d = new Date(val)
   if (Number.isNaN(d.getTime())) return val
-  return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(d)
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(d)
 }
 
 function setMessage(msg) { message.value = msg; error.value = '' }
@@ -476,6 +476,7 @@ onMounted(() => {
       @refresh="loadArchives"
       :empty-text="tr('admin_archives_no_archives')"
     >
+      <template #cell-created_at="{ value }">{{ formatDateTime(value) }}</template>
       <template #cell-store_emails="{ value }">
         <span v-if="value" class="label inline success">{{ tr('yes') }}</span>
         <span v-else class="label inline danger">{{ tr('no') }}</span>
