@@ -58,6 +58,7 @@
     "otp_code",
     "otp_placeholder",
     "remember_me",
+    "session_expired_logged_out",
     "cancel",
     "project_footer_text",
     "site_token_invalid_message"

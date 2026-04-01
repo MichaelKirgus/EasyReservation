@@ -138,6 +138,7 @@
     "admin_setting_email_waitlist_cancel_template_id": "E-Mail-Vorlage für Wartelisten-Stornierung",
     "admin_email_waitlist_cancel_template_id": "E-Mail-Vorlage für Wartelisten-Stornierung",
     "auth_invalid_credentials": "Ungültige Anmeldedaten.",
+    "session_expired_logged_out": "Ihre Sitzung ist abgelaufen. Sie wurden abgemeldet.",
     "reservation_admin_validation_pending_text": "Bestätigung ausstehend Admin-Freigabe.",
     "email_validation_pending_text": "Bitte bestätige deine E-Mail.",
     "waitlist_success_text": "Du stehst jetzt auf der Warteliste.",

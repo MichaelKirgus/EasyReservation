@@ -492,8 +492,8 @@ onMounted(() => {
           </select>
         </template>
         <template #row-actions="{ row }">
-          <IconButton variant="primary" icon="pencil" v-if="canManageTemplates" label="Edit" @click="openEditForm(row)" />
-          <IconButton variant="primary" icon="eye" v-if="canManageTemplates" label="Vorschau" @click="openPreview(row)" />
+          <IconButton variant="primary" icon="pencil" v-if="canManageTemplates" :label="tr('icon_buttons_edit')" @click="openEditForm(row)" />
+          <IconButton variant="primary" icon="eye" v-if="canManageTemplates" :label="tr('preview')" @click="openPreview(row)" />
           <IconButton variant="primary" icon="copy" v-if="canManageTemplates" :label="tr('icon_buttons_clone')" @click="cloneTemplate(row)" />
           <IconButton variant="danger" icon="trash" v-if="canManageTemplates" :label="tr('admin_email_broadcast_columns_delete')" @click="deleteTemplate(row.id)" />
         </template>

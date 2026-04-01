@@ -141,6 +141,7 @@
     "admin_setting_email_waitlist_cancel_template_id": "Waitlist cancellation email template",
     "admin_email_waitlist_cancel_template_id": "Waitlist cancellation email template",
     "auth_invalid_credentials": "Invalid credentials.",
+    "session_expired_logged_out": "Your session has expired. You have been logged out.",
     "reservation_admin_validation_pending_text": "Confirmation pending admin approval.",
     "email_validation_pending_text": "Please confirm your e-mail.",
     "waitlist_success_text": "You have been added to the waitlist.",

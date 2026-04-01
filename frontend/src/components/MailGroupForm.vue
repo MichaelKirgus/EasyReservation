@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, watch } from 'vue'
+import { useTranslation } from '../composables/useTranslation'
 
 const props = defineProps({
   modelValue: {
@@ -22,6 +23,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'save', 'cancel'])
+const { tr } = useTranslation()
 
 const form = reactive({ ...props.modelValue })
 
@@ -141,9 +143,9 @@ const failoverStrategyOptions = [
     </div>
     
     <div class="form-actions">
-      <button type="button" @click="handleCancel">Cancel</button>
+      <button type="button" @click="handleCancel">{{ tr('cancel') }}</button>
       <button type="button" @click="handleSave" :disabled="!form.name">
-        {{ isEditing ? 'Update Group' : 'Create Group' }}
+        {{ isEditing ? tr('save') : tr('create') }}
       </button>
     </div>
   </div>

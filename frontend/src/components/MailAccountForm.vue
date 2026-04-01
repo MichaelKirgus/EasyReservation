@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, watch } from 'vue'
 import SecretField from './SecretField.vue'
+import { useTranslation } from '../composables/useTranslation'
 
 const props = defineProps({
   modelValue: {
@@ -33,6 +34,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'save', 'cancel'])
+const { tr } = useTranslation()
 
 // Local reactive copy for two-way binding
 const form = reactive({ ...props.modelValue })
@@ -299,9 +301,9 @@ function getApiKeyLabel() {
     </div>
     
     <div class="form-actions">
-      <button type="button" @click="handleCancel">Cancel</button>
+      <button type="button" @click="handleCancel">{{ tr('cancel') }}</button>
       <button type="button" @click="handleSave" :disabled="!form.name || (!form.host && !form.authMethod?.startsWith('api_key')) || !form.port">
-        {{ isEditing ? 'Update Account' : 'Create Account' }}
+        {{ isEditing ? tr('save') : tr('create') }}
       </button>
     </div>
   </div>

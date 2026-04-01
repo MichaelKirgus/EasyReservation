@@ -65,6 +65,7 @@
     "two_factor_required",
     "two_factor_invalid_code",
     "otp_code_required",
+    "session_expired_logged_out",
     "nav_tab_email",
     "nav_tab_events",
     "nav_tab_surveys",

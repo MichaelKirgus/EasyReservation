@@ -178,7 +178,7 @@ const hiddenColumns = ref(new Set(['id']))
     <!-- Create/Edit Form (Inline) -->
     <div v-if="showCreateForm" class="card create-form">
       <div class="card-header">
-        <h3>{{ isEditing ? tr('edit') : tr('create') }}</h3>
+        <h3>{{ isEditing ? tr('admin_ical_templates_edit_button') : tr('admin_ical_templates_create_button') }}</h3>
         <IconButton icon="close" :label="tr('cancel')" @click="closeCreateForm" />
       </div>
       <form @submit.prevent="saveTemplate">
