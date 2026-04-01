@@ -297,4 +297,110 @@ class ArchiveController extends Controller
             return response()->json(['message' => 'Failed to archive data'], 500);
         }
     }
+
+    /**
+     * Anonymize personal data (email and/or name) in an archive (superadmin only).
+     */
+    public function anonymizePersonalData(Request $request, Archive $archive): JsonResponse
+    {
+        if ($request->user()?->role !== 'superadmin') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $data = $request->validate([
+            'fields' => ['required', 'array', 'min:1'],
+            'fields.*' => ['in:email,name'],
+            'scope' => ['required', 'in:reservations,waitlist,all'],
+        ]);
+
+        $fields = $data['fields'];
+        $scope = $data['scope'];
+
+        $updates = $this->buildAnonymizeUpdates($fields);
+
+        try {
+            DB::transaction(function () use ($archive, $scope, $updates) {
+                if ($scope === 'reservations' || $scope === 'all') {
+                    ArchiveReservation::where('archive_id', $archive->id)->update($updates);
+                }
+                if ($scope === 'waitlist' || $scope === 'all') {
+                    ArchiveWaitlistEntry::where('archive_id', $archive->id)->update($updates);
+                }
+            });
+
+            return response()->json(['message' => 'Personal data anonymized successfully']);
+        } catch (\Exception $e) {
+            Log::error('Failed to anonymize personal data', ['archive_id' => $archive->id, 'error' => $e->getMessage()]);
+            return response()->json(['message' => 'Failed to anonymize personal data'], 500);
+        }
+    }
+
+    /**
+     * Anonymize personal data on a single archived reservation (superadmin only).
+     */
+    public function anonymizeReservation(Request $request, Archive $archive, ArchiveReservation $reservation): JsonResponse
+    {
+        if ($request->user()?->role !== 'superadmin') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if ($reservation->archive_id !== $archive->id) {
+            return response()->json(['message' => 'Reservation does not belong to this archive'], 404);
+        }
+
+        $data = $request->validate([
+            'fields' => ['required', 'array', 'min:1'],
+            'fields.*' => ['in:email,name'],
+        ]);
+
+        $updates = $this->buildAnonymizeUpdates($data['fields']);
+
+        ArchiveReservation::where('id', $reservation->id)->update($updates);
+
+        return response()->json(['message' => 'Personal data anonymized successfully']);
+    }
+
+    /**
+     * Anonymize personal data on a single archived waitlist entry (superadmin only).
+     */
+    public function anonymizeWaitlistEntry(Request $request, Archive $archive, ArchiveWaitlistEntry $entry): JsonResponse
+    {
+        if ($request->user()?->role !== 'superadmin') {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        if ($entry->archive_id !== $archive->id) {
+            return response()->json(['message' => 'Entry does not belong to this archive'], 404);
+        }
+
+        $data = $request->validate([
+            'fields' => ['required', 'array', 'min:1'],
+            'fields.*' => ['in:email,name'],
+        ]);
+
+        $updates = $this->buildAnonymizeUpdates($data['fields']);
+
+        ArchiveWaitlistEntry::where('id', $entry->id)->update($updates);
+
+        return response()->json(['message' => 'Personal data anonymized successfully']);
+    }
+
+    /**
+     * Build the column update array for anonymization.
+     *
+     * @param  array<string>  $fields
+     * @return array<string, mixed>
+     */
+    private function buildAnonymizeUpdates(array $fields): array
+    {
+        $updates = [];
+        if (in_array('email', $fields, true)) {
+            $updates['email'] = '<anonymized>';
+            $updates['email_encrypted'] = false;
+        }
+        if (in_array('name', $fields, true)) {
+            $updates['display_name'] = '<anonymized>';
+        }
+        return $updates;
+    }
 }

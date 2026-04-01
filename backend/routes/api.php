@@ -260,6 +260,9 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/archives/{archive}/restore-waitlist-entries', [ArchiveController::class, 'restoreWaitlistEntries']);
     Route::get('/admin/archives/{archive}/download-csv/{type}', [ArchiveController::class, 'downloadCsv']);
     Route::post('/admin/archives/{archive}/archive-data', [ArchiveController::class, 'archiveData']);
+    Route::post('/admin/archives/{archive}/anonymize', [ArchiveController::class, 'anonymizePersonalData']);
+    Route::post('/admin/archives/{archive}/anonymize-reservation/{reservation}', [ArchiveController::class, 'anonymizeReservation']);
+    Route::post('/admin/archives/{archive}/anonymize-waitlist-entry/{entry}', [ArchiveController::class, 'anonymizeWaitlistEntry']);
 
    Route::apiResource('/admin/mail-accounts', MailAccountController::class)->parameters(['mail-accounts' => 'account']);
    Route::post('/admin/mail-accounts/{account}/test', [MailAccountController::class, 'testConnection']);

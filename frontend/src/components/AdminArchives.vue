@@ -9,10 +9,21 @@ const apiBase = import.meta.env.VITE_API_BASE || '/api'
 const { tr } = useTranslation()
 const apiKey = ref(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session') || '')
 const routePrefix = ref('admin')
+const currentUser = ref(JSON.parse(localStorage.getItem('admin_user') || 'null'))
+const isSuperAdmin = computed(() => currentUser.value?.role === 'superadmin')
 const archives = ref([])
 const loading = ref(false)
 const message = ref('')
 const error = ref('')
+
+// Anonymize dialog
+const showAnonymizeDialog = ref(false)
+const anonymizeFields = ref([])
+const anonymizeScope = ref('all')
+
+// Per-entry anonymize dialog
+const anonymizeEntryTarget = ref(null) // { id, type: 'reservation'|'waitlist' }
+const anonymizeEntryFields = ref([])
 
 // Create archive dialog
 const showCreateDialog = ref(false)
@@ -313,6 +324,73 @@ function downloadCsv(type) {
   window.open(url, '_blank')
 }
 
+async function anonymizeData() {
+  if (!anonymizeFields.value.length) {
+    setError(tr('admin_archives_anonymize_fields_required'))
+    return
+  }
+  if (!confirm(tr('admin_archives_anonymize_confirm'))) return
+
+  loading.value = true
+  try {
+    const res = await fetchWithAuth(`archives/${activeTab.value}/anonymize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: anonymizeFields.value, scope: anonymizeScope.value }),
+    })
+    const text = await res.text()
+    if (!res.ok) throw new Error(text)
+
+    setMessage(tr('admin_archives_anonymized_success'))
+    showAnonymizeDialog.value = false
+    anonymizeFields.value = []
+    anonymizeScope.value = 'all'
+    await loadArchiveData(activeTab.value, viewTab.value)
+  } catch (e) {
+    setError(tr('error_anonymizing') + ': ' + e)
+  } finally {
+    loading.value = false
+  }
+}
+
+function openAnonymizeEntry(id, type) {
+  anonymizeEntryTarget.value = { id, type }
+  anonymizeEntryFields.value = []
+}
+
+async function anonymizeEntry() {
+  if (!anonymizeEntryFields.value.length) {
+    setError(tr('admin_archives_anonymize_fields_required'))
+    return
+  }
+  if (!confirm(tr('admin_archives_anonymize_confirm'))) return
+
+  const { id, type } = anonymizeEntryTarget.value
+  const endpoint = type === 'reservation'
+    ? `archives/${activeTab.value}/anonymize-reservation/${id}`
+    : `archives/${activeTab.value}/anonymize-waitlist-entry/${id}`
+
+  loading.value = true
+  try {
+    const res = await fetchWithAuth(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: anonymizeEntryFields.value }),
+    })
+    const text = await res.text()
+    if (!res.ok) throw new Error(text)
+
+    setMessage(tr('admin_archives_anonymized_success'))
+    anonymizeEntryTarget.value = null
+    anonymizeEntryFields.value = []
+    await loadArchiveData(activeTab.value, viewTab.value)
+  } catch (e) {
+    setError(tr('error_anonymizing') + ': ' + e)
+  } finally {
+    loading.value = false
+  }
+}
+
 watch(() => activeTab.value, (newId) => {
   if (newId && newId !== 'list') {
     loadArchiveData(newId, viewTab.value)
@@ -497,6 +575,60 @@ onMounted(() => {
             :disabled="!selectedArchiveWaitlistEntries.length"
           />
         </template>
+
+        <IconButton
+          v-if="isSuperAdmin"
+          icon="trash"
+          variant="danger"
+          :label="tr('admin_archives_anonymize_button')"
+          @click="showAnonymizeDialog = true"
+        />
+      </div>
+
+      <!-- Anonymize Dialog (superadmin only) -->
+      <div v-if="showAnonymizeDialog && isSuperAdmin" class="modal-backdrop" @click.self="showAnonymizeDialog = false">
+        <div class="modal">
+          <h3>{{ tr('admin_archives_anonymize_title') }}</h3>
+
+          <div class="field">
+            <label>{{ tr('admin_archives_anonymize_fields') }}</label>
+            <label class="checkbox-label">
+              <input type="checkbox" value="email" v-model="anonymizeFields" />
+              {{ tr('admin_archives_anonymize_email') }}
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" value="name" v-model="anonymizeFields" />
+              {{ tr('admin_archives_anonymize_name') }}
+            </label>
+          </div>
+
+          <div class="field">
+            <label>{{ tr('admin_archives_anonymize_scope') }}</label>
+            <label class="checkbox-label">
+              <input type="radio" value="reservations" v-model="anonymizeScope" />
+              {{ tr('admin_archives_anonymize_scope_reservations') }}
+            </label>
+            <label class="checkbox-label">
+              <input type="radio" value="waitlist" v-model="anonymizeScope" />
+              {{ tr('admin_archives_anonymize_scope_waitlist') }}
+            </label>
+            <label class="checkbox-label">
+              <input type="radio" value="all" v-model="anonymizeScope" />
+              {{ tr('admin_archives_anonymize_scope_all') }}
+            </label>
+          </div>
+
+          <div class="modal-actions">
+            <IconButton class="ghost" variant="ghost" @click="showAnonymizeDialog = false" icon="close" :label="tr('cancel')" />
+            <button
+              class="btn-danger"
+              @click="anonymizeData"
+              :disabled="loading || !anonymizeFields.length"
+            >
+              {{ tr('admin_archives_anonymize_button') }}
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Data Table -->
@@ -516,6 +648,13 @@ onMounted(() => {
             icon="restore"
             :label="tr('admin_archives_restore')"
             @click.stop="restoreReservation(row.id)"
+          />
+          <IconButton
+            v-if="isSuperAdmin"
+            icon="trash"
+            variant="danger"
+            :label="tr('admin_archives_anonymize_entry')"
+            @click.stop="openAnonymizeEntry(row.id, 'reservation')"
           />
         </template>
       </AdminDataTable>
@@ -537,8 +676,45 @@ onMounted(() => {
             :label="tr('admin_archives_restore')"
             @click.stop="restoreWaitlistEntry(row.id)"
           />
+          <IconButton
+            v-if="isSuperAdmin"
+            icon="trash"
+            variant="danger"
+            :label="tr('admin_archives_anonymize_entry')"
+            @click.stop="openAnonymizeEntry(row.id, 'waitlist')"
+          />
         </template>
       </AdminDataTable>
+    </div>
+
+    <!-- Per-entry Anonymize Dialog (superadmin only) -->
+    <div v-if="anonymizeEntryTarget && isSuperAdmin" class="modal-backdrop" @click.self="anonymizeEntryTarget = null">
+      <div class="modal">
+        <h3>{{ tr('admin_archives_anonymize_entry_title') }}</h3>
+
+        <div class="field">
+          <label>{{ tr('admin_archives_anonymize_fields') }}</label>
+          <label class="checkbox-label">
+            <input type="checkbox" value="email" v-model="anonymizeEntryFields" />
+            {{ tr('admin_archives_anonymize_email') }}
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" value="name" v-model="anonymizeEntryFields" />
+            {{ tr('admin_archives_anonymize_name') }}
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <IconButton class="ghost" variant="ghost" @click="anonymizeEntryTarget = null" icon="close" :label="tr('cancel')" />
+          <button
+            class="btn-danger"
+            @click="anonymizeEntry"
+            :disabled="loading || !anonymizeEntryFields.length"
+          >
+            {{ tr('admin_archives_anonymize_button') }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
