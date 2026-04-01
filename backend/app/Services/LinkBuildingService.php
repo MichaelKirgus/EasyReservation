@@ -20,10 +20,7 @@ class LinkBuildingService
      */
     public function buildValidationLink(EmailValidation $validation): string
     {
-        $base = trim((string) ($this->settings->get('email_validation_base_url', config('app.url'))));
-        if ($base === '') {
-            $base = rtrim(config('app.url'), '/');
-        }
+        $base = $this->normalizedPublicBaseUrl();
 
         $params = ['v' => (string) $validation->token];
 
@@ -50,10 +47,7 @@ class LinkBuildingService
             $target->save();
         }
 
-        $base = trim((string) ($this->settings->get('email_validation_base_url', config('app.url'))));
-        if ($base === '') {
-            $base = rtrim(config('app.url'), '/');
-        }
+        $base = $this->normalizedPublicBaseUrl();
 
         // Use distinct query key for waitlist so the frontend can route to the correct endpoint
         $undoKey = $target instanceof WaitlistEntry ? 'wu' : 'u';
@@ -84,10 +78,7 @@ class LinkBuildingService
      */
     public function buildSurveyLink(int $surveyId, ?string $token = null): string
     {
-        $base = trim((string) ($this->settings->get('email_validation_base_url', config('app.url'))));
-        if ($base === '') {
-            $base = rtrim(config('app.url'), '/');
-        }
+        $base = $this->normalizedPublicBaseUrl();
 
         // Use path-based survey link format: /surveys/{id} (plural to match frontend router)
         $path = '/surveys/' . $surveyId;
@@ -115,10 +106,7 @@ class LinkBuildingService
      */
     public function buildPublicReservationLink(): string
     {
-        $base = trim((string) ($this->settings->get('email_validation_base_url', config('app.url'))));
-        if ($base === '') {
-            $base = rtrim(config('app.url'), '/');
-        }
+        $base = $this->normalizedPublicBaseUrl();
 
         $siteToken = $this->siteTokens->getValidSiteToken();
         $params = ['t' => (string) $siteToken];
@@ -133,5 +121,16 @@ class LinkBuildingService
     {
         $separator = str_contains($base, '?') ? '&' : '?';
         return $base.$separator.http_build_query($params);
+    }
+
+    private function normalizedPublicBaseUrl(): string
+    {
+        $base = trim((string) ($this->settings->get('email_validation_base_url', config('app.url'))));
+
+        if ($base === '') {
+            $base = (string) config('app.url');
+        }
+
+        return rtrim($base, '/');
     }
 }
