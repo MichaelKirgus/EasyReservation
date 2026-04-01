@@ -14,6 +14,9 @@ const logs = ref([])
 const loading = ref(false)
 const error = ref('')
 const message = ref('')
+const routeFilter = ref('')
+const dateFromFilter = ref('')
+const dateToFilter = ref('')
 
 const isSuperAdmin = computed(() => currentUser.value?.role === 'superadmin')
 
@@ -34,7 +37,14 @@ async function fetchLogs() {
   loading.value = true
   error.value = ''
   try {
-    const res = await fetch(`${apiBase}/audit-logs`, { headers: authHeaders() })
+    const params = new URLSearchParams()
+    if (routeFilter.value.trim()) params.set('route', routeFilter.value.trim())
+    if (dateFromFilter.value) params.set('date_from', dateFromFilter.value)
+    if (dateToFilter.value) params.set('date_to', dateToFilter.value)
+
+    const query = params.toString()
+    const url = query ? `${apiBase}/audit-logs?${query}` : `${apiBase}/audit-logs`
+    const res = await fetch(url, { headers: authHeaders() })
     if (!res.ok) throw new Error(await res.text())
     logs.value = await res.json()
     message.value = tr('admin_audit_log_loaded')
@@ -62,6 +72,13 @@ async function clearLogs() {
   }
 }
 
+function clearFilters() {
+  routeFilter.value = ''
+  dateFromFilter.value = ''
+  dateToFilter.value = ''
+  fetchLogs()
+}
+
 onMounted(() => {
   fetchLogs()
 })
@@ -83,7 +100,44 @@ onMounted(() => {
         @refresh="fetchLogs"
       >
         <template #actions>
+          <div class="audit-filters">
+            <input
+              v-model="routeFilter"
+              type="text"
+              :placeholder="tr('admin_audit_log_filter_route_placeholder', 'Filter route')"
+              @keyup.enter="fetchLogs"
+            />
+            <input
+              v-model="dateFromFilter"
+              type="date"
+              :aria-label="tr('admin_audit_log_filter_date_from', 'From date')"
+            />
+            <input
+              v-model="dateToFilter"
+              type="date"
+              :aria-label="tr('admin_audit_log_filter_date_to', 'To date')"
+            />
+            <IconButton
+              icon="check"
+              variant="primary"
+              size="sm"
+              :label="tr('admin_audit_log_filter_apply', 'Apply')"
+              @click="fetchLogs"
+              :disabled="loading"
+            />
+            <IconButton
+              icon="cancel"
+              variant="ghost"
+              size="sm"
+              :label="tr('admin_audit_log_filter_clear', 'Clear')"
+              @click="clearFilters"
+              :disabled="loading"
+            />
+          </div>
           <IconButton icon="trash" variant="danger" :label="tr('admin_audit_log_button_clear')" @click="clearLogs" :disabled="loading || !logs.length" />
+        </template>
+        <template #cell-user_id="{ row }">
+          <span>{{ row.user_display || row.user_id || '–' }}</span>
         </template>
         <template #cell-payload="{ row }">
           <pre style="white-space:pre-wrap;word-break:break-word;max-width:400px;">{{ row.payload }}</pre>
@@ -98,4 +152,6 @@ onMounted(() => {
 .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; background: #fff; }
 .message { color: #065f46; background: #ecfdf3; border: 1px solid #a7f3d0; padding: 0.5rem; border-radius: 6px; }
 .error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; padding: 0.5rem; border-radius: 6px; }
+.audit-filters { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; }
+.audit-filters input { padding: 0.4rem 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; }
 </style>
