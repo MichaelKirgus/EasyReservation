@@ -159,6 +159,31 @@ class AdminRssFeedTest extends TestCase
         $this->assertStringNotContainsString('Guest B Waitlist', $xml);
     }
 
+    public function test_guest_feed_allows_trailing_slash_path(): void
+    {
+        Setting::updateOrCreate(['name' => 'rss_feed_enabled'], ['value' => '1']);
+        Setting::updateOrCreate(['name' => 'reservation_token_enabled'], ['value' => '1']);
+
+        User::factory()->create([
+            'role' => 'guest',
+            'active' => true,
+            'api_token' => 'guest-token-trailing',
+            'api_token_is_hashed' => false,
+        ]);
+
+        Reservation::create([
+            'display_name' => 'Trailing Slash Reservation',
+            'email' => 'trail@example.com',
+            'site_token' => 'guest-token-trailing',
+            'date_added' => now()->subMinutes(1),
+        ]);
+
+        $response = $this->get('/api/rss/?t=guest-token-trailing');
+
+        $response->assertOk();
+        $this->assertStringContainsString('Trailing Slash Reservation', (string) $response->getContent());
+    }
+
     public function test_rss_can_be_disabled_globally_via_setting(): void
     {
         Setting::updateOrCreate(['name' => 'rss_feed_enabled'], ['value' => '0']);

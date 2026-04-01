@@ -119,7 +119,11 @@ class LinkBuildingService
      */
     public function buildPublicRssFeedLink(): string
     {
-        $base = $this->normalizedPublicBaseUrl().'/api/rss';
+        $base = $this->normalizedPublicBaseUrl();
+        $basePath = trim((string) parse_url($base, PHP_URL_PATH), '/');
+
+        // Avoid /api/api/rss when base URL already points to an API root.
+        $base .= str_ends_with($basePath, 'api') ? '/rss' : '/api/rss';
 
         $siteToken = $this->siteTokens->getValidSiteToken();
         $params = [];
