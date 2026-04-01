@@ -4,6 +4,53 @@ const defaultRoutePrefix = 'admin'
 
 const getRefValue = (maybeRef) => (maybeRef && typeof maybeRef === 'object' && 'value' in maybeRef ? maybeRef.value : maybeRef)
 
+let sessionCheckInFlight = null
+
+function hasAdminSessionMarker() {
+  return !!(localStorage.getItem('admin_auth_session') || sessionStorage.getItem('admin_auth_session'))
+}
+
+async function shouldForceLogoutAfterAuthFailure(response) {
+  if (!hasAdminSessionMarker()) return false
+  if (!response || ![401, 403].includes(response.status)) return false
+
+  const path = safePathname(response.url)
+  if (path.endsWith('/auth/login') || path.endsWith('/auth/logout') || path.endsWith('/self-2fa/status')) {
+    return false
+  }
+
+  if (sessionCheckInFlight) return sessionCheckInFlight
+
+  sessionCheckInFlight = (async () => {
+    try {
+      const probe = await fetch(`${apiBase}/self-2fa/status`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        credentials: 'include',
+      })
+      return !probe.ok
+    } catch (_) {
+      return true
+    } finally {
+      sessionCheckInFlight = null
+    }
+  })()
+
+  return sessionCheckInFlight
+}
+
+function safePathname(url) {
+  try {
+    return new URL(url, window.location.origin).pathname
+  } catch (_) {
+    return ''
+  }
+}
+
+function dispatchSessionExpiredEvent(status) {
+  window.dispatchEvent(new CustomEvent('admin-session-expired', { detail: { status } }))
+}
+
 /**
  * Check if the admin is authenticated (session marker present).
  * The actual API key is stored in an httpOnly cookie and not accessible to JS.
@@ -45,6 +92,10 @@ export async function adminFetch(relativeOrAbsolute, opts = {}, { apiKeyRef, rou
   const headers = buildAdminHeaders({ apiKeyRef, includeJson: usesJson, extraHeaders: opts.headers || {} })
   // Use include so httpOnly session cookies are sent even across ports/subdomains during development
   const response = await fetch(url, { ...opts, headers, credentials: 'include' })
+
+  if (await shouldForceLogoutAfterAuthFailure(response)) {
+    dispatchSessionExpiredEvent(response.status)
+  }
 
   return response
 }

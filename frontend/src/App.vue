@@ -352,6 +352,7 @@ async function login() {
       otherStorage.removeItem('admin_user')
     }
     window.dispatchEvent(new CustomEvent('api-key-updated', { detail: sessionMarker }))
+    handledSessionExpired = false
     
     // Fetch translations again with the new user's whitelist
     try {
@@ -389,20 +390,41 @@ async function logout() {
       credentials: 'same-origin',
     })
   } catch (_) { /* best-effort */ }
+  clearAdminSessionState()
+  handledSessionExpired = false
+  setAuthMessage('Abgemeldet.')
+  router.push('/')
+}
+
+function clearAdminSessionState() {
   if (appSettings.clear_localstorage_on_logout) {
     localStorage.clear()
   } else {
     localStorage.removeItem('admin_auth_session')
     localStorage.removeItem('admin_api_key')
     localStorage.removeItem('admin_user')
+    localStorage.removeItem('admin_route_prefix')
   }
   sessionStorage.removeItem('admin_auth_session')
   sessionStorage.removeItem('admin_api_key')
   sessionStorage.removeItem('admin_user')
+  sessionStorage.removeItem('admin_route_prefix')
   Object.keys(currentUser).forEach(k => delete currentUser[k])
   window.dispatchEvent(new CustomEvent('api-key-updated', { detail: '' }))
-  setAuthMessage('Abgemeldet.')
-  router.push('/')
+}
+
+let handledSessionExpired = false
+function handleSessionExpired() {
+  if (!localStorage.getItem('admin_auth_session') && !sessionStorage.getItem('admin_auth_session')) {
+    return
+  }
+  if (handledSessionExpired) return
+  handledSessionExpired = true
+  clearAdminSessionState()
+  setAuthError(tr('session_expired_logged_out', 'Your session has expired. You have been logged out.'))
+  if (router.currentRoute.value.path !== '/') {
+    router.push('/')
+  }
 }
 
 function handleSwitchTab(e) {
@@ -455,7 +477,12 @@ onMounted(async () => {
   window.addEventListener('loading-start', handleLoadingStart)
   window.addEventListener('loading-end', handleLoadingEnd)
   window.addEventListener('settings-updated', fetchPrivacyEnabled)
+  window.addEventListener('admin-session-expired', handleSessionExpired)
   fetchPrivacyEnabled()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('admin-session-expired', handleSessionExpired)
 })
 
 watch(theme, (val) => {
