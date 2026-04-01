@@ -454,13 +454,13 @@ onMounted(() => {
 
         <div class="modal-actions">
           <IconButton class="ghost" variant="ghost" @click="showCreateDialog = false" icon="close" :label="tr('cancel')" />
-          <button
+          <IconButton
             variant="success"
-            @click="createArchive"
+            icon="plus"
+            :label="tr('admin_archives_create_button')"
             :disabled="loading || !newArchiveName.trim()"
-          >
-            {{ tr('admin_archives_create_button') }}
-          </button>
+            @click="createArchive"
+          />
         </div>
       </div>
     </div>
