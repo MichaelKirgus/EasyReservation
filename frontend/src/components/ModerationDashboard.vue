@@ -175,7 +175,7 @@ const publicUrl = ref(null)
 const copySuccess = ref(false)
 const reservationWaitlistCanvas = ref(null)
 const dailyTrendsCanvas = ref(null)
-const routePrefix = ref('admin')
+const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 
 const waitlistConversionRate = computed(() => Number(stats.value?.waitlist_conversion?.rate || 0))
 const waitlistConversionPromoted = computed(() => Number(stats.value?.waitlist_conversion?.promoted || 0))

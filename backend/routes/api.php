@@ -286,7 +286,7 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
 Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
    Route::get('/moderator/reservations', [AdminReservationController::class, 'index']);
     Route::post('/moderator/reservations', [AdminReservationController::class, 'store']);
-    Route::patch('/moderator/resersvations/{reservation}', [AdminReservationController::class, 'update']);
+    Route::patch('/moderator/reservations/{reservation}', [AdminReservationController::class, 'update']);
     Route::delete('/moderator/reservations/{reservation}', [AdminReservationController::class, 'destroy']);
     Route::get('/moderator/export', [AdminReservationController::class, 'export']);
     Route::get('/moderator/notification-defaults', [AdminReservationController::class, 'notificationDefaults']);
@@ -318,8 +318,40 @@ Route::middleware(['role:superadmin,admin,moderator'])->group(function () {
     Route::get('/moderator/email-templates', [EmailTemplateController::class, 'index']);
     Route::get('/moderator/email-templates/{emailTemplate}/preview', [EmailTemplateController::class, 'preview']);
     Route::post('/moderator/email-broadcast', [EmailBroadcastController::class, 'send']);
+    Route::apiResource('/moderator/ical-templates', IcalTemplateController::class)->except(['create', 'edit', 'show']);
+    Route::post('/moderator/ical-templates/{icalTemplate}/clone', [IcalTemplateController::class, 'clone']);
+    Route::get('/moderator/ical-templates/{icalTemplate}/preview', [IcalTemplateController::class, 'preview']);
+
+    Route::get('/moderator/attachment-templates/{attachmentTemplate}/attachments', [AttachmentTemplateController::class, 'attachments']);
+    Route::post('/moderator/attachment-templates/{attachmentTemplate}/upload', [AttachmentUploadController::class, 'upload']);
+    Route::delete('/moderator/attachment-templates/{attachmentTemplate}/attachments/{attachment}', [AttachmentUploadController::class, 'destroy']);
+    Route::apiResource('/moderator/attachment-templates', AttachmentTemplateController::class)->except(['create', 'edit', 'show']);
+
+    Route::get('/moderator/surveys/{survey}/preview', [SurveyController::class, 'preview']);
+    Route::post('/moderator/surveys/{survey}/send', [SurveyController::class, 'send']);
+    Route::get('/moderator/surveys/{survey}/responses', [SurveyController::class, 'responses']);
+    Route::get('/moderator/surveys/{survey}/questions', [SurveyController::class, 'getQuestions']);
+    Route::get('/moderator/surveys/{survey}/results', [SurveyController::class, 'results']);
+    Route::get('/moderator/surveys/results/export', [SurveyController::class, 'export']);
+    Route::apiResource('/moderator/surveys', SurveyController::class)->except(['create', 'edit', 'show']);
+    Route::post('/moderator/surveys/{survey}/questions', [SurveyController::class, 'addQuestion']);
+    Route::put('/moderator/surveys/{survey}/questions/{question}', [SurveyController::class, 'updateQuestion']);
+    Route::delete('/moderator/surveys/{survey}/questions/{question}', [SurveyController::class, 'deleteQuestion']);
+
+    Route::get('/moderator/global-questions', [SurveyController::class, 'getGlobalQuestions']);
+    Route::post('/moderator/global-questions', [SurveyController::class, 'createGlobalQuestion']);
+    Route::put('/moderator/global-questions/{question}', [SurveyController::class, 'updateGlobalQuestion']);
+    Route::delete('/moderator/global-questions/{question}', [SurveyController::class, 'deleteGlobalQuestion']);
+
+    Route::get('/moderator/custom-placeholders', [\App\Http\Controllers\Api\CustomPlaceholderController::class, 'index']);
     Route::get('/moderator/placeholders', [PlaceholderController::class, 'index']);
     Route::get('/moderator/placeholders/values', [PlaceholderController::class, 'values']);
+    Route::get('/moderator/action-lists', [ActionListController::class, 'index']);
+
+    Route::get('/moderator/moderation-dashboard/stats', [ModerationDashboardController::class, 'stats']);
+    Route::get('/moderator/moderation-dashboard/public-url', [ModerationDashboardController::class, 'publicUrl']);
+    Route::post('/moderator/moderation-dashboard/action-list/{id}/execute', [ModerationDashboardController::class, 'executeActionList']);
+
     Route::apiResource('/moderator/faqs', FaqController::class)->except(['create', 'edit', 'show']);
     Route::apiResource('/moderator/events', EventController::class)->except(['create', 'edit', 'show']);
     Route::apiResource('/moderator/locations', LocationController::class);

@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import IconButton from '../IconButton.vue'
 import { renderMarkdown } from '../../utils/markdown'
 import { useTranslation } from '../../composables/useTranslation'
+import { adminFetch } from '../../utils/adminApi'
 
 const { tr } = useTranslation()
 
@@ -21,6 +22,7 @@ const emit = defineEmits(['update:modelValue', 'close'])
 
 const show = ref(false)
 const previewData = ref(null)
+const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
 
 watch(() => props.modelValue, (val) => {
   show.value = val
@@ -35,13 +37,12 @@ watch(show, (val) => {
 
 async function loadPreview() {
   try {
-    const res = await fetch(`/api/admin/email-templates/${props.template.id}/preview`, {
+    const res = await adminFetch(`email-templates/${props.template.id}/preview`, {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json'
       },
-      credentials: 'same-origin'
-    })
+    }, { routePrefixRef: routePrefix })
     
     if (!res.ok) throw new Error(await res.text())
     

@@ -8,6 +8,11 @@ import { useTranslation } from '../composables/useTranslation'
 import { Chart, BarController, PieController, CategoryScale, LinearScale, Tooltip, Legend, ArcElement, LineElement, PointElement } from 'chart.js'
 
 const { tr } = useTranslation()
+const routePrefix = ref(localStorage.getItem('admin_route_prefix') || 'admin')
+
+function withPrefix(path) {
+  return `/${routePrefix.value}/${path}`
+}
 
 // Register Chart.js components
 Chart.register(BarController, PieController, CategoryScale, LinearScale, Tooltip, Legend, ArcElement, LineElement, PointElement)
@@ -93,7 +98,7 @@ onUnmounted(() => {
 async function loadSurveys() {
   loadingSurveys.value = true
   try {
-    const response = await api.get('/admin/surveys')
+    const response = await api.get(withPrefix('surveys'))
     surveys.value = Array.isArray(response.data) ? response.data : []
     
     // Add event title for display
@@ -114,7 +119,7 @@ async function loadSurveys() {
 
 async function loadEvents() {
   try {
-    const response = await api.get('/admin/events')
+    const response = await api.get(withPrefix('events'))
     events.value = Array.isArray(response.data) ? response.data : []
   } catch (error) {
     console.error('Failed to load events:', error)
@@ -124,7 +129,7 @@ async function loadEvents() {
 async function loadQuestions() {
   loadingQuestions.value = true
   try {
-    const response = await api.get('/admin/global-questions')
+    const response = await api.get(withPrefix('global-questions'))
     questions.value = Array.isArray(response.data) ? response.data : []
   } catch (error) {
     console.error('Failed to load questions:', error)
@@ -149,9 +154,9 @@ async function saveSurvey() {
   loadingSurveys.value = true
   try {
     if (surveyFormData.value.id) {
-      await api.put(`/admin/surveys/${surveyFormData.value.id}`, surveyFormData.value)
+      await api.put(withPrefix(`surveys/${surveyFormData.value.id}`), surveyFormData.value)
     } else {
-      await api.post('/admin/surveys', surveyFormData.value)
+      await api.post(withPrefix('surveys'), surveyFormData.value)
     }
     
     showSurveyDialog.value = false
@@ -176,7 +181,7 @@ async function deleteSurvey(id) {
   
   loadingSurveys.value = true
   try {
-    await api.delete(`/admin/surveys/${id}`)
+    await api.delete(withPrefix(`surveys/${id}`))
     await loadSurveys()
   } catch (error) {
     console.error('Failed to delete survey:', error)
@@ -208,7 +213,7 @@ function closeSurveyDialog() {
 
 async function previewSurvey(survey) {
   try {
-    const response = await api.get(`/admin/surveys/${survey.id}/preview`)
+    const response = await api.get(withPrefix(`surveys/${survey.id}/preview`))
     console.log('Preview response:', response.data)
     previewSurveyData.value = response.data.survey
     previewQuestions.value = response.data.questions || []
@@ -240,9 +245,9 @@ async function saveQuestion() {
   loadingQuestions.value = true
   try {
     if (selectedQuestion.value && selectedQuestion.value.id) {
-      await api.put(`/admin/global-questions/${selectedQuestion.value.id}`, questionFormData.value)
+      await api.put(withPrefix(`global-questions/${selectedQuestion.value.id}`), questionFormData.value)
     } else {
-      await api.post('/admin/global-questions', questionFormData.value)
+      await api.post(withPrefix('global-questions'), questionFormData.value)
     }
     
     showDialog.value = false
@@ -259,7 +264,7 @@ async function deleteQuestion(id) {
   
   loadingQuestions.value = true
   try {
-    await api.delete(`/admin/global-questions/${id}`)
+    await api.delete(withPrefix(`global-questions/${id}`))
     await loadQuestions()
   } catch (error) {
     console.error('Failed to delete question:', error)
@@ -307,7 +312,7 @@ async function loadSurveyResults(surveyId) {
   
   loadingResults.value = true
   try {
-    const response = await api.get(`/admin/surveys/${surveyId}/results`)
+    const response = await api.get(withPrefix(`surveys/${surveyId}/results`))
     surveyResults.value = response.data
     
     // Create chart after data is loaded
@@ -451,14 +456,14 @@ function exportToCSV() {
   if (!selectedSurveyForResults.value) return
   
   const surveyId = selectedSurveyForResults.value.id
-  window.open(`/api/admin/surveys/results/export?survey_id=${surveyId}&format=csv&include_responses=true`, '_blank')
+  window.open(`/api${withPrefix(`surveys/results/export`)}?survey_id=${surveyId}&format=csv&include_responses=true`, '_blank')
 }
 
 function exportToJSON() {
   if (!selectedSurveyForResults.value) return
   
   const surveyId = selectedSurveyForResults.value.id
-  window.open(`/api/admin/surveys/results/export?survey_id=${surveyId}&format=json&include_responses=true`, '_blank')
+  window.open(`/api${withPrefix(`surveys/results/export`)}?survey_id=${surveyId}&format=json&include_responses=true`, '_blank')
 }
 
 function selectSurveyForResults(survey) {
