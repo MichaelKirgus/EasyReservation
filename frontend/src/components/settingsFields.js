@@ -13,6 +13,7 @@ export const settingsFields = [
     { key: 'reservation_details_info_link', type: 'text' },
     { key: 'reservation_max', type: 'number' },
     { key: 'waitlist_enabled', type: 'boolean' },
+    { key: 'rss_feed_enabled', type: 'boolean', default: 1 },
     { key: 'waitlist_auto_promote_enabled', type: 'boolean' },
     { key: 'waitlist_limit', type: 'number' },
     { key: 'waitlist_undo_enabled', type: 'boolean' },

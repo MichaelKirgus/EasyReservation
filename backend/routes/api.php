@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\ValidationRuleController;
 use App\Http\Controllers\Api\ActionListController;
 use App\Http\Controllers\Api\DataPortabilityController;
 use App\Http\Controllers\Api\ModerationDashboardController;
+use App\Http\Controllers\Api\AdminRssFeedController;
 use App\Http\Controllers\Api\ActionListActionController;
 use Illuminate\Support\Facades\Route;
 
@@ -70,6 +71,9 @@ Route::middleware(['site-token'])->group(function () {
     Route::get('/public/config', [ConfigController::class, 'show']);
     Route::get('/faqs', [FaqController::class, 'publicIndex']);
     Route::get('/privacy-policy', [PrivacyPolicyController::class, 'show']);
+    Route::get('/rss', [AdminRssFeedController::class, 'guestCombined'])->name('guest.rss.combined');
+    Route::get('/rss/reservations', [AdminRssFeedController::class, 'guestReservations'])->name('guest.rss.reservations');
+    Route::get('/rss/waitlist', [AdminRssFeedController::class, 'guestWaitlist'])->name('guest.rss.waitlist');
     Route::get('/events/upcoming', [EventController::class, 'upcoming']);
     Route::get('/surveys/{survey}', [PublicSurveyController::class, 'show']);
     Route::post('/surveys/{survey}/submit', [PublicSurveyController::class, 'submit']);
@@ -86,6 +90,9 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::delete('/admin/worker-stats/cleanup', [WorkerStatsController::class, 'cleanup']);
     Route::get('/admin/audit-log/count', [AuditLogController::class, 'count']);
     Route::get('/admin/reservations', [AdminReservationController::class, 'index']);
+    Route::get('/admin/rss', [AdminRssFeedController::class, 'combined'])->name('admin.rss.combined');
+    Route::get('/admin/rss/reservations', [AdminRssFeedController::class, 'reservations'])->name('admin.rss.reservations');
+    Route::get('/admin/rss/waitlist', [AdminRssFeedController::class, 'waitlist'])->name('admin.rss.waitlist');
     Route::post('/admin/reservations', [AdminReservationController::class, 'store']);
     Route::patch('/admin/reservations/{reservation}', [AdminReservationController::class, 'update']);
     Route::delete('/admin/reservations/{reservation}', [AdminReservationController::class, 'destroy']);

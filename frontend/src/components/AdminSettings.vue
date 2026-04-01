@@ -66,6 +66,7 @@ const tabFieldMap = {
     'reservation_show_reservation_limit_enabled',
     'reservation_max',
     'waitlist_enabled',
+    'rss_feed_enabled',
     'waitlist_auto_promote_enabled',
     'waitlist_limit',
     'waitlist_undo_enabled',
