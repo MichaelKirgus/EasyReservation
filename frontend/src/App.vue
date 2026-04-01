@@ -111,6 +111,15 @@ watch(forcedThemeMode, (mode) => {
   }
 })
 
+function normalizeRole(role) {
+  return typeof role === 'string' ? role.toLowerCase().trim() : ''
+}
+
+function userHasAnyRole(allowedRoles = []) {
+  const role = normalizeRole(currentUser?.role)
+  return !!role && allowedRoles.includes(role)
+}
+
 // Navigation-Konfiguration für Router-Links (defensiv, damit keine undefined-Gruppen entstehen)
 const navGroups = computed(() => {
   const safeFaq = typeof faqEnabled === 'object' && faqEnabled !== null && 'value' in faqEnabled ? faqEnabled.value : false;
@@ -131,30 +140,30 @@ const navGroups = computed(() => {
       id: 'moderation',
       label: tr('nav_moderation_label', 'Moderation'),
       tabs: [
-        { to: '/moderation/dashboard', label: tr('nav_tab_dashboard', 'Dashboard'), show: !!(currentUser && currentUser.role) },
-        { to: '/moderation/reservations', label: tr('nav_tab_reservations', 'Reservations'), show: !!(currentUser && currentUser.role) },
-        { to: '/moderation/templates', label: tr('nav_tab_templates', 'Templates'), show: !!(currentUser && currentUser.role) },
-        { to: '/moderation/faq', label: tr('nav_tab_faq', 'FAQ'), show: !!(currentUser && currentUser.role) },
-        { to: '/moderation/events', label: tr('nav_tab_events', 'Events'), show: !!(currentUser && currentUser.role) },
-        { to: '/moderation/surveys', label: tr('nav_tab_surveys', 'Surveys'), show: !!(currentUser && currentUser.role) },
-        { to: '/moderation/placeholders', label: tr('nav_tab_placeholders', 'Placeholders'), show: !!(currentUser && currentUser.role) },
+        { to: '/moderation/dashboard', label: tr('nav_tab_dashboard', 'Dashboard'), roles: ['moderator', 'admin', 'superadmin'] },
+        { to: '/moderation/reservations', label: tr('nav_tab_reservations', 'Reservations'), roles: ['moderator', 'admin', 'superadmin'] },
+        { to: '/moderation/templates', label: tr('nav_tab_templates', 'Templates'), roles: ['moderator', 'admin', 'superadmin'] },
+        { to: '/moderation/faq', label: tr('nav_tab_faq', 'FAQ'), roles: ['moderator', 'admin', 'superadmin'] },
+        { to: '/moderation/events', label: tr('nav_tab_events', 'Events'), roles: ['moderator', 'admin', 'superadmin'] },
+        { to: '/moderation/surveys', label: tr('nav_tab_surveys', 'Surveys'), roles: ['moderator', 'admin', 'superadmin'] },
+        { to: '/moderation/placeholders', label: tr('nav_tab_placeholders', 'Placeholders'), roles: ['moderator', 'admin', 'superadmin'] },
       ],
     },
     {
       id: 'administration',
       label: tr('nav_administration_label', 'Administration'),
       tabs: [
-        { to: '/admin/diagnostics', label: tr('nav_tab_diagnostics', 'Diagnostics'), show: !!(currentUser && currentUser.role) },
-        { to: '/admin/settings', label: tr('nav_tab_settings', 'Settings'), show: !!(currentUser && currentUser.role) },
-        { to: '/admin/data-portability', label: tr('nav_tab_data_portability', 'Data Portability'), show: currentUser && ['admin', 'superadmin'].includes(currentUser.role) },
-        { to: '/admin/mail-transports', label: tr('nav_tab_mail_transports', 'Email Transport'), show: !!(currentUser && currentUser.role) },
-        { to: '/admin/scheduled-tasks', label: tr('nav_tab_scheduled_tasks', 'Scheduled Tasks'), show: !!(currentUser && currentUser.role) },
-        { to: '/admin/custom-placeholders', label: tr('nav_tab_placeholders', 'Placeholders'), show: !!(currentUser && currentUser.role) },
-        { to: '/admin/form-fields', label: tr('nav_tab_form_fields', 'Form Fields'), show: !!(currentUser && currentUser.role) },
-        { to: '/admin/validation-rules', label: tr('nav_tab_validation_rules', 'Validation Rules'), show: !!(currentUser && currentUser.role) },
-        { to: '/admin/users', label: tr('nav_tab_users', 'Users'), show: !!(currentUser && currentUser.role) },
-        { to: '/admin/archives', label: tr('nav_tab_archives', 'Archives'), show: !!(currentUser && currentUser.role) },
-        { to: '/admin/auditlog', label: tr('nav_tab_audit_log', 'Audit Log'), show: currentUser && currentUser.role === 'superadmin' },
+        { to: '/admin/diagnostics', label: tr('nav_tab_diagnostics', 'Diagnostics'), roles: ['admin', 'superadmin'] },
+        { to: '/admin/settings', label: tr('nav_tab_settings', 'Settings'), roles: ['admin', 'superadmin'] },
+        { to: '/admin/data-portability', label: tr('nav_tab_data_portability', 'Data Portability'), roles: ['admin', 'superadmin'] },
+        { to: '/admin/mail-transports', label: tr('nav_tab_mail_transports', 'Email Transport'), roles: ['admin', 'superadmin'] },
+        { to: '/admin/scheduled-tasks', label: tr('nav_tab_scheduled_tasks', 'Scheduled Tasks'), roles: ['admin', 'superadmin'] },
+        { to: '/admin/custom-placeholders', label: tr('nav_tab_placeholders', 'Placeholders'), roles: ['admin', 'superadmin'] },
+        { to: '/admin/form-fields', label: tr('nav_tab_form_fields', 'Form Fields'), roles: ['admin', 'superadmin'] },
+        { to: '/admin/validation-rules', label: tr('nav_tab_validation_rules', 'Validation Rules'), roles: ['admin', 'superadmin'] },
+        { to: '/admin/users', label: tr('nav_tab_users', 'Users'), roles: ['admin', 'superadmin'] },
+        { to: '/admin/archives', label: tr('nav_tab_archives', 'Archives'), roles: ['admin', 'superadmin'] },
+        { to: '/admin/auditlog', label: tr('nav_tab_audit_log', 'Audit Log'), roles: ['superadmin'] },
       ],
     },
   ];
@@ -165,6 +174,9 @@ const navGroups = computed(() => {
       tabs: group.id === 'public'
         ? group.tabs // Keine Filterung für 'public'
         : group.tabs.filter(tab => {
+            if (Array.isArray(tab.roles)) {
+              return userHasAnyRole(tab.roles)
+            }
             const show = tab.show;
             if (show === true) return true;
             if (show === false || show == null) return false;
