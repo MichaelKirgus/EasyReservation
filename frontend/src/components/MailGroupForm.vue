@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, watch } from 'vue'
+import IconButton from './IconButton.vue'
 import { useTranslation } from '../composables/useTranslation'
 
 const props = defineProps({
@@ -58,7 +59,7 @@ const failoverStrategyOptions = [
     <div class="form-grid">
       <!-- Name -->
       <label class="field">
-        <span>Name</span>
+        <span>{{ tr('admin_mail_transports_group_name') }}</span>
         <input 
           v-model="form.name" 
           type="text" 
@@ -68,7 +69,7 @@ const failoverStrategyOptions = [
       
       <!-- Description -->
       <label class="field">
-        <span>Description</span>
+        <span>{{ tr('admin_mail_transports_group_description') }}</span>
         <textarea 
           v-model="form.description" 
           rows="2"
@@ -82,12 +83,12 @@ const failoverStrategyOptions = [
           type="checkbox" 
           v-model="form.rateLimitEnabled"
         />
-        <span>Enable Rate Limiting</span>
+        <span>{{ tr('admin_mail_transports_group_rate_limit_enabled') }}</span>
       </label>
       
       <!-- Rate Limit Per Minute (only shown when enabled) -->
       <label class="field" v-if="form.rateLimitEnabled">
-        <span>Rate Limit per Minute</span>
+        <span>{{ tr('admin_mail_transports_group_rate_limit_minute') }}</span>
         <input 
           v-model.number="form.rateLimitPerMinute" 
           type="number" 
@@ -99,7 +100,7 @@ const failoverStrategyOptions = [
       
       <!-- Rate Limit Per Hour (only shown when enabled) -->
       <label class="field" v-if="form.rateLimitEnabled">
-        <span>Rate Limit per Hour</span>
+        <span>{{ tr('admin_mail_transports_group_rate_limit_hour') }}</span>
         <input
           v-model.number="form.rateLimitPerHour"
           type="number"
@@ -111,19 +112,19 @@ const failoverStrategyOptions = [
       
       <!-- Failover Strategy -->
       <label class="field">
-        <span>Failover Strategy</span>
+        <span>{{ tr('admin_mail_transports_group_failover_strategy') }}</span>
         <select 
           v-model="form.failoverStrategy"
         >
-          <option value="sequential">Sequential (Failover)</option>
-          <option value="round_robin">Round Robin</option>
-          <option value="random">Random</option>
+          <option value="sequential">{{ tr('failover_sequential') }}</option>
+          <option value="round_robin">{{ tr('failover_round_robin') }}</option>
+          <option value="random">{{ tr('failover_random') }}</option>
         </select>
       </label>
       
       <!-- Max Retries -->
       <label class="field">
-        <span>Max Retries per Account</span>
+        <span>{{ tr('admin_mail_transports_group_max_retries') }}</span>
         <input
           v-model.number="form.maxRetriesPerAccount"
           type="number"
@@ -138,15 +139,13 @@ const failoverStrategyOptions = [
           type="checkbox" 
           v-model="form.isActive"
         />
-        <span>Active</span>
+        <span>{{ tr('admin_mail_transports_group_active') }}</span>
       </label>
     </div>
     
     <div class="form-actions">
-      <button type="button" @click="handleCancel">{{ tr('cancel') }}</button>
-      <button type="button" @click="handleSave" :disabled="!form.name">
-        {{ isEditing ? tr('save') : tr('create') }}
-      </button>
+      <IconButton icon="close" :label="tr('cancel')" variant="secondary" @click="handleCancel" />
+      <IconButton icon="save" :label="isEditing ? tr('save') : tr('create')" variant="success" :disabled="!form.name" @click="handleSave" />
     </div>
   </div>
 </template>

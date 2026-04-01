@@ -278,9 +278,22 @@ function t(key) {
     // Buttons
     admin_mail_transports_add_account: tr('admin_mail_transports_add_account', 'Add Mail Account'),
     admin_mail_transports_add_group: tr('admin_mail_transports_add_group', 'Add Transport Group'),
+    admin_mail_transports_edit_account: tr('admin_mail_transports_edit_account', 'Edit Mail Account'),
+    admin_mail_transports_edit_group: tr('admin_mail_transports_edit_group', 'Edit Transport Group'),
     admin_mail_transports_test_connection: tr('admin_mail_transports_test_connection', 'Test Connection'),
     admin_mail_transports_edit: tr('admin_mail_transports_edit', 'Edit'),
     admin_mail_transports_delete: tr('admin_mail_transports_delete', 'Delete'),
+    admin_mail_transports_manage_accounts: tr('admin_mail_transports_manage_accounts', 'Manage Accounts'),
+    admin_mail_transports_manage_accounts_for: tr('admin_mail_transports_manage_accounts_for', 'Manage accounts for'),
+    admin_mail_transports_close: tr('admin_mail_transports_close', 'Close'),
+    admin_mail_transports_select_account: tr('admin_mail_transports_select_account', 'Select account'),
+    admin_mail_transports_choose_account: tr('admin_mail_transports_choose_account', 'Choose an account'),
+    admin_mail_transports_no_available_accounts: tr('admin_mail_transports_no_available_accounts', 'No available accounts'),
+    admin_mail_transports_priority: tr('admin_mail_transports_priority', 'Priority'),
+    admin_mail_transports_add_to_group: tr('admin_mail_transports_add_to_group', 'Add to group'),
+    admin_mail_transports_actions: tr('admin_mail_transports_actions', 'Actions'),
+    admin_mail_transports_remove_from_group: tr('admin_mail_transports_remove_from_group', 'Remove from group'),
+    admin_mail_transports_no_accounts_in_group: tr('admin_mail_transports_no_accounts_in_group', 'No accounts in this group'),
     
     // Messages
     admin_mail_transports_account_saved: tr('admin_mail_transports_account_saved', 'Mail account saved successfully'),
@@ -1087,8 +1100,8 @@ onUnmounted(() => {
         </div>
         
         <div class="form-actions">
-          <button @click="saveBlacklistDomain" class="btn-primary">{{ editingBlacklistDomain ? t('admin_mail_transports_edit_domain') : t('admin_mail_transports_add_domain') }}</button>
-          <button @click="editingBlacklistDomain = null; showAddBlacklistDomainForm = false" class="btn-secondary">{{ t('cancel') }}</button>
+          <IconButton icon="save" :label="editingBlacklistDomain ? t('admin_mail_transports_edit_domain') : t('admin_mail_transports_add_domain')" variant="success" @click="saveBlacklistDomain" />
+          <IconButton icon="close" :label="t('cancel')" variant="secondary" @click="editingBlacklistDomain = null; showAddBlacklistDomainForm = false" />
         </div>
       </div>
       

@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, watch } from 'vue'
 import SecretField from './SecretField.vue'
+import IconButton from './IconButton.vue'
 import { useTranslation } from '../composables/useTranslation'
 
 const props = defineProps({
@@ -97,7 +98,7 @@ function getApiKeyLabel() {
     <div class="form-grid">
       <!-- Name -->
       <label class="field">
-        <span>Name</span>
+        <span>{{ tr('admin_mail_transports_account_name') }}</span>
         <input
           v-model="form.name"
           type="text"
@@ -107,7 +108,7 @@ function getApiKeyLabel() {
       
       <!-- Host (only for SMTP methods) -->
       <label class="field" v-if="!form.authMethod || !form.authMethod.startsWith('api_key')">
-        <span>SMTP Host</span>
+        <span>{{ tr('admin_mail_transports_account_host') }}</span>
         <input
           v-model="form.host"
           type="text"
@@ -117,7 +118,7 @@ function getApiKeyLabel() {
       
       <!-- Port (only for SMTP methods) -->
       <label class="field" v-if="!form.authMethod || !form.authMethod.startsWith('api_key')">
-        <span>Port</span>
+        <span>{{ tr('admin_mail_transports_account_port') }}</span>
         <input
           v-model.number="form.port"
           type="number"
@@ -128,37 +129,37 @@ function getApiKeyLabel() {
       
       <!-- Encryption (only for SMTP methods) -->
       <label class="field" v-if="!form.authMethod || !form.authMethod.startsWith('api_key')">
-        <span>Encryption</span>
+        <span>{{ tr('admin_mail_transports_account_encryption') }}</span>
         <select
           v-model="form.encryption"
         >
-          <option value="tls">TLS (Recommended)</option>
-          <option value="ssl">SSL</option>
-          <option value="none">None</option>
+          <option value="tls">{{ tr('encryption_tls') }}</option>
+          <option value="ssl">{{ tr('encryption_ssl') }}</option>
+          <option value="none">{{ tr('encryption_none') }}</option>
         </select>
       </label>
       
       <!-- Auth Method -->
       <label class="field">
-        <span>Authentication Method</span>
+        <span>{{ tr('admin_mail_transports_account_auth_method') }}</span>
         <select
           v-model="form.authMethod"
         >
-          <option value="plain">Plain (Standard SMTP)</option>
-          <option value="login">Login</option>
-          <option value="crammd5">CRAM-MD5</option>
-          <option value="oauth2_exchange">OAuth2 - Exchange Online</option>
-          <option value="oauth2_google">OAuth2 - Google Mail/Workspace</option>
-          <option value="api_key_sendgrid">API Key - SendGrid</option>
-          <option value="api_key_mailgun">API Key - Mailgun</option>
-          <option value="api_key_postmark">API Key - Postmark</option>
+          <option value="plain">{{ tr('auth_method_plain') }}</option>
+          <option value="login">{{ tr('auth_method_login') }}</option>
+          <option value="crammd5">{{ tr('auth_method_crammd5') }}</option>
+          <option value="oauth2_exchange">{{ tr('auth_method_oauth2_exchange') }}</option>
+          <option value="oauth2_google">{{ tr('auth_method_oauth2_google') }}</option>
+          <option value="api_key_sendgrid">{{ tr('auth_method_api_key_sendgrid') }}</option>
+          <option value="api_key_mailgun">{{ tr('auth_method_api_key_mailgun') }}</option>
+          <option value="api_key_postmark">{{ tr('auth_method_api_key_postmark') }}</option>
         </select>
       </label>
       
       <!-- Username / API Key -->
       <label class="field">
         <span v-if="form.authMethod && form.authMethod.startsWith('api_key')">{{ getApiKeyLabel() }}</span>
-        <span v-else>Username / Email</span>
+        <span v-else>{{ tr('admin_mail_transports_account_username') }}</span>
         <input
           v-model="form.username"
           type="text"
@@ -168,7 +169,7 @@ function getApiKeyLabel() {
       
       <!-- Password / Secret (only for non-API methods) -->
       <label class="field" v-if="form.authMethod && !form.authMethod.startsWith('api_key')">
-        <span>Password / App Password</span>
+        <span>{{ tr('admin_mail_transports_account_password') }}</span>
         <SecretField
           v-model="form.password"
           :placeholder="isEditing ? '••••••••' : ''"
@@ -177,7 +178,7 @@ function getApiKeyLabel() {
       
       <!-- API Key Secret (only for API key methods) -->
       <label class="field" v-if="form.authMethod && form.authMethod.startsWith('api_key')">
-        <span>Secret / Password</span>
+        <span>{{ tr('admin_mail_transports_account_password') }}</span>
         <SecretField
           v-model="form.password"
           :placeholder="isEditing ? '••••••••' : ''"
@@ -190,12 +191,12 @@ function getApiKeyLabel() {
           type="checkbox"
           v-model="form.ignoreSelfSigned"
         />
-        <span>Ignore Self-Signed Certificates</span>
+        <span>{{ tr('admin_mail_transports_account_ignore_self_signed') }}</span>
       </label>
       
       <!-- Timeout (only for SMTP methods) -->
       <label class="field" v-if="!form.authMethod || !form.authMethod.startsWith('api_key')">
-        <span>Timeout (seconds)</span>
+        <span>{{ tr('admin_mail_transports_account_timeout') }}</span>
         <input
           v-model.number="form.timeout"
           type="number"
@@ -206,7 +207,7 @@ function getApiKeyLabel() {
 
       <!-- Retry Count -->
       <label class="field">
-        <span>Retry Count</span>
+        <span>{{ tr('admin_mail_transports_columns_retry_count') }}</span>
         <input
           v-model.number="form.retryCount"
           type="number"
@@ -221,12 +222,12 @@ function getApiKeyLabel() {
           type="checkbox"
           v-model="form.rateLimitEnabled"
         />
-        <span>Enable Rate Limiting</span>
+        <span>{{ tr('admin_mail_transports_account_rate_limit_enabled') }}</span>
       </label>
       
       <!-- Rate Limit Per Minute (only shown when enabled) -->
       <label class="field" v-if="form.rateLimitEnabled">
-        <span>Rate Limit per Minute</span>
+        <span>{{ tr('admin_mail_transports_account_rate_limit_minute') }}</span>
         <input
           v-model.number="form.rateLimitPerMinute"
           type="number"
@@ -238,7 +239,7 @@ function getApiKeyLabel() {
       
       <!-- Rate Limit Per Hour (only shown when enabled) -->
       <label class="field" v-if="form.rateLimitEnabled">
-        <span>Rate Limit per Hour</span>
+        <span>{{ tr('admin_mail_transports_account_rate_limit_hour') }}</span>
         <input
           v-model.number="form.rateLimitPerHour"
           type="number"
@@ -254,12 +255,12 @@ function getApiKeyLabel() {
           type="checkbox"
           v-model="form.isActive"
         />
-        <span>Active</span>
+        <span>{{ tr('admin_mail_transports_account_active') }}</span>
       </label>
       
       <!-- Send As Address (From) -->
       <label class="field">
-        <span>Send As Address (From)</span>
+        <span>{{ tr('admin_mail_transports_account_from_address') }}</span>
         <input
           v-model="form.fromAddress"
           type="email"
@@ -269,7 +270,7 @@ function getApiKeyLabel() {
       
       <!-- Reply-To Address -->
       <label class="field">
-        <span>Reply-To Address</span>
+        <span>{{ tr('admin_mail_transports_account_reply_to_address') }}</span>
         <input
           v-model="form.replyToAddress"
           type="email"
@@ -279,7 +280,7 @@ function getApiKeyLabel() {
       
       <!-- Return-Path (Bounce) Address -->
       <label class="field">
-        <span>Return-Path (Bounce Address)</span>
+        <span>{{ tr('admin_mail_transports_account_return_path_address') }}</span>
         <input
           v-model="form.returnPathAddress"
           type="email"
@@ -289,11 +290,11 @@ function getApiKeyLabel() {
       
       <!-- TLS Version -->
       <label class="field">
-        <span>TLS Version</span>
+        <span>{{ tr('admin_mail_transports_account_tls_version') }}</span>
         <select
           v-model="form.tlsVersion"
         >
-          <option value="auto">Auto (Negotiate)</option>
+          <option value="auto">{{ tr('tls_version_auto') }}</option>
           <option value="1.2">TLS 1.2</option>
           <option value="1.3">TLS 1.3</option>
         </select>
@@ -301,10 +302,8 @@ function getApiKeyLabel() {
     </div>
     
     <div class="form-actions">
-      <button type="button" @click="handleCancel">{{ tr('cancel') }}</button>
-      <button type="button" @click="handleSave" :disabled="!form.name || (!form.host && !form.authMethod?.startsWith('api_key')) || !form.port">
-        {{ isEditing ? tr('save') : tr('create') }}
-      </button>
+      <IconButton icon="close" :label="tr('cancel')" variant="secondary" @click="handleCancel" />
+      <IconButton icon="save" :label="isEditing ? tr('save') : tr('create')" variant="success" :disabled="!form.name || (!form.host && !form.authMethod?.startsWith('api_key')) || !form.port" @click="handleSave" />
     </div>
   </div>
 </template>
