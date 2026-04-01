@@ -51,6 +51,7 @@ class PlaceholderService
     private const SITE_TOKENS = [
         '{{site_base_url}}',
         '{{site_guest_token}}',
+        '{{rss_feed_link}}',
     ];
 
     public function __construct(
@@ -177,6 +178,7 @@ class PlaceholderService
         
         // Build privacy and FAQ links using LinkBuildingService to append guest token
         $linkBuilder = app(\App\Services\LinkBuildingService::class);
+        $core['{{rss_feed_link}}'] = $linkBuilder->buildPublicRssFeedLink();
         $privacyParams = [];
         $faqParams = [];
         if ($guestToken) {

@@ -115,10 +115,30 @@ class LinkBuildingService
     }
 
     /**
+     * Build public RSS feed link with current primary guest token.
+     */
+    public function buildPublicRssFeedLink(): string
+    {
+        $base = $this->normalizedPublicBaseUrl().'/api/rss';
+
+        $siteToken = $this->siteTokens->getValidSiteToken();
+        $params = [];
+        if (!empty($siteToken)) {
+            $params['t'] = (string) $siteToken;
+        }
+
+        return $this->appendQuery($base, $params);
+    }
+
+    /**
      * Append query parameters to URL
      */
     public function appendQuery(string $base, array $params): string
     {
+        if (empty($params)) {
+            return $base;
+        }
+
         $separator = str_contains($base, '?') ? '&' : '?';
         return $base.$separator.http_build_query($params);
     }
