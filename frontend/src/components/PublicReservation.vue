@@ -796,7 +796,7 @@ function goToGDPR() {
             >
               {{ tr('button_remove_reservation', 'Remove reservation') }}
             </button>
-            <p v-if="!reservationEnabled" class="hint">{{ tr('feedback_reservation_disabled', 'Reservations are disabled.') }}</p>
+            <p v-if="!reservationEnabled" class="hint" :style="{ textAlign: reservationLimitAlign }">{{ tr('feedback_reservation_disabled', 'Reservations are disabled.') }}</p>
           </form>
         </section>
 
