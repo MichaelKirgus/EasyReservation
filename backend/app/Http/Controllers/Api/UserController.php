@@ -111,8 +111,8 @@ class UserController extends Controller
 
     public function resetPassword(Request $request, User $user): JsonResponse
     {
-        // Nur Admins dürfen diese Aktion durchführen
-        if (!($request->user() && $request->user()->role === 'admin')) {
+        // Only admins and superadmins may reset another user's password.
+        if (! in_array($request->user()?->role, ['admin', 'superadmin'], true)) {
             return response()->json(['message' => __('forbidden_access')], 403);
         }
         $request->validate([
