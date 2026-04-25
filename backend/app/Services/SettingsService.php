@@ -104,4 +104,22 @@ class SettingsService
 
         return implode("\n", array_map(fn ($v) => $bullet.$v, $list));
     }
+
+    /**
+     * Default submission message for surveys.
+     * Used when a survey does not have its own submission_message set.
+     */
+    public function surveyDefaultSubmissionMessage(): string
+    {
+        return (string) $this->get('survey_default_submission_message', '');
+    }
+
+    /**
+     * Default already-responded message for surveys.
+     * Used when a survey does not have its own already_responded_message set.
+     */
+    public function surveyDefaultAlreadyRespondedMessage(): string
+    {
+        return (string) $this->get('survey_default_already_responded_message', '');
+    }
 }

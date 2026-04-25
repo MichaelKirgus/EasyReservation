@@ -50,6 +50,8 @@ let resultsChart = ref(null)
 const surveyFormData = ref({
   title: '',
   description: '',
+  submission_message: '',
+  already_responded_message: '',
   event_id: null,
   starts_at: null,
   ends_at: null,
@@ -142,6 +144,8 @@ function createSurvey() {
   surveyFormData.value = {
     title: '',
     description: '',
+    submission_message: '',
+    already_responded_message: '',
     event_id: null,
     starts_at: new Date().toISOString().slice(0, 16),
     ends_at: null,
@@ -204,6 +208,8 @@ function closeSurveyDialog() {
   surveyFormData.value = {
     title: '',
     description: '',
+    submission_message: '',
+    already_responded_message: '',
     event_id: null,
     starts_at: null,
     ends_at: null,
@@ -552,6 +558,30 @@ function selectSurveyForResults(survey) {
             </div>
 
             <div class="form-group">
+              <label for="submission_message">{{ tr('submission_message') }}</label>
+              <textarea
+                id="submission_message"
+                v-model="surveyFormData.submission_message"
+                rows="4"
+                :placeholder="tr('submission_message_placeholder')"
+                :title="tr('submission_message_help')"
+              ></textarea>
+              <p class="field-help">{{ tr('submission_message_help') }}</p>
+            </div>
+
+            <div class="form-group">
+              <label for="already_responded_message">{{ tr('already_responded_message') }}</label>
+              <textarea
+                id="already_responded_message"
+                v-model="surveyFormData.already_responded_message"
+                rows="4"
+                :placeholder="tr('already_responded_message_placeholder')"
+                :title="tr('already_responded_message_help')"
+              ></textarea>
+              <p class="field-help">{{ tr('already_responded_message_help') }}</p>
+            </div>
+
+            <div class="form-group">
               <label for="event_id">{{ tr('event') }}</label>
               <select id="event_id" v-model="surveyFormData.event_id">
                 <option value="">{{ tr('no_event_linked') }}</option>
@@ -896,6 +926,13 @@ function selectSurveyForResults(survey) {
   border-radius: 4px;
   background: var(--surface);
   color: var(--text);
+}
+
+.field-help {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  margin-top: 4px;
+  margin-bottom: 0;
 }
 
 .preview-dialog {

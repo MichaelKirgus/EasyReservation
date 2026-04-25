@@ -76,8 +76,10 @@
     </form>
 
     <!-- Already Responded / Survey Not Available -->
-    <div v-else-if="!canRespond && statusMessage" class="survey-result">
-      <p>{{ statusMessage }}</p>
+    <div v-else-if="!canRespond && statusMessage" class="survey-result" :class="statusType">
+      <div v-if="alreadyRespondedMessage" class="already-responded-message" v-html="processedAlreadyRespondedMessage"></div>
+      <div v-if="submissionMessage" class="submission-message" v-html="processedSubmissionMessage"></div>
+      <p v-if="statusMessage">{{ statusMessage }}</p>
     </div>
 
     <!-- No Questions -->
@@ -88,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '../api'
 import { useTranslation } from '../composables/useTranslation'
@@ -96,11 +98,37 @@ import { useTranslation } from '../composables/useTranslation'
 const { tr } = useTranslation()
 const route = useRoute()
 
+// Process submission message by replacing placeholders
+const processedSubmissionMessage = computed(() => {
+  if (!submissionMessage.value) return ''
+  
+  let message = submissionMessage.value
+  if (survey.value) {
+    message = message.replace(/\{\{survey_title\}\}/g, survey.value.title || '')
+  }
+  
+  return message
+})
+
+// Process already-responded message by replacing placeholders
+const processedAlreadyRespondedMessage = computed(() => {
+  if (!alreadyRespondedMessage.value) return ''
+  
+  let message = alreadyRespondedMessage.value
+  if (survey.value) {
+    message = message.replace(/\{\{survey_title\}\}/g, survey.value.title || '')
+  }
+  
+  return message
+})
+
 const survey = ref(null)
 const questions = ref([])
 const responses = ref({})
 const statusMessage = ref('')
 const statusType = ref('info') // info, success, error
+const submissionMessage = ref('')
+const alreadyRespondedMessage = ref('')
 const canRespond = ref(false)
 const isSubmitting = ref(false)
 const validationErrors = ref({})
@@ -127,8 +155,15 @@ async function loadSurvey() {
     if (!canRespond.value) {
       statusMessage.value = statusResponse.data.message || ''
       statusType.value = statusResponse.data.already_responded ? 'success' : 'error'
+      // Store already-responded message if provided
+      if (statusResponse.data.already_responded) {
+        alreadyRespondedMessage.value = statusResponse.data.already_responded_message || ''
+      } else {
+        alreadyRespondedMessage.value = ''
+      }
     } else {
       statusMessage.value = ''
+      alreadyRespondedMessage.value = ''
       statusType.value = 'info'
     }
 
@@ -186,9 +221,10 @@ async function submitSurvey() {
       })),
     }
 
-    await api.post(`/surveys/${surveyId}/submit`, submitData)
+    const submitResponse = await api.post(`/surveys/${surveyId}/submit`, submitData)
     
-    // After submission, no status message needed - user already responded
+    // After submission, show custom message
+    submissionMessage.value = submitResponse.data.submission_message || ''
     statusMessage.value = ''
     statusType.value = 'success'
     canRespond.value = false
@@ -342,6 +378,48 @@ textarea {
 .survey-result {
   text-align: center;
   padding: 40px 20px;
+}
+
+.submission-message {
+  background: var(--success-bg, #e8f5e9);
+  color: var(--success-text, #2e7d32);
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid var(--success-border, #a5d6a7);
+}
+
+.submission-message p {
+  margin: 0.5em 0;
+}
+
+.submission-message p:first-child {
+  margin-top: 0;
+}
+
+.submission-message p:last-child {
+  margin-bottom: 0;
+}
+
+.already-responded-message {
+  background: var(--info-bg, #e3f2fd);
+  color: var(--info-text, #1976d2);
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid var(--info-border, #90caf9);
+}
+
+.already-responded-message p {
+  margin: 0.5em 0;
+}
+
+.already-responded-message p:first-child {
+  margin-top: 0;
+}
+
+.already-responded-message p:last-child {
+  margin-bottom: 0;
 }
 
 .no-questions {

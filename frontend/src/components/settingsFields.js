@@ -145,4 +145,8 @@ export const settingsFields = [
     { key: 'site_token_invalid_message', type: 'text', component: 'textarea', group: 'general', labelKey: 'site_token_invalid_message', hintKey: 'admin_setting_markdown_hint', placeholders: true },
     // Post-login redirect URL
     { key: 'post_login_redirect_url', type: 'text', group: 'security', labelKey: 'post_login_redirect_url', hintKey: 'admin_setting_post_login_redirect_url_hint', default: '/moderation/dashboard' },
+    // Survey default submission message
+    { key: 'survey_default_submission_message', type: 'text', component: 'textarea', group: 'text', labelKey: 'survey_default_submission_message', hintKey: 'submission_message_help', placeholders: true },
+    // Survey default already-responded message
+    { key: 'survey_default_already_responded_message', type: 'text', component: 'textarea', group: 'text', labelKey: 'survey_default_already_responded_message', hintKey: 'already_responded_message_help', placeholders: true },
 ];

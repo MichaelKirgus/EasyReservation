@@ -48,10 +48,20 @@ class PlaceholderService
      */
     private array $contextPlaceholders = [];
 
+    /**
+     * Survey context for survey-specific placeholders.
+     */
+    private ?\App\Models\Survey $surveyContext = null;
+
     private const SITE_TOKENS = [
         '{{site_base_url}}',
         '{{site_guest_token}}',
         '{{rss_feed_link}}',
+    ];
+
+    private const SURVEY_TOKENS = [
+        '{{survey_title}}',
+        '{{survey_submission_message}}',
     ];
 
     public function __construct(
@@ -220,14 +230,23 @@ class PlaceholderService
         $contextTokens = [
             '{{error_message}}' => $this->contextPlaceholders['error_message'] ?? '',
         ];
-        // Reihenfolge: custom < core < formFieldTokens < context < recipientTokens
-        return array_merge($custom, $core, $formFieldTokens, $contextTokens, $recipientTokens);
+
+        // Survey-specific placeholders
+        $surveyTokens = [];
+        if ($this->surveyContext) {
+            $surveyTokens = [
+                '{{survey_title}}' => $this->surveyContext->title ?? '',
+            ];
+        }
+
+        // Reihenfolge: custom < core < formFieldTokens < context < survey < recipientTokens
+        return array_merge($custom, $core, $formFieldTokens, $contextTokens, $surveyTokens, $recipientTokens);
     }
 
     public function tokens(): array
     {
         $tokens = array_keys($this->replacements());
-        $tokens = array_merge($tokens, self::RECIPIENT_TOKENS, self::SITE_TOKENS, self::CONTEXT_TOKENS, self::RUNTIME_TOKENS, ['{{event_location_url_html}}']);
+        $tokens = array_merge($tokens, self::RECIPIENT_TOKENS, self::SITE_TOKENS, self::CONTEXT_TOKENS, self::RUNTIME_TOKENS, self::SURVEY_TOKENS, ['{{event_location_url_html}}']);
         $tokens = array_values(array_unique($tokens));
         sort($tokens);
 
@@ -413,6 +432,30 @@ class PlaceholderService
         
         $this->contextPlaceholders['survey_link'] = $surveyLink;
         $this->contextPlaceholders['survey_link_html'] = '<a href="' . $surveyLink . '">' . $surveyLink . '</a>';
+        
+        return $this;
+    }
+
+    /**
+     * Set survey context for survey-specific placeholders.
+     *
+     * @param Survey $survey The survey object
+     */
+    public function setSurvey(\App\Models\Survey $survey): self
+    {
+        $this->surveyContext = $survey;
+        $this->contextPlaceholders['survey_title'] = $survey->title ?? '';
+        
+        return $this;
+    }
+
+    /**
+     * Clear survey context.
+     */
+    public function clearSurveyContext(): self
+    {
+        $this->surveyContext = null;
+        unset($this->contextPlaceholders['survey_title']);
         
         return $this;
     }

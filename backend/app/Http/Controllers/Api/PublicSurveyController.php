@@ -161,8 +161,12 @@ class PublicSurveyController extends Controller
 
             DB::commit();
 
+            // Build submission message with placeholder replacement
+            $submissionMessage = $this->buildSubmissionMessage($survey);
+
             return response()->json([
                 'message' => __('survey_submitted'),
+                'submission_message' => $submissionMessage,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -192,10 +196,12 @@ class PublicSurveyController extends Controller
 
         // Check if already responded
         if (SurveyResponse::hasResponded($survey->id, $token)) {
+            $alreadyRespondedMessage = $this->buildAlreadyRespondedMessage($survey);
             return response()->json([
                 'can_respond' => false,
                 'already_responded' => true,
                 'message' => __('thank_you_for_response'),
+                'already_responded_message' => $alreadyRespondedMessage,
             ]);
         }
 
@@ -218,5 +224,45 @@ class PublicSurveyController extends Controller
             'can_respond' => true,
             'message' => __('ready_to_respond'),
         ]);
+    }
+
+    /**
+     * Build the submission message with placeholder replacement.
+     */
+    private function buildSubmissionMessage(Survey $survey): string
+    {
+        $message = $survey->submission_message;
+
+        // Use default message if no custom message is set
+        if (empty($message)) {
+            $settingsService = app(SettingsService::class);
+            $defaultMessage = $settingsService->surveyDefaultSubmissionMessage();
+            $message = $defaultMessage ?: __('survey_default_submission_message');
+        }
+
+        // Use PlaceholderService to replace placeholders
+        $placeholderService = app(PlaceholderService::class);
+        $placeholderService->setSurvey($survey);
+        return $placeholderService->replaceString($message);
+    }
+
+    /**
+     * Build the already-responded message with placeholder replacement.
+     */
+    private function buildAlreadyRespondedMessage(Survey $survey): string
+    {
+        $message = $survey->already_responded_message;
+
+        // Use default message if no custom message is set
+        if (empty($message)) {
+            $settingsService = app(SettingsService::class);
+            $defaultMessage = $settingsService->surveyDefaultAlreadyRespondedMessage();
+            $message = $defaultMessage ?: __('survey_default_already_responded_message');
+        }
+
+        // Use PlaceholderService to replace placeholders
+        $placeholderService = app(PlaceholderService::class);
+        $placeholderService->setSurvey($survey);
+        return $placeholderService->replaceString($message);
     }
 }

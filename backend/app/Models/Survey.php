@@ -12,6 +12,8 @@ class Survey extends Model
     protected $fillable = [
         'title',
         'description',
+        'submission_message',
+        'already_responded_message',
         'event_id',
         'starts_at',
         'ends_at',
