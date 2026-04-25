@@ -26,7 +26,8 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.IMAGE_PUSH_TOKEN }}
+          password: ${{ secrets.GHCR_PAT }}
+          
       - name: Build Docker image for backend
         run: docker build --build-arg APP_VERSION=$(cat backend/version.txt) -t ghcr.io/${{ steps.vars-repo.outputs.repo }}/backend:latest ./backend
       - name: Build Docker image for frontend
