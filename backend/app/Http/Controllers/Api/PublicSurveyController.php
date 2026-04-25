@@ -26,7 +26,7 @@ class PublicSurveyController extends Controller
         // Get survey questions, or create them from global questions if none exist
         $questions = SurveyQuestion::where('survey_id', $survey->id)
             ->with(['globalQuestion' => function ($query) {
-                $query->select('id', 'question_text', 'field_type', 'is_required', 'display_order', 'options');
+                $query->select('id', 'question_text', 'field_type', 'is_required', 'display_order', 'options', 'min_value', 'max_value');
             }])
             ->orderBy('display_order')
             ->get();
@@ -44,6 +44,8 @@ class PublicSurveyController extends Controller
                     'is_required' => $globalQuestion->is_required,
                     'display_order' => $globalQuestion->display_order,
                     'options' => $globalQuestion->options,
+                    'min_value' => $globalQuestion->min_value,
+                    'max_value' => $globalQuestion->max_value,
                     'active' => true,
                 ]);
             }
@@ -51,7 +53,7 @@ class PublicSurveyController extends Controller
             // Reload questions with global question relationship
             $questions = SurveyQuestion::where('survey_id', $survey->id)
                 ->with(['globalQuestion' => function ($query) {
-                    $query->select('id', 'question_text', 'field_type', 'is_required', 'display_order', 'options');
+                    $query->select('id', 'question_text', 'field_type', 'is_required', 'display_order', 'options', 'min_value', 'max_value');
                 }])
                 ->orderBy('display_order')
                 ->get();
@@ -137,11 +139,42 @@ class PublicSurveyController extends Controller
                 }
 
                 // Validate score range
-                if (isset($response['response_score']) && 
+                if (isset($response['response_score']) &&
                     ($response['response_score'] < 1 || $response['response_score'] > 5)) {
                     return response()->json([
                         'message' => __('score_must_be_1_to_5'),
                     ], 422);
+                }
+
+                // Validate number input range
+                if ($question->field_type === 'number_input' && !empty($response['response_text'])) {
+                    $value = filter_var($response['response_text'], FILTER_VALIDATE_INT);
+                    if ($value === false) {
+                        $value = filter_var($response['response_text'], FILTER_VALIDATE_FLOAT);
+                        if ($value === false) {
+                            return response()->json([
+                                'message' => __('number_input_invalid', ['field' => $question->question_text]),
+                            ], 422);
+                        }
+                        $value = (float) $response['response_text'];
+                    } else {
+                        $value = (int) $response['response_text'];
+                    }
+
+                    if ($question->min_value !== null && $value < $question->min_value) {
+                        return response()->json([
+                            'message' => __('number_input_below_min', ['field' => $question->question_text, 'min' => $question->min_value]),
+                        ], 422);
+                    }
+
+                    if ($question->max_value !== null && $value > $question->max_value) {
+                        return response()->json([
+                            'message' => __('number_input_above_max', ['field' => $question->question_text, 'max' => $question->max_value]),
+                        ], 422);
+                    }
+
+                    // Store the validated value
+                    $response['response_text'] = is_float($value) ? (string) $value : (string) $value;
                 }
 
                 // Create or update response

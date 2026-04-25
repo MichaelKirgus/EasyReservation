@@ -56,6 +56,23 @@
           </label>
         </div>
 
+        <!-- Number Input Question -->
+        <div v-else-if="question.field_type === 'number_input'" class="number-input">
+          <input
+            :id="'q' + question.id"
+            v-model.number="responses[question.id]"
+            type="number"
+            :min="question.min_value"
+            :max="question.max_value"
+            :step="question.min_value !== null && question.max_value !== null && (question.max_value - question.min_value) === 1 ? '1' : 'any'"
+            :placeholder="generateNumberPlaceholder(question)"
+            class="number-input-field"
+          />
+          <div v-if="question.min_value !== null || question.max_value !== null" class="number-range-hint">
+            {{ generateNumberHint(question) }}
+          </div>
+        </div>
+
         <!-- Open Text Question -->
         <textarea
           v-else
@@ -189,6 +206,30 @@ async function loadSurvey() {
 
 function handleScoreChange(questionId, event) {
   responses.value[questionId] = parseInt(event.target.value, 10)
+}
+
+function generateNumberPlaceholder(question) {
+  if (question.min_value !== null && question.max_value !== null) {
+    return `${question.min_value} - ${question.max_value}`
+  }
+  if (question.min_value !== null) {
+    return `Min: ${question.min_value}`
+  }
+  if (question.max_value !== null) {
+    return `Max: ${question.max_value}`
+  }
+  return tr('optional')
+}
+
+function generateNumberHint(question) {
+  const parts = []
+  if (question.min_value !== null) {
+    parts.push(`${tr('minimum')}: ${question.min_value}`)
+  }
+  if (question.max_value !== null) {
+    parts.push(`${tr('maximum')}: ${question.max_value}`)
+  }
+  return parts.join(' | ')
 }
 
 async function submitSurvey() {
@@ -332,6 +373,42 @@ async function submitSurvey() {
 }
 
 .radio-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.number-input {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.number-input-field {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 1em;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.number-input-field:focus {
+  outline: 2px solid var(--primary, #3b82f6);
+  border-color: var(--primary, #3b82f6);
+}
+
+.number-range-hint {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
   display: flex;
   align-items: center;
   gap: 8px;

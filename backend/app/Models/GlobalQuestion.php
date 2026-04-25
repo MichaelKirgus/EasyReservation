@@ -15,9 +15,13 @@ class GlobalQuestion extends Model
         'is_required',
         'display_order',
         'options',
+        'min_value',
+        'max_value',
     ];
 
     protected $casts = [
         'options' => 'array',
+        'min_value' => 'integer',
+        'max_value' => 'integer',
     ];
 }

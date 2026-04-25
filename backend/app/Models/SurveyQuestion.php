@@ -17,11 +17,15 @@ class SurveyQuestion extends Model
         'is_required',
         'display_order',
         'options',
+        'min_value',
+        'max_value',
         'active',
     ];
 
     protected $casts = [
         'options' => 'array',
+        'min_value' => 'integer',
+        'max_value' => 'integer',
         'active' => 'boolean',
     ];
 

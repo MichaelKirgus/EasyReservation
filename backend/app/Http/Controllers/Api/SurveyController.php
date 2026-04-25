@@ -88,10 +88,12 @@ class SurveyController extends Controller
         $data = $request->validate([
             'global_question_id' => 'nullable|exists:global_questions,id',
             'question_text' => 'required|string',
-            'field_type' => 'in:score_1_5,text_open,text_multiple_choice',
+            'field_type' => 'in:score_1_5,text_open,text_multiple_choice,number_input',
             'is_required' => 'boolean',
             'display_order' => 'integer',
             'options' => 'array',
+            'min_value' => 'nullable|integer',
+            'max_value' => 'nullable|integer',
             'active' => 'boolean',
         ]);
 
@@ -103,6 +105,8 @@ class SurveyController extends Controller
             'is_required' => $data['is_required'] ?? false,
             'display_order' => $data['display_order'] ?? 0,
             'options' => $data['options'] ?? null,
+            'min_value' => $data['min_value'] ?? null,
+            'max_value' => $data['max_value'] ?? null,
             'active' => $data['active'] ?? true,
         ]);
 
@@ -119,14 +123,26 @@ class SurveyController extends Controller
         $data = $request->validate([
             'global_question_id' => 'nullable|exists:global_questions,id',
             'question_text' => 'required|string',
-            'field_type' => 'in:score_1_5,text_open,text_multiple_choice',
+            'field_type' => 'in:score_1_5,text_open,text_multiple_choice,number_input',
             'is_required' => 'boolean',
             'display_order' => 'integer',
             'options' => 'array',
+            'min_value' => 'nullable|integer',
+            'max_value' => 'nullable|integer',
             'active' => 'boolean',
         ]);
 
-        $question->update($data);
+        $question->update([
+            'global_question_id' => $data['global_question_id'] ?? null,
+            'question_text' => $data['question_text'],
+            'field_type' => $data['field_type'],
+            'is_required' => $data['is_required'] ?? false,
+            'display_order' => $data['display_order'] ?? 0,
+            'options' => $data['options'] ?? null,
+            'min_value' => $data['min_value'] ?? null,
+            'max_value' => $data['max_value'] ?? null,
+            'active' => $data['active'] ?? true,
+        ]);
 
         return response()->json($question);
     }
@@ -156,10 +172,12 @@ class SurveyController extends Controller
     {
         $data = $request->validate([
             'question_text' => 'required|string',
-            'field_type' => 'in:score_1_5,text_open,text_multiple_choice',
+            'field_type' => 'in:score_1_5,text_open,text_multiple_choice,number_input',
             'is_required' => 'boolean',
             'display_order' => 'integer',
             'options' => 'array',
+            'min_value' => 'nullable|integer',
+            'max_value' => 'nullable|integer',
         ]);
 
         $question = GlobalQuestion::create($data);
@@ -172,10 +190,12 @@ class SurveyController extends Controller
     {
         $data = $request->validate([
             'question_text' => 'required|string',
-            'field_type' => 'in:score_1_5,text_open,text_multiple_choice',
+            'field_type' => 'in:score_1_5,text_open,text_multiple_choice,number_input',
             'is_required' => 'boolean',
             'display_order' => 'integer',
             'options' => 'array',
+            'min_value' => 'nullable|integer',
+            'max_value' => 'nullable|integer',
         ]);
 
         $question->update($data);
@@ -310,6 +330,26 @@ class SurveyController extends Controller
                         'distribution' => $distribution,
                         'average_score' => null,
                         'responses' => [],
+                    ];
+                } elseif ($question->field_type === 'number_input') {
+                    // number_input - get statistics
+                    $responses = $question->responses()
+                        ->where('is_responded', true)
+                        ->whereNotNull('response_text')
+                        ->pluck('response_text')
+                        ->filter(fn($v) => $v !== '')
+                        ->toArray();
+
+                    $numericResponses = array_filter($responses, fn($v) => is_numeric($v));
+                    $avg = !empty($numericResponses) ? array_sum($numericResponses) / count($numericResponses) : null;
+
+                    $statistics = [
+                        'total_responses' => count($responses),
+                        'distribution' => [],
+                        'average_score' => $avg !== null ? round($avg, 2) : null,
+                        'min_value' => !empty($numericResponses) ? round(min($numericResponses), 2) : null,
+                        'max_value' => !empty($numericResponses) ? round(max($numericResponses), 2) : null,
+                        'responses' => $responses,
                     ];
                 } else {
                     // text_open - get all responses

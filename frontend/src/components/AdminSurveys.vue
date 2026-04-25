@@ -65,6 +65,8 @@ const questionFormData = ref({
   is_required: false,
   display_order: 0,
   options: [],
+  min_value: null,
+  max_value: null,
 })
 
 // Survey columns
@@ -85,6 +87,7 @@ const fieldTypes = [
   { value: 'score_1_5', label: tr('score_1_to_5') },
   { value: 'text_open', label: tr('open_text') },
   { value: 'text_multiple_choice', label: tr('multiple_choice') },
+  { value: 'number_input', label: tr('number_input') },
 ]
 
 onMounted(async () => {
@@ -243,6 +246,8 @@ function createQuestion() {
     is_required: false,
     display_order: questions.value.length + 1,
     options: [],
+    min_value: null,
+    max_value: null,
   }
   showDialog.value = true
 }
@@ -281,12 +286,14 @@ async function deleteQuestion(id) {
 
 function editQuestion(question) {
   selectedQuestion.value = { ...question }
-  questionFormData.value = { 
+  questionFormData.value = {
     question_text: question.question_text,
     field_type: question.field_type,
     is_required: question.is_required,
     display_order: question.display_order || 0,
     options: question.options || [],
+    min_value: question.min_value ?? null,
+    max_value: question.max_value ?? null,
   }
   showDialog.value = true
 }
@@ -300,7 +307,17 @@ function closeQuestionDialog() {
     is_required: false,
     display_order: 0,
     options: [],
+    min_value: null,
+    max_value: null,
   }
+}
+
+function addOption() {
+  questionFormData.value.options.push('')
+}
+
+function removeOption(index) {
+  questionFormData.value.options.splice(index, 1)
 }
 
 function getQuestionTypeLabel(type) {
@@ -308,6 +325,7 @@ function getQuestionTypeLabel(type) {
     score_1_5: tr('score_1_to_5'),
     text_open: tr('open_text'),
     text_multiple_choice: tr('multiple_choice'),
+    number_input: tr('number_input'),
   }
   return labels[type] || type
 }
@@ -709,6 +727,47 @@ function selectSurveyForResults(survey) {
                 v-model="questionFormData.is_required"
                 type="checkbox"
               />
+            </div>
+
+            <div v-if="questionFormData.field_type === 'text_multiple_choice'" class="form-group">
+              <label>{{ tr('options') }}</label>
+              <div v-for="(option, index) in questionFormData.options" :key="index" style="display:flex;gap:0.5em;margin-bottom:0.5em;align-items:center;">
+                <input
+                  :id="'option-' + index"
+                  v-model="questionFormData.options[index]"
+                  type="text"
+                  :placeholder="tr('option') + ' ' + (index + 1)"
+                  style="flex:1;"
+                />
+                <IconButton icon="trash" :label="tr('remove')" class="ghost" variant="danger" @click="removeOption(index)" />
+              </div>
+              <IconButton icon="plus" :label="tr('add_option')" variant="info" @click="addOption" />
+              <p class="field-help">{{ tr('multiple_choice_help') }}</p>
+            </div>
+
+            <div v-if="questionFormData.field_type === 'number_input'" class="form-group">
+              <label>{{ tr('number_range') }}</label>
+              <div style="display:flex;gap:1em;align-items:center;">
+                <div style="flex:1;">
+                  <label for="min_value" style="font-size:0.85em;color:var(--text-muted);">{{ tr('minimum') }}</label>
+                  <input
+                    id="min_value"
+                    v-model.number="questionFormData.min_value"
+                    type="number"
+                    style="width:100%;margin-top:0.25em;"
+                  />
+                </div>
+                <div style="flex:1;">
+                  <label for="max_value" style="font-size:0.85em;color:var(--text-muted);">{{ tr('maximum') }}</label>
+                  <input
+                    id="max_value"
+                    v-model.number="questionFormData.max_value"
+                    type="number"
+                    style="width:100%;margin-top:0.25em;"
+                  />
+                </div>
+              </div>
+              <p class="field-help">{{ tr('number_input_help') }}</p>
             </div>
 
             <div style="margin-top:1em; display:flex; gap:0.5em; justify-content:flex-end;">
