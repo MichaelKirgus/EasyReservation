@@ -596,6 +596,32 @@ async function handleWaitlistUndoTokenIfPresent() {
   }
 }
 
+async function handleAdminApprovalTokenIfPresent() {
+  const url = new URL(window.location.href)
+  const token = url.searchParams.get('av')
+  if (!token) return
+
+  try {
+    const data = await fetchJsonWithAuth(
+      `${apiBase}/email-validations/admin-approve/${encodeURIComponent(token)}`,
+      {},
+      { siteToken: siteToken.value, publicApiKey: publicApiKey.value },
+    )
+
+    if (data?.waitlist) {
+      setMessage(renderMarkdown(data?.message || tr('waitlist_entry_approved', 'Waitlist entry approved.')))
+    } else {
+      setMessage(renderMarkdown(data?.message || tr('reservation_approved', 'Reservation approved.')))
+    }
+
+    await loadConfig()
+  } catch (e) {
+    setError(tr('validation_failed', 'Validation failed: ') + (e.message || e))
+  } finally {
+    removeQueryParams(['av'])
+  }
+}
+
 function removeQueryParams(keys) {
   if (typeof window === 'undefined') return
   const url = new URL(window.location.href)
@@ -612,6 +638,7 @@ onMounted(async () => {
   await loadConfig()
   applyCustomCss(config.settings.reservation_custom_css)
   await verifyTokenIfPresent()
+  await handleAdminApprovalTokenIfPresent()
   await handleUndoTokenIfPresent()
   await handleWaitlistUndoTokenIfPresent()
 })

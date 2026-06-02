@@ -208,7 +208,7 @@ class EmailValidationService
             'display_name' => $name,
             'email' => $email ?: null,
             'payload' => $payload,
-            'token' => $requiresEmail ? (string) Str::uuid() : null,
+            'token' => ($requiresEmail || $requiresAdmin) ? (string) Str::uuid() : null,
             'status' => $requiresEmail ? 'email_pending' : ($requiresAdmin ? 'waiting_admin' : 'ready'),
             'requires_admin_approval' => $requiresAdmin,
             'site_token' => $siteToken,
@@ -349,6 +349,26 @@ class EmailValidationService
         $validation->save();
 
         return $this->finalize($validation);
+    }
+
+    public function approveToken(string $token): array
+    {
+        /** @var EmailValidation|null $validation */
+        $validation = EmailValidation::query()->where('token', $token)->first();
+
+        if (! $validation) {
+            throw new \RuntimeException(__('validation_token_not_found'));
+        }
+
+        if (in_array($validation->status, ['completed', 'cancelled', 'expired', 'failed'], true)) {
+            throw new \RuntimeException(__('validation_link_already_used'));
+        }
+
+        if ($validation->status === 'email_pending') {
+            throw new \RuntimeException(__('email_validation_pending_text'));
+        }
+
+        return $this->approve($validation);
     }
 
     private function finalize(EmailValidation $validation): array

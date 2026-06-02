@@ -36,4 +36,21 @@ class EmailValidationController extends Controller
             'entry' => $result['entry'] ?? null,
         ]);
     }
+
+    public function approve(string $token): JsonResponse
+    {
+        try {
+            $result = $this->validationService->approveToken($token);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 400);
+        }
+
+        $waitlist = (bool) ($result['waitlist'] ?? false);
+
+        return response()->json([
+            'message' => $waitlist ? __('waitlist_entry_approved') : __('reservation_approved'),
+            'waitlist' => $waitlist,
+            'result' => $result,
+        ]);
+    }
 }

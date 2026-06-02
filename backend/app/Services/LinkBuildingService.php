@@ -61,13 +61,29 @@ class LinkBuildingService
 
     /**
      * Build admin approval link for an email validation record.
-     * Points to the admin API endpoint that approves the validation.
+     * Uses the public base URL with query parameters so links are consistent with other mail links.
      */
     public function buildAdminApprovalLink(EmailValidation $validation): string
     {
-        $appUrl = rtrim(config('app.url'), '/');
+        if (empty($validation->token)) {
+            $validation->token = (string) Str::uuid();
+            $validation->save();
+        }
 
-        return $appUrl . '/api/admin/email-validations/' . $validation->id . '/approve';
+        $base = $this->normalizedPublicBaseUrl();
+
+        $params = ['av' => (string) $validation->token];
+
+        if (!empty($validation->site_token)) {
+            $params['t'] = $validation->site_token;
+        } else {
+            $siteToken = $this->siteTokens->getValidSiteToken();
+            if (!empty($siteToken)) {
+                $params['t'] = (string) $siteToken;
+            }
+        }
+
+        return $this->appendQuery($base, $params);
     }
 
     /**

@@ -71,6 +71,7 @@ Route::middleware(['site-token'])->group(function () {
     Route::get('/public/config', [ConfigController::class, 'show']);
     Route::get('/faqs', [FaqController::class, 'publicIndex']);
     Route::get('/privacy-policy', [PrivacyPolicyController::class, 'show']);
+    Route::get('/email-validations/admin-approve/{token}', [EmailValidationController::class, 'approve']);
     Route::get('/rss', [AdminRssFeedController::class, 'guestCombined'])->name('guest.rss.combined');
     Route::get('/rss/', [AdminRssFeedController::class, 'guestCombined']);
     Route::get('/rss/reservations', [AdminRssFeedController::class, 'guestReservations'])->name('guest.rss.reservations');
