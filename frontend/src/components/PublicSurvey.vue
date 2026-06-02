@@ -372,15 +372,6 @@ async function submitSurvey() {
   gap: 5px;
 }
 
-.radio-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-}
-
 .number-input {
   display: flex;
   flex-direction: column;
@@ -409,6 +400,7 @@ async function submitSurvey() {
   font-style: italic;
 }
 
+.radio-option {
   display: flex;
   align-items: center;
   gap: 8px;
