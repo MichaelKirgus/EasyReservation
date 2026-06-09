@@ -176,7 +176,7 @@
     "middleware_unauthorized_moderator": "Unauthorized. Moderator access required.",
     "middleware_invalid_site_token": "Invalid site token.",
     "middleware_missing_api_key": "API key is missing.",
-    "middleware_unauthorized_role": "Unauthorized. Required role(s): {roles}.",
+    "middleware_unauthorized_role": "Unauthorized. Required role(s): :roles.",
     "auth_throttled": "Too many login attempts. Please try again in :seconds seconds.",
     "waitlist_site_token_required": "Site token is required to join waitlist.",
     "rss_feed_disabled": "RSS feeds are currently disabled.",

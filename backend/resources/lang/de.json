@@ -173,7 +173,7 @@
     "middleware_unauthorized_moderator": "Nicht autorisiert. Moderator-Zugriff erforderlich.",
     "middleware_invalid_site_token": "Ungültiges Seitentoken.",
     "middleware_missing_api_key": "API-Schlüssel fehlt.",
-    "middleware_unauthorized_role": "Nicht autorisiert. Erforderliche Rolle(n): {roles}.",
+    "middleware_unauthorized_role": "Nicht autorisiert. Erforderliche Rolle(n): :roles.",
     "auth_throttled": "Zu viele Anmeldeversuche. Bitte versuchen Sie es in :seconds Sekunden erneut.",
     "waitlist_site_token_required": "Seitentoken ist erforderlich, um auf die Warteliste zu kommen.",
     "rss_feed_disabled": "RSS-Feeds sind derzeit deaktiviert.",

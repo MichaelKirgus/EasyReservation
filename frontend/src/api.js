@@ -42,9 +42,12 @@ api.interceptors.request.use((config) => {
     config.headers['X-Site-Token'] = siteToken;
   }
   // Admin auth is handled via httpOnly cookie — no X-Api-Key header needed
-  // Public API key (guest site token) is still sent explicitly
+  // Public API key (guest access) must not shadow admin cookie auth.
+  // Ensure admin/moderator API calls rely on the authenticated session cookie.
   const publicApiKey = localStorage.getItem('public_api_key') || '';
-  if (publicApiKey) {
+  const requestUrl = typeof config.url === 'string' ? config.url : '';
+  const isPrivilegedRoute = requestUrl.includes('/admin/') || requestUrl.includes('/moderator/');
+  if (publicApiKey && !hasAdminSessionMarker() && !isPrivilegedRoute) {
     config.headers['X-Api-Key'] = publicApiKey;
   }
   config.withCredentials = true;
