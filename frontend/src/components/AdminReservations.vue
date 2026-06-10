@@ -825,7 +825,19 @@ button.danger { background: #dc2626; }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
 .message { color: #065f46; background: #ecfdf3; border: 1px solid #a7f3d0; padding: 0.5rem; border-radius: 6px; }
 .error { color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; padding: 0.5rem; border-radius: 6px; }
-.payload { background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; padding:0.5rem; max-width:320px; white-space:pre-wrap; word-break:break-word; font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; }
+.payload {
+  background: var(--surface-muted);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  max-width: 320px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+}
 .label.inline { display:flex; align-items:center; gap:0.35rem; }
 .waitlist { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
 .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
