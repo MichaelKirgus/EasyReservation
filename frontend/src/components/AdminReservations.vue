@@ -47,6 +47,7 @@ const waitlistColumns = computed(() => [
   { key: 'email', label: tr('admin_reservations_column_email'), sortable: true },
   { key: 'date_added', label: tr('admin_reservations_column_date'), sortable: true },
   { key: 'status', label: tr('admin_reservations_column_status'), sortable: true },
+  { key: 'payload', label: tr('admin_reservations_column_payload'), sortable: false },
   { key: 'site_token', label: tr('admin_reservations_column_token'), sortable: false },
 ])
 
@@ -56,6 +57,7 @@ const validationColumns = computed(() => [
   { key: 'display_name', label: tr('admin_reservations_column_name'), sortable: true },
   { key: 'email', label: tr('admin_reservations_column_email'), sortable: true },
   { key: 'status', label: tr('admin_reservations_column_status'), sortable: true },
+  { key: 'payload', label: tr('admin_reservations_column_payload'), sortable: false },
 ])
 
 const rateLimitColumns = computed(() => [
@@ -705,7 +707,7 @@ async function purgeAllData() {
         selectable
         :loading="waitlistLoading"
         :page-size="20"
-        :initial-hidden-columns="['id']"
+        :initial-hidden-columns="['id', 'payload']"
         persist-key="admin-waitlist"
         @refresh="loadWaitlist"
         @auto-refresh="loadWaitlist({ auto: true })"
@@ -724,6 +726,9 @@ async function purgeAllData() {
         </template>
         <template #cell-date_added="{ value }">{{ formatDateTime(value) }}</template>
         <template #cell-status="{ value }">{{ value }}</template>
+        <template #cell-payload="{ row }">
+          <pre class="payload" v-if="row.payload">{{ JSON.stringify(row.payload, null, 2) }}</pre><span v-else>-</span>
+        </template>
         <template #cell-site_token="{ row }">
           <span v-if="row.site_token">{{ row.site_token }}</span><span v-else>â€“</span>
         </template>
@@ -747,7 +752,7 @@ async function purgeAllData() {
         selectable
         :loading="validationLoading"
         :page-size="20"
-        :initial-hidden-columns="['id']"
+        :initial-hidden-columns="['id', 'payload']"
         persist-key="admin-validations"
         @refresh="loadValidations"
         @auto-refresh="loadValidations({ auto: true })"
@@ -760,6 +765,9 @@ async function purgeAllData() {
           <IconButton variant="danger" icon="trash2" :label="tr('admin_reservations_delete_all')" @click="clearValidations" :disabled="validationLoading || !validations.length" />
         </template>
         <template #cell-status="{ value }">{{ statusLabel(value) }}</template>
+        <template #cell-payload="{ row }">
+          <pre class="payload" v-if="row.payload">{{ JSON.stringify(row.payload, null, 2) }}</pre><span v-else>-</span>
+        </template>
         <template #row-actions="{ row }">
           <IconButton icon="check" :label="tr('admin_reservations_approve')" @click="approveValidation(row.id)" :disabled="validationLoading" />
           <IconButton icon="mail" :label="tr('admin_reservations_resend_email')" @click="resendValidation(row.id)" :disabled="validationLoading" />
