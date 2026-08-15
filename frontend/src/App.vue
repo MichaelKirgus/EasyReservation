@@ -379,6 +379,9 @@ async function login() {
     loginForm.otp = ''
     showLogin.value = false
     showOtp.value = false
+    // Clear any leftover error/info from prior failed attempts (e.g. wrong OTP)
+    authError.value = ''
+    authInfo.value = ''
     
     // Redirect to post-login URL based on appSettings
     try {
