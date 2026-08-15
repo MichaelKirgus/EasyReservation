@@ -15,4 +15,7 @@ enum EventTriggerType: string
     case WAITLIST_ENTRY_REMOVED = 'waitlist_entry_removed';
     case APPLICATION_ERROR = 'application_error';
     case SETTING_CHANGED = 'setting_changed';
+    case LOGIN_SUCCEEDED = 'login_succeeded';
+    case LOGIN_FAILED = 'login_failed';
+    case LOGOUT = 'logout';
 }

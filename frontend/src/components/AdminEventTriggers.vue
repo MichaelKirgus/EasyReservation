@@ -146,7 +146,10 @@ const eventTypes = computed(() => [
   { value: 'waitlist_entry_added', label: tr('event_type_waitlist_entry_added') },
   { value: 'waitlist_entry_removed', label: tr('event_type_waitlist_entry_removed') },
   { value: 'application_error', label: tr('event_type_application_error') },
-  { value: 'setting_changed', label: tr('event_type_setting_changed') }
+  { value: 'setting_changed', label: tr('event_type_setting_changed') },
+  { value: 'login_succeeded', label: tr('event_type_login_succeeded') },
+  { value: 'login_failed', label: tr('event_type_login_failed') },
+  { value: 'logout', label: tr('event_type_logout') }
 ])
 
 function eventTypeLabel(val) {

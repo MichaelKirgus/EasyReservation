@@ -98,6 +98,11 @@ class EventTriggerService
             case 'setting_changed':
                 // Always fires when triggered - context contains the changed settings
                 return true;
+            case 'login_succeeded':
+            case 'login_failed':
+            case 'logout':
+                // Always fires when triggered - context contains the user/login details
+                return true;
             default:
                 return true; // Für andere Events ggf. anpassen
         }
@@ -148,6 +153,11 @@ class EventTriggerService
             $this->placeholderService->setReservation($context['reservation']);
         }
         
+        // Add user placeholders if present (e.g. login/logout triggers)
+        if (isset($context['user']) && $context['user'] instanceof \App\Models\User) {
+            $this->placeholderService->setUser($context['user']);
+        }
+        
         // Add waitlist_entry placeholders if present
         if (isset($context['waitlist_entry']) && $context['waitlist_entry'] instanceof \App\Models\WaitlistEntry) {
             $map['payload'] = $context['waitlist_entry']->payload ?? [];
@@ -164,6 +174,14 @@ class EventTriggerService
         }
         if (isset($context['changed_by'])) {
             $map['changed_by'] = (string) $context['changed_by'];
+        }
+
+        // Add login/logout placeholders if present
+        if (isset($context['login_identifier'])) {
+            $map['login_identifier'] = (string) $context['login_identifier'];
+        }
+        if (isset($context['login_ip'])) {
+            $map['login_ip'] = (string) $context['login_ip'];
         }
         
         if (!empty($map)) {
