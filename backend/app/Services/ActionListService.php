@@ -462,6 +462,8 @@ class ActionListService
         $storeEmails = array_key_exists('store_emails', $config)
             ? (bool) $config['store_emails']
             : null;
+        $clearReservations = (bool) ($config['clear_reservations'] ?? false);
+        $clearWaitlist = (bool) ($config['clear_waitlist'] ?? false);
 
         if ($archiveNameTemplate === '') {
             Log::warning('Archive action without archive_name', ['action_id' => $action->id]);
@@ -484,14 +486,16 @@ class ActionListService
         $archive = $this->archiveService->createArchive($archiveName, $archiveDescription, $storeEmails);
         $this->archiveService->archiveData($archive, $storeEmails);
 
-        $deletedReservations = Reservation::query()->delete();
-        $deletedWaitlistEntries = WaitlistEntry::query()->delete();
+        $deletedReservations = $clearReservations ? Reservation::query()->delete() : 0;
+        $deletedWaitlistEntries = $clearWaitlist ? WaitlistEntry::query()->delete() : 0;
 
-        Log::info('Archived and cleared reservation and waitlist entries', [
+        Log::info('Archived reservation and waitlist entries', [
             'action_id' => $action->id,
             'archive_id' => $archive->id,
             'archive_name' => $archive->name,
             'store_emails' => $storeEmails,
+            'cleared_reservations' => $clearReservations,
+            'cleared_waitlist' => $clearWaitlist,
             'deleted_reservations' => $deletedReservations,
             'deleted_waitlist_entries' => $deletedWaitlistEntries,
         ]);
