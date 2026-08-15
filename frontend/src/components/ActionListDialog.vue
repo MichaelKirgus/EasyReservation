@@ -187,6 +187,18 @@
             <input v-model="action.config.store_emails" type="checkbox" />
             {{ tr('admin_action_lists_field_archive_store_emails') }}
           </label>
+
+          <label style="display:flex;align-items:center; margin-top:0.6em;">
+            <input v-model="action.config.clear_reservations" type="checkbox" />
+            {{ tr('admin_action_lists_field_archive_clear_reservations') }}
+          </label>
+          <small>{{ tr('admin_action_lists_field_archive_clear_reservations_help') }}</small>
+
+          <label style="display:flex;align-items:center; margin-top:0.6em;">
+            <input v-model="action.config.clear_waitlist" type="checkbox" />
+            {{ tr('admin_action_lists_field_archive_clear_waitlist') }}
+          </label>
+          <small>{{ tr('admin_action_lists_field_archive_clear_waitlist_help') }}</small>
         </div>
 
         <!-- Wait N Seconds Action Config -->
@@ -364,6 +376,8 @@ watch(() => props.actionList, (actionList) => {
         archive_name: '',
         archive_description: '',
         store_emails: false,
+        clear_reservations: false,
+        clear_waitlist: false,
         seconds: 0,
         use_random_token: false,
         random_length: 8,
@@ -414,6 +428,8 @@ function addNewAction() {
       archive_name: '',
       archive_description: '',
       store_emails: false,
+      clear_reservations: false,
+      clear_waitlist: false,
       seconds: 0,
       use_random_token: false,
       random_length: 8,

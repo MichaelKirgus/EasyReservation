@@ -75,6 +75,8 @@ class SettingsController extends Controller
             }
         }
 
+        $this->fireSettingChangedTrigger($oldSettings, $settings);
+
         return response()->json(['message' => __('admin_setting_change_success'), 'settings' => $this->settings->all()]);
     }
 
@@ -149,7 +151,40 @@ class SettingsController extends Controller
             }
         }
 
+        $this->fireSettingChangedTrigger($oldSettings, $importedSettings);
+
         return response()->json(['message' => __('admin_setting_change_success'), 'settings' => $this->settings->all()]);
+    }
+
+    /**
+     * Fire the generic setting_changed trigger for any settings whose value actually changed.
+     */
+    private function fireSettingChangedTrigger(array $oldSettings, array $submittedSettings): void
+    {
+        $changed = [];
+        foreach ($submittedSettings as $name => $value) {
+            $normalizedNew = is_bool($value) ? ($value ? '1' : '0') : (string) ($value ?? '');
+            $normalizedOld = (string) ($oldSettings[$name] ?? '');
+            if ($normalizedOld !== $normalizedNew) {
+                $changed[$name] = ['old' => $normalizedOld, 'new' => $normalizedNew];
+            }
+        }
+
+        if (empty($changed)) {
+            return;
+        }
+
+        $user = auth()->user();
+        $changedBy = $user ? trim(($user->name ?? '') . ' (' . ($user->role ?? '') . ')') : '';
+        $summary = collect($changed)
+            ->map(fn ($diff, $name) => $name . ': ' . $diff['old'] . ' -> ' . $diff['new'])
+            ->implode(', ');
+
+        $this->eventTriggers->handle('setting_changed', [
+            'changed_settings' => $summary,
+            'changed_by' => $changedBy,
+            'user' => $user,
+        ]);
     }
 
     // Gibt den Wert einer einzelnen Einstellung zurück

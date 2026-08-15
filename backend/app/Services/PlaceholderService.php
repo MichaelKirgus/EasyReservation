@@ -34,6 +34,12 @@ class PlaceholderService
 
     private const CONTEXT_TOKENS = [
         '{{error_message}}',
+        '{{changed_settings}}',
+        '{{changed_by}}',
+        '{{user_name}}',
+        '{{user_email}}',
+        '{{login_identifier}}',
+        '{{login_ip}}',
     ];
 
     private const RUNTIME_TOKENS = [
@@ -229,6 +235,12 @@ class PlaceholderService
         // Context placeholders (e.g. error_message from event triggers)
         $contextTokens = [
             '{{error_message}}' => $this->contextPlaceholders['error_message'] ?? '',
+            '{{changed_settings}}' => $this->contextPlaceholders['changed_settings'] ?? '',
+            '{{changed_by}}' => $this->contextPlaceholders['changed_by'] ?? '',
+            '{{user_name}}' => $this->contextPlaceholders['user_name'] ?? '',
+            '{{user_email}}' => $this->contextPlaceholders['user_email'] ?? '',
+            '{{login_identifier}}' => $this->contextPlaceholders['login_identifier'] ?? '',
+            '{{login_ip}}' => $this->contextPlaceholders['login_ip'] ?? '',
         ];
 
         // Survey-specific placeholders

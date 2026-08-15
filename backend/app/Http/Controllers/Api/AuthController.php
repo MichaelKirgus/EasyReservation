@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\EventTriggerService;
 use App\Services\SettingsService;
 use App\Services\TranslationService;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +20,7 @@ class AuthController extends Controller
     public function __construct(
         private readonly SettingsService $settings,
         private readonly TranslationService $translationService,
+        private readonly EventTriggerService $eventTriggers,
     ) {}
 
     public function login(Request $request): JsonResponse
@@ -44,6 +46,10 @@ class AuthController extends Controller
             ->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
+            $this->eventTriggers->handle('login_failed', [
+                'login_identifier' => $data['identifier'],
+                'login_ip' => $request->ip(),
+            ]);
             return response()->json(['message' => __('auth_invalid_credentials')], 403);
         }
 
@@ -69,6 +75,11 @@ class AuthController extends Controller
             }
 
             if (! $valid) {
+                $this->eventTriggers->handle('login_failed', [
+                    'user' => $user,
+                    'login_identifier' => $data['identifier'],
+                    'login_ip' => $request->ip(),
+                ]);
                 return response()->json([
                     'message' => __('two_factor_invalid_code'),
                     'two_factor' => true,
@@ -105,6 +116,8 @@ class AuthController extends Controller
         // Clear translation cache to ensure fresh translations are loaded for the new user role
         $this->translationService->flush();
 
+        $this->eventTriggers->handle('login_succeeded', ['user' => $user]);
+
         return response()->json([
             'api_token' => $plainToken,
             'user' => [
@@ -121,12 +134,43 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
+        $user = $this->resolveUserFromRequest($request);
+        if ($user) {
+            $this->eventTriggers->handle('logout', ['user' => $user]);
+        }
+
         // Clear translation cache on logout to ensure clean state for next login
         $this->translationService->flush();
 
         $cookie = Cookie::forget('api_session', '/');
 
         return response()->json(['message' => 'Logged out.'])->cookie($cookie);
+    }
+
+    /**
+     * Resolve the currently authenticated user from the api token cookie/header (logout route has no auth middleware).
+     */
+    private function resolveUserFromRequest(Request $request): ?User
+    {
+        $apiKey = $request->header('X-Api-Key')
+            ?? $request->query('api_key')
+            ?? $request->cookie('api_session');
+
+        if (! $apiKey) {
+            return null;
+        }
+
+        return User::query()
+            ->where('active', true)
+            ->whereNotNull('api_token')
+            ->get()
+            ->first(function (User $candidate) use ($apiKey) {
+                if ($candidate->api_token_is_hashed) {
+                    return Hash::check($apiKey, $candidate->api_token);
+                }
+
+                return hash_equals((string) $candidate->api_token, (string) $apiKey);
+            });
     }
 
     /**
