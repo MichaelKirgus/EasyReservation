@@ -52,6 +52,7 @@ const selectedLang = ref('de')
 const langMenuOpen = ref(false)
 const showMobileMenu = ref(false)
 const globalLoading = ref(false)
+const initialLoading = ref(true)
 const privacyEnabled = ref(false)
 const faqEnabled = ref(false)
 const maintenanceEnabled = computed(() => Number((appSettings.settings || appSettings)?.maintenance_enabled || 0) === 1)
@@ -453,44 +454,41 @@ function handleLoadingEnd() { globalLoading.value = false }
 
 
 onMounted(async () => {
-  prefersDarkQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  const initialTheme = theme.value || deriveSystemTheme()
-  theme.value = initialTheme
-  applyTheme(initialTheme, hasExplicitTheme.value)
-  handlePrefersChange = (event) => {
-    if (!hasExplicitTheme.value) {
-      theme.value = event.matches ? 'dark' : 'light'
-      applyTheme(theme.value, false)
+  try {
+    prefersDarkQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const initialTheme = theme.value || deriveSystemTheme()
+    theme.value = initialTheme
+    applyTheme(initialTheme, hasExplicitTheme.value)
+    handlePrefersChange = (event) => {
+      if (!hasExplicitTheme.value) {
+        theme.value = event.matches ? 'dark' : 'light'
+        applyTheme(theme.value, false)
+      }
     }
-  }
-  prefersDarkQuery.addEventListener('change', handlePrefersChange)
+    prefersDarkQuery.addEventListener('change', handlePrefersChange)
 
-  await fetchAppSettings();
-  // Load available languages and language names from backend
-  try {
-    const languages = await loadAvailableLanguages();
-    availableLanguages.value = languages;
-    
-    const names = await loadLanguageNames();
-    languageNames.value = names;
-  } catch (error) {
-    console.error('Failed to load dynamic languages:', error);
-  }
-  
-  // Initialize translations for the selected language
-  try {
+    await fetchAppSettings()
+
+    const [languages, names] = await Promise.all([
+      loadAvailableLanguages(),
+      loadLanguageNames(),
+      fetchPrivacyEnabled(),
+    ])
+    availableLanguages.value = languages
+    languageNames.value = names
+
     if (selectedLang.value) {
-      await fetchTranslations(selectedLang.value);
+      await fetchTranslations(selectedLang.value)
     }
-  } catch (err) {
-    console.error('Failed to initialize translations:', err);
+  } catch (error) {
+    console.error('Failed to initialize application:', error)
+  } finally {
+    window.addEventListener('loading-start', handleLoadingStart)
+    window.addEventListener('loading-end', handleLoadingEnd)
+    window.addEventListener('settings-updated', fetchPrivacyEnabled)
+    window.addEventListener('admin-session-expired', handleSessionExpired)
+    initialLoading.value = false
   }
-  
-  window.addEventListener('loading-start', handleLoadingStart)
-  window.addEventListener('loading-end', handleLoadingEnd)
-  window.addEventListener('settings-updated', fetchPrivacyEnabled)
-  window.addEventListener('admin-session-expired', handleSessionExpired)
-  fetchPrivacyEnabled()
 })
 
 onBeforeUnmount(() => {
@@ -533,7 +531,7 @@ async function fetchPrivacyEnabled() {
 </script>
 
 <template>
-  <main class="page">
+  <main v-if="!initialLoading" class="page">
     <header class="topbar" v-if="privacyLoaded">
       <div class="brand-row">
         <div class="left-actions">
@@ -658,6 +656,11 @@ async function fetchPrivacyEnabled() {
       @login="(form) => { Object.assign(loginForm, form); login(); }"
     />
   </main>
+
+  <div v-else class="app-loading-screen" aria-busy="true" aria-live="polite">
+    <img v-if="loadingImageUrl" :src="loadingImageUrl" alt="Loading" class="loader-image" />
+    <div v-else class="loader-spinner" aria-hidden="true"></div>
+  </div>
 </template>
 
 <style scoped>
@@ -667,6 +670,14 @@ async function fetchPrivacyEnabled() {
   color: var(--text);
   font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   padding: 0;
+}
+
+.app-loading-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-bg-current, var(--bg));
 }
 
 .topbar {

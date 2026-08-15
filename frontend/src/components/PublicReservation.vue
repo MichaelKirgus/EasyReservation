@@ -36,6 +36,7 @@ window.addEventListener('storage', (e) => {
 const publicApiKey = ref(localStorage.getItem('public_api_key') || '')
 const lang = ref(props.langCode || (navigator.language || 'en').split('-')[0])
 const loading = ref(false)
+const initializing = ref(true)
 const message = ref('')
 const error = ref('')
 const config = reactive({ settings: {}, form_fields: [], attendees: [], waitlist: [], stats: { count: 0, max: 0 }, app_version: '' })
@@ -139,16 +140,15 @@ async function fetchJson(url, opts = {}) {
 // Initialize translations when component mounts
 onMounted(async () => {
   try {
-    await fetchTranslations(lang.value);
+    // Keep local theme in sync with root data attribute
+    theme.value = document.documentElement?.dataset?.theme || theme.value
+    themeObserver = new MutationObserver(() => {
+      theme.value = document.documentElement?.dataset?.theme || 'light'
+    })
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
   } catch (err) {
-    console.error('Failed to initialize translations:', err);
+    console.error('Failed to initialize reservation view:', err)
   }
-  // Keep local theme in sync with root data attribute
-  theme.value = document.documentElement?.dataset?.theme || theme.value
-  themeObserver = new MutationObserver(() => {
-    theme.value = document.documentElement?.dataset?.theme || 'light'
-  })
-  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
 })
 
 // Watch for language changes from props
@@ -632,15 +632,18 @@ function removeQueryParams(keys) {
 }
 
 onMounted(async () => {
-  syncCurrentUser()
-  window.addEventListener('api-key-updated', onApiKeyUpdated)
-  await fetchTranslations(lang.value)
-  await loadConfig()
-  applyCustomCss(config.settings.reservation_custom_css)
-  await verifyTokenIfPresent()
-  await handleAdminApprovalTokenIfPresent()
-  await handleUndoTokenIfPresent()
-  await handleWaitlistUndoTokenIfPresent()
+  try {
+    syncCurrentUser()
+    window.addEventListener('api-key-updated', onApiKeyUpdated)
+    await loadConfig()
+    applyCustomCss(config.settings.reservation_custom_css)
+    await verifyTokenIfPresent()
+    await handleAdminApprovalTokenIfPresent()
+    await handleUndoTokenIfPresent()
+    await handleWaitlistUndoTokenIfPresent()
+  } finally {
+    initializing.value = false
+  }
 })
 
 onUnmounted(() => {
@@ -703,7 +706,7 @@ function goToGDPR() {
           v-html="renderMarkdown(config.settings.site_token_invalid_message || tr('site_token_invalid_message', 'A valid site token is required to access this page.'))">
         </div>
     <div class="backdrop">
-      <div v-if="loading" class="loading-overlay" aria-live="polite" aria-busy="true">
+      <div v-if="loading || initializing" class="loading-overlay" aria-live="polite" aria-busy="true">
         <div v-if="loadingImageUrl && loadingImageIsSvg && inlineSvgContent" class="loader-image inline-svg" :style="{ color: loadingSvgColor }" v-html="inlineSvgContent"></div>
         <img v-else-if="loadingImageUrl" :src="loadingImageUrl" alt="Loading" class="loader-image" />
         <svg v-else class="loader-image" viewBox="0 0 50 50" :style="{ color: loadingSvgColor }" fill="none" xmlns="http://www.w3.org/2000/svg">
