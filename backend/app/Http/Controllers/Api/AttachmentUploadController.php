@@ -19,8 +19,9 @@ class AttachmentUploadController extends Controller
     {
         $validated = $this->validateUpload($request);
 
-        // Generate unique filename
-        $extension = $validated['file']->getClientOriginalExtension();
+        // Derive the stored extension from the detected MIME type, never from the
+        // client-supplied filename/extension, to prevent disguising executable files.
+        $extension = $this->extensionForMimeType($validated['file']->getMimeType());
         $storedFilename = Str::uuid() . '.' . $extension;
         
         // Store file in public disk under attachment_templates directory
@@ -79,5 +80,26 @@ class AttachmentUploadController extends Controller
                 'max:10240', // 10MB in KB
             ],
         ]);
+    }
+
+    /**
+     * Map a validated MIME type to a safe, fixed file extension.
+     */
+    private function extensionForMimeType(string $mimeType): string
+    {
+        return match ($mimeType) {
+            'text/plain' => 'txt',
+            'text/html' => 'html',
+            'application/pdf' => 'pdf',
+            'application/msword' => 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+            'application/vnd.ms-excel' => 'xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp',
+            default => 'bin',
+        };
     }
 }

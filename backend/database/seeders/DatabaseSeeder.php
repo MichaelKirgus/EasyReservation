@@ -20,7 +20,16 @@ class DatabaseSeeder extends Seeder
         if (! User::query()->where('role', 'admin')->exists()) {
             $defaultName = env('ADMIN_DEFAULT_NAME', 'Default Admin');
             $defaultEmail = env('ADMIN_DEFAULT_EMAIL', 'admin@example.com');
-            $defaultPassword = env('ADMIN_DEFAULT_PASSWORD', 'admin123');
+            $defaultPassword = env('ADMIN_DEFAULT_PASSWORD');
+
+            // Never fall back to a guessable password; generate and surface a random one instead.
+            if (empty($defaultPassword)) {
+                $defaultPassword = Str::password(24);
+                \Log::warning('DatabaseSeeder: No ADMIN_DEFAULT_PASSWORD set, generated a random admin password. Change it immediately after first login.', [
+                    'email' => $defaultEmail,
+                    'generated_password' => $defaultPassword,
+                ]);
+            }
 
             User::create([
                 'name' => $defaultName,
