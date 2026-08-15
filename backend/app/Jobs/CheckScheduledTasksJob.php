@@ -13,6 +13,15 @@ class CheckScheduledTasksJob implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    // Bound the unique-job lock so a killed worker (restart/OOM) can't leave it
+    // stuck forever, which would silently stop every future dispatch of this job.
+    public int $uniqueFor = 55;
+
+    public function uniqueId(): string
+    {
+        return static::class;
+    }
+
     public function handle(ScheduledTaskService $service): void
     {
         \Log::info('CheckScheduledTasksJob: Starting check for due tasks');

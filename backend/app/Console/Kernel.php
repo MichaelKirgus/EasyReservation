@@ -12,7 +12,9 @@ class Kernel extends ConsoleKernel
         \Log::info('Registering scheduled tasks...');
 
         // Run scheduled task checks via one single path to avoid divergent behavior.
-        $schedule->job(new \App\Jobs\CheckScheduledTasksJob)->everyMinute()->withoutOverlapping();
+        // Bound the overlapping-mutex to a few minutes (instead of the 24h default) so a
+        // killed/restarted scheduler container can't permanently block future dispatches.
+        $schedule->job(new \App\Jobs\CheckScheduledTasksJob)->everyMinute()->withoutOverlapping(5);
         \Log::info('Registered CheckScheduledTasksJob');
         
         // Register heartbeat worker job
