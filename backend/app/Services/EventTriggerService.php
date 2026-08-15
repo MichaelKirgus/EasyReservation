@@ -95,6 +95,9 @@ class EventTriggerService
             case 'application_error':
                 // Always fires when triggered - context contains the error message
                 return true;
+            case 'setting_changed':
+                // Always fires when triggered - context contains the changed settings
+                return true;
             default:
                 return true; // Für andere Events ggf. anpassen
         }
@@ -153,6 +156,14 @@ class EventTriggerService
         // Add error_message placeholder if present
         if (isset($context['error_message'])) {
             $map['error_message'] = (string) $context['error_message'];
+        }
+
+        // Add setting_changed placeholders if present
+        if (isset($context['changed_settings'])) {
+            $map['changed_settings'] = (string) $context['changed_settings'];
+        }
+        if (isset($context['changed_by'])) {
+            $map['changed_by'] = (string) $context['changed_by'];
         }
         
         if (!empty($map)) {

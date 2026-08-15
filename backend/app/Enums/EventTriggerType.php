@@ -14,4 +14,5 @@ enum EventTriggerType: string
     case WAITLIST_ENTRY_ADDED = 'waitlist_entry_added';
     case WAITLIST_ENTRY_REMOVED = 'waitlist_entry_removed';
     case APPLICATION_ERROR = 'application_error';
+    case SETTING_CHANGED = 'setting_changed';
 }

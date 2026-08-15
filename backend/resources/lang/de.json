@@ -1013,6 +1013,7 @@
     "event_type_waitlist_entry_added": "Wartelisteneintrag hinzugefügt",
     "event_type_waitlist_entry_removed": "Wartelisteneintrag entfernt",
     "event_type_application_error": "Anwendungsfehler",
+    "event_type_setting_changed": "Einstellung geändert",
     "trigger_dialog_option_email": "E-Mail",
     "trigger_dialog_option_webhook": "Webhook",
     "trigger_dialog_label_event": "Ereignis:",
