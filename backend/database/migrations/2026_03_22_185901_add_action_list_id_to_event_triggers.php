@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        if (Schema::hasColumn('event_triggers', 'action_list_id')) {
+            return;
+        }
+
         Schema::table('event_triggers', function (Blueprint $table) {
             $table->foreignId('action_list_id')->nullable()->constrained()->onDelete('set null');
         });

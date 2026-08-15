@@ -11,10 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('survey_questions', function (Blueprint $table) {
-        $table->foreignId('global_question_id')->nullable()->constrained('global_questions')->nullOnDelete();
-        $table->boolean('active')->default(true);
-        });
+        if (! Schema::hasColumn('survey_questions', 'global_question_id')) {
+            Schema::table('survey_questions', function (Blueprint $table) {
+                $table->foreignId('global_question_id')->nullable()->constrained('global_questions')->nullOnDelete();
+            });
+        }
+
+        if (! Schema::hasColumn('survey_questions', 'active')) {
+            Schema::table('survey_questions', function (Blueprint $table) {
+                $table->boolean('active')->default(true);
+            });
+        }
     }
 
     /**

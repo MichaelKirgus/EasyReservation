@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up()
     {
+        if (! Schema::hasTable('waitlist_entries') || Schema::hasColumn('waitlist_entries', 'site_token')) {
+            return;
+        }
+
         Schema::table('waitlist_entries', function (Blueprint $table) {
             $table->string('site_token', 255)->nullable();
         });
@@ -14,6 +18,10 @@ return new class extends Migration {
 
     public function down()
     {
+        if (! Schema::hasTable('waitlist_entries') || ! Schema::hasColumn('waitlist_entries', 'site_token')) {
+            return;
+        }
+
         Schema::table('waitlist_entries', function (Blueprint $table) {
             $table->dropColumn('site_token');
         });

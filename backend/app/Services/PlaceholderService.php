@@ -243,6 +243,10 @@ class PlaceholderService
             '{{login_ip}}' => $this->contextPlaceholders['login_ip'] ?? '',
         ];
 
+        foreach ($this->contextPlaceholders as $key => $value) {
+            $contextTokens['{{' . $key . '}}'] = $value;
+        }
+
         // Survey-specific placeholders
         $surveyTokens = [];
         if ($this->surveyContext) {

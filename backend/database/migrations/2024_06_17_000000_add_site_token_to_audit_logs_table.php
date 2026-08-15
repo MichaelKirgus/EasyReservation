@@ -6,6 +6,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up()
     {
+        if (! Schema::hasTable('audit_logs') || Schema::hasColumn('audit_logs', 'site_token')) {
+            return;
+        }
+
         Schema::table('audit_logs', function (Blueprint $table) {
             $table->string('site_token')->nullable()->after('user_id');
         });
@@ -13,6 +17,10 @@ return new class extends Migration {
 
     public function down()
     {
+        if (! Schema::hasTable('audit_logs') || ! Schema::hasColumn('audit_logs', 'site_token')) {
+            return;
+        }
+
         Schema::table('audit_logs', function (Blueprint $table) {
             $table->dropColumn('site_token');
         });

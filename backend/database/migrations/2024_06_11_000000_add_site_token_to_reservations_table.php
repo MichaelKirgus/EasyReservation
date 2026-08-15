@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up()
     {
+        if (! Schema::hasTable('reservations') || Schema::hasColumn('reservations', 'site_token')) {
+            return;
+        }
+
         Schema::table('reservations', function (Blueprint $table) {
             $table->string('site_token', 255)->nullable();
         });
@@ -14,6 +18,10 @@ return new class extends Migration {
 
     public function down()
     {
+        if (! Schema::hasTable('reservations') || ! Schema::hasColumn('reservations', 'site_token')) {
+            return;
+        }
+
         Schema::table('reservations', function (Blueprint $table) {
             $table->dropColumn('site_token');
         });

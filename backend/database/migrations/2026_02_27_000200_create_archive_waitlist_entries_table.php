@@ -22,7 +22,7 @@ return new class extends Migration {
             $table->boolean('email_encrypted')->default(false);
             $table->timestamps();
 
-            $table->index('archive_id', 'idx_archive_id');
+            $table->index('archive_id', 'idx_archive_waitlist_archive_id');
             $table->index('original_waitlist_entry_id', 'idx_original_waitlist_entry_id');
         });
     }

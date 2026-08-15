@@ -12,6 +12,7 @@ return new class extends Migration {
             $table->string('display_name');
             $table->string('email')->nullable();
             $table->json('payload')->nullable();
+            $table->string('site_token', 255)->nullable();
             $table->timestamp('date_added')->useCurrent();
             $table->timestamps();
             $table->index('display_name');

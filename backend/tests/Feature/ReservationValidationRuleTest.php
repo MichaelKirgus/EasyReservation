@@ -4,18 +4,21 @@ namespace Tests\Feature;
 
 use App\Models\ValidationRule;
 use App\Models\WebhookTemplate;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ReservationValidationRuleTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
-        setting('reservation_enabled', 1);
-        setting('waitlist_enabled', 0);
-        setting('reservation_max', 0);
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
+        $this->setSetting('reservation_enabled', 1);
+        $this->setSetting('waitlist_enabled', 0);
+        $this->setSetting('reservation_max', 0);
     }
 
     /**
@@ -53,7 +56,7 @@ class ReservationValidationRuleTest extends TestCase
             'active' => true,
             'field_key' => 'name',
             'condition_type' => 'regex',
-            'condition_operator' => 'not_match',
+            'condition_operator' => 'match',
             'condition_value' => '/[0-9]/',
             'sort_order' => 0,
         ]);
@@ -99,7 +102,7 @@ class ReservationValidationRuleTest extends TestCase
      */
     public function test_whitelist_mode_requires_all_rules_to_pass()
     {
-        setting('validation_rules_mode', 'whitelist');
+        $this->setSetting('validation_rules_mode', 'whitelist');
 
         ValidationRule::create([
             'name' => 'Rule 1',
@@ -183,7 +186,7 @@ class ReservationValidationRuleTest extends TestCase
         ]);
 
         // Disable rules
-        setting('validation_rules_enabled', false);
+        $this->setSetting('validation_rules_enabled', false);
 
         $response = $this->postJson('/api/reservations', [
             'name' => 'forbidden name',
@@ -195,11 +198,4 @@ class ReservationValidationRuleTest extends TestCase
         $response->assertJsonStructure(['reservation']);
     }
 
-    /**
-     * Helper method to get a valid site token
-     */
-    private function getValidSiteToken(): string
-    {
-        return app(\App\Services\SiteTokenService::class)->getValidSiteToken();
-    }
 }

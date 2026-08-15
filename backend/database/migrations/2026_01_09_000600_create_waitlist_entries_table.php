@@ -12,6 +12,7 @@ return new class extends Migration {
             $table->string('display_name');
             $table->string('email')->nullable();
             $table->json('payload')->nullable();
+            $table->string('site_token', 255)->nullable();
             $table->string('status')->default('pending');
             $table->unsignedBigInteger('reservation_id')->nullable();
             $table->timestamp('promoted_at')->nullable();

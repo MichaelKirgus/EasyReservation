@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        if (Schema::hasColumn('scheduled_tasks', 'action_list_id')) {
+            return;
+        }
+
         Schema::table('scheduled_tasks', function (Blueprint $table) {
             $table->foreignId('action_list_id')->nullable()->constrained()->onDelete('set null');
         });

@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 return new class extends Migration
 {
@@ -19,7 +20,12 @@ return new class extends Migration
         // Set UUID for existing events if not present
         \DB::table('events')
             ->whereNull('uuid')
-            ->update(['uuid' => \DB::raw("UUID()")]);
+            ->pluck('id')
+            ->each(function ($eventId): void {
+                \DB::table('events')
+                    ->where('id', $eventId)
+                    ->update(['uuid' => (string) Str::uuid()]);
+            });
     }
 
     /**

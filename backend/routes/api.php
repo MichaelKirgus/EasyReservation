@@ -73,11 +73,8 @@ Route::middleware(['site-token'])->group(function () {
     Route::get('/privacy-policy', [PrivacyPolicyController::class, 'show']);
     Route::get('/email-validations/admin-approve/{token}', [EmailValidationController::class, 'approve']);
     Route::get('/rss', [AdminRssFeedController::class, 'guestCombined'])->name('guest.rss.combined');
-    Route::get('/rss/', [AdminRssFeedController::class, 'guestCombined']);
     Route::get('/rss/reservations', [AdminRssFeedController::class, 'guestReservations'])->name('guest.rss.reservations');
-    Route::get('/rss/reservations/', [AdminRssFeedController::class, 'guestReservations']);
     Route::get('/rss/waitlist', [AdminRssFeedController::class, 'guestWaitlist'])->name('guest.rss.waitlist');
-    Route::get('/rss/waitlist/', [AdminRssFeedController::class, 'guestWaitlist']);
     Route::get('/events/upcoming', [EventController::class, 'upcoming']);
     Route::get('/surveys/{survey}', [PublicSurveyController::class, 'show']);
     Route::post('/surveys/{survey}/submit', [PublicSurveyController::class, 'submit']);
@@ -95,11 +92,8 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::get('/admin/audit-log/count', [AuditLogController::class, 'count']);
     Route::get('/admin/reservations', [AdminReservationController::class, 'index']);
     Route::get('/admin/rss', [AdminRssFeedController::class, 'combined'])->name('admin.rss.combined');
-    Route::get('/admin/rss/', [AdminRssFeedController::class, 'combined']);
     Route::get('/admin/rss/reservations', [AdminRssFeedController::class, 'reservations'])->name('admin.rss.reservations');
-    Route::get('/admin/rss/reservations/', [AdminRssFeedController::class, 'reservations']);
     Route::get('/admin/rss/waitlist', [AdminRssFeedController::class, 'waitlist'])->name('admin.rss.waitlist');
-    Route::get('/admin/rss/waitlist/', [AdminRssFeedController::class, 'waitlist']);
     Route::post('/admin/reservations', [AdminReservationController::class, 'store']);
     Route::patch('/admin/reservations/{reservation}', [AdminReservationController::class, 'update']);
     Route::delete('/admin/reservations/{reservation}', [AdminReservationController::class, 'destroy']);
@@ -215,13 +209,6 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
     Route::post('/admin/cron/next-run', [\App\Http\Controllers\Api\ScheduledTaskController::class, 'getNextCronRun']);
     Route::get('/admin/diagnostics', [DiagnosticsController::class, 'show']);
     
-    // Moderation Dashboard routes (for moderator, admin, and superadmin roles)
-    Route::middleware(['role:moderator,admin,superadmin'])->group(function () {
-        Route::get('/admin/moderation-dashboard/stats', [\App\Http\Controllers\Api\ModerationDashboardController::class, 'stats']);
-        Route::get('/admin/moderation-dashboard/public-url', [\App\Http\Controllers\Api\ModerationDashboardController::class, 'publicUrl']);
-        Route::post('/admin/moderation-dashboard/action-list/{id}/execute', [\App\Http\Controllers\Api\ModerationDashboardController::class, 'executeActionList']);
-    });
-
     Route::post('/admin/diagnostics/flush-state', [DiagnosticsController::class, 'flushState']);
 
     Route::get('/admin/diagnostics/redis-keys', [DiagnosticsController::class, 'redisKeys']);
@@ -291,6 +278,13 @@ Route::middleware(['role:admin,superadmin'])->group(function () {
    Route::delete('/admin/attachment-templates/{attachmentTemplate}/attachments/{attachment}', [AttachmentUploadController::class, 'destroy']);
    Route::apiResource('/admin/attachment-templates', AttachmentTemplateController::class)->except(['create', 'edit', 'show']);
    Route::get('/admin/ical-templates/{icalTemplate}/preview', [IcalTemplateController::class, 'preview']);
+});
+
+// Moderation Dashboard routes (for moderator, admin, and superadmin roles)
+Route::middleware(['role:moderator,admin,superadmin'])->group(function () {
+    Route::get('/admin/moderation-dashboard/stats', [\App\Http\Controllers\Api\ModerationDashboardController::class, 'stats']);
+    Route::get('/admin/moderation-dashboard/public-url', [\App\Http\Controllers\Api\ModerationDashboardController::class, 'publicUrl']);
+    Route::post('/admin/moderation-dashboard/action-list/{id}/execute', [\App\Http\Controllers\Api\ModerationDashboardController::class, 'executeActionList']);
 });
 
 Route::middleware(['role:superadmin,admin,moderator'])->group(function () {

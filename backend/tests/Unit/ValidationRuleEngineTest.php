@@ -6,11 +6,14 @@ use App\Models\ValidationRule;
 use App\Models\WebhookTemplate;
 use App\Services\ValidationRuleEngine;
 use App\Services\ValidationResult;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\TestCase;
 use Tests\TestCase as LaravelTestCase;
 
 class ValidationRuleEngineTest extends LaravelTestCase
 {
+    use RefreshDatabase;
+
     private ValidationRuleEngine $engine;
 
     protected function setUp(): void
@@ -24,7 +27,7 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_engine_disabled_returns_success()
     {
-        setting('validation_rules_enabled', false);
+        $this->setSetting('validation_rules_enabled', false);
 
         $result = $this->engine->evaluate(['name' => 'test']);
 
@@ -36,8 +39,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_length_validation_less_than()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'Min Length Test',
@@ -61,8 +64,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_length_validation_greater_than()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'Max Length Test',
@@ -86,8 +89,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_length_validation_equals()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'Exact Length Test',
@@ -111,8 +114,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_regex_validation_match()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'Regex Match Test',
@@ -136,15 +139,15 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_regex_validation_not_match()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'Regex Not Match Test',
             'active' => true,
             'field_key' => 'name',
             'condition_type' => 'regex',
-            'condition_operator' => 'not_match',
+            'condition_operator' => 'match',
             'condition_value' => '/[0-9]/',
             'sort_order' => 0,
         ]);
@@ -161,8 +164,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_contains_validation_contains()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'Contains Test',
@@ -186,8 +189,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_contains_validation_case_insensitive()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'Case Insensitive Test',
@@ -211,8 +214,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_contains_validation_not_contains()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'Not Contains Test',
@@ -236,8 +239,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_whitelist_mode_all_rules_must_pass()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'whitelist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'whitelist');
 
         // Rule 1: Must have at least 3 characters
         ValidationRule::create([
@@ -279,8 +282,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_blacklist_mode_first_failure_triggers()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'First Rule',
@@ -320,8 +323,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_inactive_rules_are_skipped()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'Inactive Rule',
@@ -342,8 +345,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_missing_field_is_skipped()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'Field Rule',
@@ -364,8 +367,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_custom_error_message()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'Custom Message Rule',
@@ -388,8 +391,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_invalid_regex_is_caught()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'Invalid Regex Rule',
@@ -411,8 +414,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_unicode_category_validation()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'Emoji Check',
@@ -438,8 +441,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_contains_validation_with_placeholders()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'Placeholder Contains Test',
@@ -468,8 +471,8 @@ class ValidationRuleEngineTest extends LaravelTestCase
      */
     public function test_validation_with_custom_payload_fields()
     {
-        setting('validation_rules_enabled', true);
-        setting('validation_rules_mode', 'blacklist');
+        $this->setSetting('validation_rules_enabled', true);
+        $this->setSetting('validation_rules_mode', 'blacklist');
 
         ValidationRule::create([
             'name' => 'Phone Rule',

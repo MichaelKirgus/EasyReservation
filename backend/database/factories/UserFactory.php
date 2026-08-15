@@ -41,4 +41,39 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    public function withRole(string $role): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => $role,
+            'active' => true,
+            'api_token' => Str::random(40),
+            'api_token_is_hashed' => false,
+        ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->withRole('admin');
+    }
+
+    public function superadmin(): static
+    {
+        return $this->withRole('superadmin');
+    }
+
+    public function moderator(): static
+    {
+        return $this->withRole('moderator');
+    }
+
+    public function guest(): static
+    {
+        return $this->withRole('guest');
+    }
+
+    public function user(): static
+    {
+        return $this->withRole('user');
+    }
 }
