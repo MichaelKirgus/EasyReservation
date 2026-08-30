@@ -112,7 +112,11 @@ async function loadNotifyDefaults() {
     const res = await fetchWithAuth('notification-defaults')
     if (!res.ok) throw new Error(await res.text())
     const json = await res.json()
-    notifyOnChange.value = !!json.notify_default
+    // Seed only: the server-wide default applies just once, when no local preference is saved yet.
+    // Once a value has been persisted (via the watch below), the user's toggle always wins.
+    if (localStorage.getItem('admin_notify_on_change') === null) {
+      notifyOnChange.value = !!json.notify_default
+    }
   } catch (_) {
     // fallback: keep local value
   }
@@ -136,7 +140,7 @@ async function load(opts = {}) {
     const res = await fetchWithAuth('reservations')
     if (!res.ok) throw new Error(await res.text())
     data.value = await res.json()
-    localStorage.setItem('admin_notify_on_change', notifyOnChange.value ? '1' : '0')
+    // Persistence of notifyOnChange is handled exclusively by the watch below.
     if (!opts.auto) setMessage(tr(''))
   } catch (e) {
     setError(tr('error_loading') + ': ' + e, opts)
@@ -442,7 +446,7 @@ async function resendValidation(id) {
 
 watch(notifyOnChange, (val) => localStorage.setItem('admin_notify_on_change', val ? '1' : '0'))
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('api-key-updated', handleKeyUpdate)
   // site_token aus erster Reservierung oder Warteliste Ã¼bernehmen, falls nicht gesetzt
   if (!localStorage.getItem('site_token')) {
@@ -453,7 +457,8 @@ onMounted(() => {
     }
   }
   if (apiKey.value) {
-    loadNotifyDefaults()
+    // Seed the notification checkbox first so a stale response can't overwrite it, then load data.
+    await loadNotifyDefaults()
     reloadAll()
   }
 })
