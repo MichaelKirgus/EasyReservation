@@ -421,7 +421,10 @@ class PlaceholderService
      */
     public function setReservation(\App\Models\Reservation $reservation): self
     {
-        $this->contextPlaceholders['reservation_name'] = $reservation->display_name ?? '';
+        // {{reservation_name}} is reserved for the reservation system title (settings).
+        // The participant's name/email are available via {{name}} / {{email}} (recipient tokens)
+        // and, in form-based flows, via {{form_field__name}}.
+        $this->contextPlaceholders['reservation_display_name'] = $reservation->display_name ?? '';
         $this->contextPlaceholders['reservation_email'] = $reservation->email ?? '';
         $this->contextPlaceholders['reservation_created_at'] = $reservation->created_at?->toIso8601String() ?? '';
         
