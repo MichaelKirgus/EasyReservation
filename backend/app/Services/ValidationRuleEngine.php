@@ -19,8 +19,12 @@ class ValidationRuleEngine
             'fields' => array_keys($flatData),
         ]);
 
-        // Set context placeholders if provided
+        // Set context placeholders if provided.
+        // Never let the validation context shadow core placeholder names:
+        // {{reservation_name}} must stay the reservation system title (settings),
+        // not the participant name submitted in this request.
         if (!empty($context)) {
+            unset($context['reservation_name']);
             $this->placeholderService->setContextPlaceholders($context);
         }
 
