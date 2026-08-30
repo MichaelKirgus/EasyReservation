@@ -6,6 +6,11 @@ export default defineConfig({
     define: {
         __APP_VERSION__: JSON.stringify(process.env.APP_VERSION || 'unknown'),
     },
+    test: {
+        environment: 'happy-dom',
+        globals: true,
+        include: ['src/**/*.{test,spec}.js'],
+    },
     server: {
         proxy: {
             '/api': {

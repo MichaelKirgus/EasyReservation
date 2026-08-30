@@ -36,13 +36,23 @@ class EmailValidationAdminController extends Controller
 
     public function approve(EmailValidation $validation): JsonResponse
     {
+        // A validation whose email link has not been clicked yet cannot be approved.
+        if ($validation->status === 'email_pending') {
+            return response()->json(['message' => __('email_validation_pending_text')], 400);
+        }
+
         try {
             $result = $this->service->approve($validation);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 400);
         }
 
+        // finalize() returns the validation as an array; waitlist results carry
+        // type/waitlist_entry_id instead of a dedicated "waitlist" flag.
         $waitlist = (bool) ($result['waitlist'] ?? false);
+        if (! $waitlist && (($result['type'] ?? null) === 'waitlist' || ! empty($result['waitlist_entry_id']))) {
+            $waitlist = true;
+        }
 
         return response()->json([
             'message' => $waitlist ? __('waitlist_entry_approved') : __('reservation_approved'),

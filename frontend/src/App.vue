@@ -413,8 +413,11 @@ async function logout() {
 }
 
 function clearAdminSessionState() {
+  // Preserve non-sensitive UI preferences that would otherwise be wiped by the full clear.
+  const notifyPref = localStorage.getItem('admin_notify_on_change')
   if (appSettings.clear_localstorage_on_logout) {
     localStorage.clear()
+    if (notifyPref !== null) localStorage.setItem('admin_notify_on_change', notifyPref)
   } else {
     localStorage.removeItem('admin_auth_session')
     localStorage.removeItem('admin_api_key')

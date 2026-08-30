@@ -8,6 +8,7 @@ use App\Models\GlobalQuestion;
 use App\Models\SurveyQuestion;
 use App\Models\SurveyResponse;
 use App\Services\PlaceholderService;
+use App\Services\SettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -125,6 +126,7 @@ class PublicSurveyController extends Controller
                 $question = SurveyQuestion::find($response['question_id']);
                 
                 if (!$question || $question->survey_id !== $survey->id) {
+                    DB::rollBack();
                     return response()->json([
                         'message' => __('question_not_found'),
                     ], 422);
@@ -133,6 +135,7 @@ class PublicSurveyController extends Controller
                 if ($question->is_required && 
                     empty($response['response_text']) && 
                     empty($response['response_score'])) {
+                    DB::rollBack();
                     return response()->json([
                         'message' => __('field_required', ['field' => $question->question_text]),
                     ], 422);
@@ -141,6 +144,7 @@ class PublicSurveyController extends Controller
                 // Validate score range
                 if (isset($response['response_score']) &&
                     ($response['response_score'] < 1 || $response['response_score'] > 5)) {
+                    DB::rollBack();
                     return response()->json([
                         'message' => __('score_must_be_1_to_5'),
                     ], 422);
@@ -152,6 +156,7 @@ class PublicSurveyController extends Controller
                     if ($value === false) {
                         $value = filter_var($response['response_text'], FILTER_VALIDATE_FLOAT);
                         if ($value === false) {
+                            DB::rollBack();
                             return response()->json([
                                 'message' => __('number_input_invalid', ['field' => $question->question_text]),
                             ], 422);
@@ -162,12 +167,14 @@ class PublicSurveyController extends Controller
                     }
 
                     if ($question->min_value !== null && $value < $question->min_value) {
+                        DB::rollBack();
                         return response()->json([
                             'message' => __('number_input_below_min', ['field' => $question->question_text, 'min' => $question->min_value]),
                         ], 422);
                     }
 
                     if ($question->max_value !== null && $value > $question->max_value) {
+                        DB::rollBack();
                         return response()->json([
                             'message' => __('number_input_above_max', ['field' => $question->question_text, 'max' => $question->max_value]),
                         ], 422);

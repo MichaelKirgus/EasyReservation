@@ -1,0 +1,6 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "vendor/bin/phpunit": true,
+        "awk": true
+    }
+}

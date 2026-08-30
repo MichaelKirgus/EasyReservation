@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             
             // Foreign keys
-            $table->foreignId('group_id')->constrained()->onDelete('cascade');
+            $table->foreignId('group_id')->constrained('mail_transport_groups')->onDelete('cascade');
             $table->foreignId('account_id')->constrained('mail_transport_accounts')->onDelete('cascade');
             
             // Priority for sequential failover (lower = primary)

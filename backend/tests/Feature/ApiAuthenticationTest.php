@@ -9,6 +9,57 @@ class ApiAuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_login_issues_api_token_and_session_cookie(): void
+    {
+        $user = $this->createApiUser('admin', [
+            'password' => 'correct-password',
+        ]);
+
+        $response = $this->postJson('/api/auth/login', [
+            'identifier' => $user->email,
+            'password' => 'correct-password',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'api_token',
+                'user' => ['id', 'name', 'email', 'role'],
+            ])
+            ->assertJsonPath('user.id', $user->id)
+            ->assertCookie('api_session');
+
+        $this->assertNotSame($user->api_token, $response->json('api_token'));
+    }
+
+    public function test_login_rejects_invalid_credentials_without_issuing_a_token(): void
+    {
+        $user = $this->createApiUser('admin', [
+            'password' => 'correct-password',
+        ]);
+
+        $response = $this->postJson('/api/auth/login', [
+            'identifier' => $user->email,
+            'password' => 'wrong-password',
+        ]);
+
+        $response->assertForbidden()
+            ->assertJsonPath('message', __('auth_invalid_credentials'));
+
+        $this->assertNull($response->json('api_token'));
+    }
+
+    public function test_logout_expires_the_api_session_cookie(): void
+    {
+        $user = $this->createApiUser('admin');
+
+        $response = $this->withHeaders($this->apiHeaders($user))
+            ->postJson('/api/auth/logout');
+
+        $response->assertOk()
+            ->assertJson(['message' => 'Logged out.'])
+            ->assertCookieExpired('api_session');
+    }
+
     public function test_health_endpoint_is_public_and_reports_service_status(): void
     {
         $response = $this->getJson('/api/health');

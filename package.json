@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "EasyReservation is a comprehensive reservation management system built with Laravel (backend) and Vue.js (frontend). It provides a complete solution for managing reservations, events, users, and more with an admin panel and public-facing interfaces.",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MichaelKirgus/EasyReservation.git"

@@ -39,8 +39,13 @@ class TwoFactorApiController extends Controller
     public function qr(Request $request)
     {
         $user = Auth::user();
+
+        if (empty($user->two_factor_secret)) {
+            return response()->json(['svg' => null, 'secret' => null]);
+        }
+
         $svg = $user->twoFactorQrCodeSvg();
-        $secret = $user->two_factor_secret ? decrypt($user->two_factor_secret) : null;
+        $secret = decrypt($user->two_factor_secret);
         return response()->json(['svg' => $svg, 'secret' => $secret]);
     }
 

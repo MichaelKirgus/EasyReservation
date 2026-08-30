@@ -33,8 +33,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserRole::class,
             'site-token' => \App\Http\Middleware\EnsureSiteToken::class,
-            'admin-key' => \App\Http\Middleware\EnsureAdminKey::class,
-            'moderator-key' => \App\Http\Middleware\EnsureModeratorKey::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

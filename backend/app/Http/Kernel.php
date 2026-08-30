@@ -2,8 +2,6 @@
 
 namespace App\Http;
 
-use App\Http\Middleware\EnsureAdminKey;
-use App\Http\Middleware\EnsureModeratorKey;
 use App\Http\Middleware\EnsureSiteToken;
 use App\Http\Middleware\EnsureUserRole;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
@@ -51,7 +49,5 @@ class Kernel extends HttpKernel
     protected $routeMiddleware = [
         'role' => EnsureUserRole::class,
         'site-token' => EnsureSiteToken::class,
-        'admin-key' => EnsureAdminKey::class,
-        'moderator-key' => EnsureModeratorKey::class,
     ];
 }
