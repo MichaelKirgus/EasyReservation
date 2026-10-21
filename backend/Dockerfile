@@ -5,6 +5,8 @@ COPY . .
 RUN composer install --no-dev --prefer-dist --optimize-autoloader
 
 # Use a more minimal PHP-FPM image with only necessary extensions
+# Floating minor tag on purpose: picks up PHP security point releases automatically
+# (e.g. 8.3.36 fixes CVE-2026-109618 / CVE-2026-109619, published 2026-10-21).
 FROM php:8.3-fpm-alpine
 
 # Install only required system dependencies - using busybox to enable cron functionality
