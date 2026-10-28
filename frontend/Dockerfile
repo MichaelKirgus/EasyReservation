@@ -12,6 +12,8 @@ RUN npm run build
 
 # Use a minimal nginx image and remove unnecessary files
 FROM nginx:alpine
+# Apply Alpine security updates (e.g. brotli-libs 1.2.1 fixes CVE-2026-111497, CISA KEV)
+RUN apk update && apk upgrade --available
 # Remove default nginx config to avoid conflicts
 RUN rm -rf /etc/nginx/conf.d/default.conf
 RUN rm -rf /usr/share/nginx/html/*
