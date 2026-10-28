@@ -20,6 +20,9 @@ RUN apk add --no-cache \
     libpng-dev \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
+# Apply Alpine security updates (e.g. brotli-libs 1.2.1 fixes CVE-2026-111497, CISA KEV)
+RUN apk update && apk upgrade --available
+
 # Enable cron in inittab
 RUN sed -i 's/\\#cron/cron/' /etc/inittab
 
